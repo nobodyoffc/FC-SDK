@@ -1,4 +1,4 @@
-package starter;
+package server;
 
 import APIP.apipClient.ApipClientData;
 import APIP.apipClient.ConstructAPIs;

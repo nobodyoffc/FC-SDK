@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.Arrays;
 
 import static appTools.Inputer.promptAndUpdate;
 
@@ -99,7 +100,7 @@ public class ApiProvider {
                 case NaSaRPC ->{
                     inputApiURL(br, "http://127.0.0.1:8332");
                     inputTicks(br);
-                    sid = Hex.toHex(Hash.Sha256x2(apiUrl.getBytes()));
+                    sid = ticks[0]+"@"+apiUrl;
                 }
                 case ES -> {
                     inputApiURL(br,"http://127.0.0.1:9200");
@@ -176,7 +177,7 @@ public class ApiProvider {
 
     public void updateAll(BufferedReader br) {
         try {
-            this.type = ApiType.valueOf(promptAndUpdate(br, "type(NaSaRPC, APIP, or ThirdParty", String.valueOf(this.type)));
+            this.type = ApiType.valueOf(promptAndUpdate(br, "type ("+ Arrays.toString(ApiType.values())+")", String.valueOf(this.type)));
             if(type==ApiType.APIP){
                 if(Inputer.askIfYes(br,"The apiUrl is "+apiUrl+". Update it? y/n:")){
                     apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service:");
@@ -189,8 +190,8 @@ public class ApiProvider {
                     Gson gson = new Gson();
                     service = gson.fromJson(gson.toJson(apipClientData.getResponseBody().getData()),Service.class);
                     apipParams = ApipParams.fromObject(service.getParams());
-                    orgUrl = promptAndUpdate(br, "url of organization", this.orgUrl);
-                    docUrl = promptAndUpdate(br, "url of API document", this.docUrl);
+                    orgUrl = promptAndUpdate(br, "url of the organization", this.orgUrl);
+                    docUrl = promptAndUpdate(br, "url of the API documents", this.docUrl);
                     inputDocUrl(br);
                     owner = service.getOwner();
                     protocols = service.getProtocols();
@@ -198,11 +199,10 @@ public class ApiProvider {
                 }
             }
 
-            inputSid(br);
-
-            this.apiUrl = promptAndUpdate(br, "url of API request", this.apiUrl);
-            this.docUrl = promptAndUpdate(br, "url of API document", this.docUrl);
-            this.orgUrl = promptAndUpdate(br, "url of organization", this.orgUrl);
+            this.sid = promptAndUpdate(br, "sid of API request", this.sid);
+            this.apiUrl = promptAndUpdate(br, "url of the API requests", this.apiUrl);
+            this.docUrl = promptAndUpdate(br, "url of the API documents", this.docUrl);
+            this.orgUrl = promptAndUpdate(br, "url of the organization", this.orgUrl);
             this.owner = promptAndUpdate(br, "API owner", this.owner);
             this.protocols = promptAndUpdate(br, "protocol", this.protocols);
             this.ticks = promptAndUpdate(br, "ticks", this.ticks);

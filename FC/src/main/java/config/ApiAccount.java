@@ -16,18 +16,20 @@ import appTools.Inputer;
 import appTools.Menu;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
+import co.elastic.clients.json.JsonpUtils;
 import com.google.gson.Gson;
 import constants.CodeAndMsg;
 import crypto.cryptoTools.Hash;
 import crypto.cryptoTools.KeyTools;
 import crypto.eccAes256K1P7.EccAes256K1P7;
 import crypto.eccAes256K1P7.EccAesDataByte;
-import database.esTools.NewEsClient;
+import database.esTools.EsClientMaker;
 import javaTools.BytesTools;
 import javaTools.JsonTools;
 import javaTools.NumberTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 import javax.annotation.Nullable;
@@ -68,6 +70,7 @@ public class ApiAccount {
     private String bestBlockId;
     private long balance;
     private transient Object client;
+    private transient EsClientMaker esClientMaker;
 
     public static void checkApipBalance(ApiAccount apipAccount, ApipClientData apipClientData, byte[] initSymKey) {
         if(apipClientData ==null|| apipClientData.getResponseBody()==null)return;
@@ -148,61 +151,84 @@ public class ApiAccount {
         }
 
         if(! apiProvider.getApiUrl().equals(this.apiUrl)){
-            if(Inputer.askIfYes(br,"The apiUrl of apiProvider "+ apiProvider.getApiUrl() +" is not the same as the apiUrl "+ apiUrl+" of the apiAccount. Reset the apiUrl of apiAccount? y/n")) {
+            if(Inputer.askIfYes(br,"The apiUrl of apiProvider "+ apiProvider.getApiUrl() +" is not the same as the apiUrl "+ apiUrl+" of the apiAccount. \nReset the apiUrl of apiAccount? y/n")) {
                 this.apiUrl = apiProvider.getApiUrl();
-            }else if(!Inputer.askIfYes(br,"Connect with "+apiUrl+"? y/n"))
-                return true;
+            }
         }
         return false;
     }
 
     private NaSaRpcClient connectNaSaRPC(byte[] symKey, BufferedReader br) {
-        if(apiUrl==null)apiUrl=Inputer.inputString(br,"Input the apiUrl:");
-        if(userName==null)userName = Inputer.inputString(br,"Input the userName:");
-
+        if(apiUrl==null) {
+            System.out.println("The URL of the API is necessary.");
+            return null;
+        }
+        if(userName==null) {
+            System.out.println("The username of the API is necessary.");
+            return null;
+        }
         if(passwordCipher==null) {
-            try {
-                inputPasswordCipher(symKey,br);
-                if(passwordCipher==null)return null;
-            } catch (IOException e) {
-                return null;
-            }
+            System.out.println("The password of the API is necessary.");
+            return null;
         }
         password = EccAes256K1P7.decryptJsonBytes(passwordCipher,symKey);
         if(password==null)return null;
 
-        GetBlockchainInfo.BlockchainInfo blockchainInfo = new GetBlockchainInfo().getBlockchainInfo(apiUrl, userName, new String(password,StandardCharsets.UTF_8));
+        NaSaRpcClient naSaRpcClient = new NaSaRpcClient(apiUrl,userName,password);
+
+
+        GetBlockchainInfo.BlockchainInfo blockchainInfo = naSaRpcClient.getBlockchainInfo();
 
         if(blockchainInfo==null) return null;
 
+        naSaRpcClient.setBestBlockId(blockchainInfo.getBestblockhash());
+        naSaRpcClient.setBestHeight(blockchainInfo.getBlocks()-1);
         this.bestHeight = blockchainInfo.getBlocks()-1;
         this.bestBlockId = blockchainInfo.getBestblockhash();
-
-        return new NaSaRpcClient(apiUrl,userName,password);
+        this.client = naSaRpcClient;
+        log.info("The NaSa node on "+apiUrl+" is connected.");
+        return naSaRpcClient;
     }
 
     private ElasticsearchClient connectEs(byte[] symKey, BufferedReader br) {
-        if(apiUrl==null)apiUrl=Inputer.inputString(br,"Input the apiUrl:");
-
-        NewEsClient newEsClient = new NewEsClient();
-        newEsClient.getEsClientSilent(this,symKey);
+        if(apiUrl==null) {
+            System.out.println("The URL of the API is necessary.");
+            return null;
+        }
+        esClientMaker = new EsClientMaker();
+        esClientMaker.getEsClientSilent(this,symKey);
 
         try {
-            IndicesResponse result = newEsClient.esClient.cat().indices();
-            System.out.println("Got ES client. There are "+result.valueBody().size()+" indices in ES.");
+            IndicesResponse result = esClientMaker.esClient.cat().indices();
+            log.info("Got ES client. There are "+result.valueBody().size()+" indices in ES.");
         } catch (IOException e) {
             log.debug("Failed to create ES client. Check ES.");
             System.exit(0);
         }
-        this.client = newEsClient.esClient;
-        return newEsClient.esClient;
+        this.client = esClientMaker.esClient;
+        return esClientMaker.esClient;
+    }
+    public void closeEsClient(){
+        try {
+            esClientMaker.shutdownClient();
+        } catch (IOException e) {
+            log.debug("Failed to close the esClient.");
+        }
     }
 
     private JedisPool connectRedis() {
+        if(apiUrl==null) {
+            System.out.println("The URL of the API is necessary.");
+            return null;
+        }
         JedisPool jedisPool;
         if(apiUrl==null)jedisPool = new JedisPool();
         else jedisPool=new JedisPool(apiUrl);
         this.client = jedisPool;
+        try(Jedis jedis = jedisPool.getResource()){
+            if(!"pong".equalsIgnoreCase(jedis.ping()))return null;
+        }
+        log.info("The JedisPool is ready.");
         return jedisPool;
     }
 
@@ -450,7 +476,7 @@ public class ApiAccount {
 
     public void updateAll(byte[]symKey, ApiProvider apiProvider,BufferedReader br) {
         try {
-            inputSid(br);
+            this.sid = promptAndUpdate(br, "sid", this.sid);
             this.userName = promptAndUpdate(br, "userName", this.userName);
             this.passwordCipher = updateKeyCipher(br, "user's passwordCipher", this.passwordCipher,symKey);
             this.userPriKeyCipher = updateKeyCipher(br, "userPriKeyCipher", this.userPriKeyCipher,symKey);
@@ -610,14 +636,7 @@ public class ApiAccount {
         return true;
     }
 
-    public byte[] connectApip(ApiProvider apiProvider, byte[] symKey, BufferedReader br){
-
-        if(!sid.equals(apiProvider.getSid())){
-            System.out.println("The SID of apiProvider "+apiProvider.getSid()+" is not the same as the SID "+sid+" in apiAccount.");
-            if(Inputer.askIfYes(br,"Reset the SID of apiAccount to "+apiProvider.getSid()+"? y/n")){
-                sid=apiProvider.getSid();
-            }else return null;
-        }
+    public ApipClient connectApip(ApiProvider apiProvider, byte[] symKey, BufferedReader br){
 
         if(!apiProvider.getType().equals(ApiProvider.ApiType.APIP)){
             System.out.println("It's not APIP provider.");
@@ -625,21 +644,6 @@ public class ApiAccount {
                 apiProvider.setType(ApiProvider.ApiType.APIP);
             }else return null;
             return null;
-        }
-
-        if (apiUrl==null && apiProvider.getApiUrl() == null) {
-            System.out.println("The apiUrl is required.");
-            if(Inputer.askIfYes(br,"Reset the apiUrl(urlHead)? y/n")){
-                inputApiUrl(br);
-                apiProvider.setApiUrl(apiUrl);
-            }return null;
-        }
-
-        if(! apiProvider.getApiUrl().equals(this.apiUrl)){
-            if(Inputer.askIfYes(br,"The apiUrl of apiProvider "+apiProvider.getApiUrl() +" is not the same as the apiUrl "+ apiUrl+" of the apiAccount. Reset the apiUrl of apiAccount? y/n")) {
-                this.apiUrl = apiProvider.getApiUrl();
-            }else if(!Inputer.askIfYes(br,"Connect with "+apiUrl+"? y/n"))
-                return null;
         }
 
         if(!checkApipProvider(apiProvider,apiUrl)){
@@ -655,13 +659,15 @@ public class ApiAccount {
         }
 
         byte[] sessionKey1 =
-                checkSessionKey(apiProvider, symKey, br);
+                checkSessionKey(symKey, br);
 
         if(sessionKey1==null) return null;
 
         sessionKey = sessionKey1;
         System.out.println("Connected to the initial APIP service: " + sid + " on " + apiUrl);
-        return sessionKey;
+        ApipClient apipClient = new ApipClient(apiProvider,this);
+        client = apipClient;
+        return apipClient;
     }
 
 
@@ -687,7 +693,7 @@ public class ApiAccount {
         return true;
     }
 
-    private byte[] checkSessionKey(ApiProvider apiProvider, byte[] symKey, BufferedReader br) {
+    private byte[] checkSessionKey(byte[] symKey, BufferedReader br) {
         if (sessionKeyCipher== null) {
             this.sessionKey = freshApipSessionKey(symKey, null);
             if (this.sessionKey==null) {
@@ -710,6 +716,7 @@ public class ApiAccount {
                 if (this.sessionKey==null) {
                     return null;
                 }
+                apipClientData = ConstructAPIs.serviceByIdsPost(this.apiUrl, new String[]{sid}, via, this.sessionKey);
             }
         }
         freshApipService(apipClientData,br);
@@ -722,12 +729,12 @@ public class ApiAccount {
     private void freshApipService(ApipClientData apipClientData,BufferedReader br) {
         Map<String, Service> stringServiceMap = ApipTools.parseApipServiceMap(apipClientData);
         if(stringServiceMap==null){
-            System.out.println("Failed to get service with sessionKey.");
+            System.out.println("Failed to get service with the sessionKey.");
             return;
         }
         Service newService = stringServiceMap.get(sid);
         if(newService==null){
-            System.out.println("Failed to get service with sessionKey.");
+            System.out.println("Failed to get service with the sessionKey.");
             return;
         }
 
@@ -782,6 +789,7 @@ public class ApiAccount {
 //        return sessionKey;
 //    }
     public byte[] freshApipSessionKey(byte[] symKey, String mode) {
+        System.out.println("Fresh the sessionKey of the initial APIP...");
         byte[] apipSessionKey;
         String sessionKeyCipher;
         byte[] priKey = decryptUserPriKey(userPriKeyCipher,symKey);

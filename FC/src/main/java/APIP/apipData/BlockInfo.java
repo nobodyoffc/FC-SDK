@@ -17,7 +17,7 @@ public class BlockInfo {
     private String preId;
     private String merkleRoot;
     private long time;
-    private long diffTarget;
+    private long bits;
     private long nonce;
     private int txCount;
     private long inValueT;
@@ -43,7 +43,7 @@ public class BlockInfo {
             blockInfo.setPreId(block.getPreBlockId());
             blockInfo.setMerkleRoot(block.getMerkleRoot());
             blockInfo.setTime(block.getTime());
-            blockInfo.setDiffTarget(block.getDiffTarget());
+            blockInfo.setBits(block.getBits());
             blockInfo.setNonce(block.getNonce());
             blockInfo.setTxCount(block.getTxCount());
             blockInfo.setInValueT(block.getInValueT());
@@ -113,12 +113,12 @@ public class BlockInfo {
         this.time = time;
     }
 
-    public long getDiffTarget() {
-        return diffTarget;
+    public long getBits() {
+        return bits;
     }
 
-    public void setDiffTarget(long diffTarget) {
-        this.diffTarget = diffTarget;
+    public void setBits(long bits) {
+        this.bits = bits;
     }
 
     public long getNonce() {

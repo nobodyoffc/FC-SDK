@@ -205,21 +205,23 @@ public class Inputer {
                 System.out.println("BufferReader wrong.");
                 return 0;
             }
-            if (!("".equals(str))) {
-                try {
-                    num = Integer.parseInt(str);
-                    if (maximum > 0) {
-                        if (num > maximum) {
-                            System.out.println("It's bigger than " + maximum + ".");
-                            continue;
-                        }
+
+            if ("".equals(str)) return 0;
+
+            try {
+                num = Integer.parseInt(str);
+                if (maximum > 0) {
+                    if (num > maximum) {
+                        System.out.println("It's bigger than " + maximum + ".");
+                        continue;
                     }
-                    return num;
-                } catch (Exception e) {
-                    System.out.println("It isn't a integer. Input again:");
                 }
-            } else return 0;
+                return num;
+            } catch (Exception e) {
+                System.out.println("It isn't a integer. Input again:");
+            }
         }
+
     }
 
     public static long inputLong(BufferedReader br, String ask) {
@@ -410,7 +412,7 @@ public class Inputer {
     }
 
     public static String promptAndUpdate(BufferedReader reader, String fieldName, String currentValue) throws IOException {
-        System.out.println(fieldName + " current value: " + currentValue);
+        System.out.println(fieldName + ". Current value: " + currentValue);
         System.out.print("Do you want to update it? (y/n): ");
 
         if ("y".equalsIgnoreCase(reader.readLine())) {

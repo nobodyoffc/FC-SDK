@@ -21,9 +21,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.security.*;
 
-public class NewEsClient {
+public class EsClientMaker {
 
-    private static final Logger log = LoggerFactory.getLogger(NewEsClient.class);
+    private static final Logger log = LoggerFactory.getLogger(EsClientMaker.class);
     public ElasticsearchClient esClient;
     RestClient restClient;
     RestClientTransport transport;

@@ -11,6 +11,8 @@ public class NaSaRpcClient {
     String url;
     String username;
     String password;
+    String bestBlockId;
+    long bestHeight;
 
     public NaSaRpcClient(String url, String username, String password) {
         this.url = url;
@@ -22,6 +24,14 @@ public class NaSaRpcClient {
         this.url = url;
         this.username = username;
         this.password = new String(password,StandardCharsets.UTF_8);
+    }
+
+    public boolean freshBestBlock(){
+        GetBlockchainInfo.BlockchainInfo blockchainInfo = getBlockchainInfo();
+        if(blockchainInfo==null) return false;
+        this.bestHeight = blockchainInfo.getBlocks()-1;
+        this.bestBlockId = blockchainInfo.getBestblockhash();
+        return true;
     }
 
     public String createRawTransactionFch(String toAddr, double amount, String opreturn) {
@@ -56,8 +66,8 @@ public class NaSaRpcClient {
         return new GetBalance().getBalance(minConf,includeWatchOnly,url,username,password);
     }
 
-    public GetBlockchainInfo.BlockchainInfo blockchainInfo(String apiUrl, String userName, byte[] password){
-        return new GetBlockchainInfo().getBlockchainInfo(apiUrl, userName, new String(password, StandardCharsets.UTF_8));
+    public GetBlockchainInfo.BlockchainInfo getBlockchainInfo(){
+        return new GetBlockchainInfo().getBlockchainInfo(url, username, password);
     }
 
     public String blockHash(long height){
@@ -94,7 +104,47 @@ public class NaSaRpcClient {
     public String sendRawTransaction(String hex){
         return new SendRawTransaction().sendRawTransaction(hex,url,username,password);
     }
-//    public  (){
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getBestBlockId() {
+        return bestBlockId;
+    }
+
+    public void setBestBlockId(String bestBlockId) {
+        this.bestBlockId = bestBlockId;
+    }
+
+    public long getBestHeight() {
+        return bestHeight;
+    }
+
+    public void setBestHeight(long bestHeight) {
+        this.bestHeight = bestHeight;
+    }
+    //    public  (){
 //        return new .g(,url,username,password);
 //    }
 }

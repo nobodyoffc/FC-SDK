@@ -35,7 +35,20 @@ public class Shower {
 
         for (List<Object> valueList : valueListList) {
             for (int i = 0; i < valueList.size(); i++) {
-                System.out.print(formatString(String.valueOf(valueList.get(i)), widths[i] + 2));
+
+                String str = String.valueOf(valueList.get(i));
+                int width = widths[i];
+                if(str.length()>width){
+                    if(str.length()<6){
+                        width=str.length();
+                    }else {
+                        int halfWidth = (int)(width-3)/2;
+                        String head = str.substring(0,halfWidth);
+                        String tail = str.substring(str.length()-halfWidth);
+                        str = head+"..."+tail;
+                    }
+                }
+                System.out.print(formatString(str, width + 2));
             }
             System.out.println();
         }

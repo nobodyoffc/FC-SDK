@@ -24,11 +24,12 @@ public class ApipClient {
 
     public ApipClient() {
     }
-    public ApipClient(ApiAccount apiAccount) {
+    public ApipClient(ApiProvider apiProvider,ApiAccount apiAccount) {
         this.apiAccount = apiAccount;
+        this.apiProvider = apiProvider;
     }
 
-    public Object checkResult(byte[]symKey, String taskName){
+    public Object checkApipResult(byte[]symKey, String taskName){
         if(apipClientData ==null)return null;
 
         if(apipClientData.getCode()!= CodeAndMsg.Code0Success) {
