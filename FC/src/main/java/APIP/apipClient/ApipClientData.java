@@ -11,8 +11,8 @@ import constants.UpStrings;
 import javaTools.JsonTools;
 import org.bitcoinj.core.ECKey;
 import FCH.FchMainNetwork;
-import FC.fcData.Algorithm;
-import FC.fcData.Signature;
+import fcData.Algorithm;
+import fcData.Signature;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.CloseableHttpResponse;

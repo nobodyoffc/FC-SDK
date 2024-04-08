@@ -5,6 +5,8 @@ import constants.ApiNames;
 
 import javax.annotation.Nullable;
 
+import static constants.Strings.HEIGHT;
+
 public class BlockchainAPIs {
 
     public static ApipClientData blockByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
@@ -15,6 +17,20 @@ public class BlockchainAPIs {
         apipClientData.setRawFcdsl(fcdsl);
 
         String urlTail = ApiNames.APIP2V1Path + ApiNames.BlockByIdsAPI;
+
+        boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
+        if (!isGood) return null;
+        return apipClientData;
+    }
+
+    public static ApipClientData blockByHeightPost(String urlHead, String[] heights, @Nullable String via, byte[] sessionKey) {
+        ApipClientData apipClientData = new ApipClientData();
+        apipClientData.setSn("2");
+        Fcdsl fcdsl = new Fcdsl();
+        fcdsl.addNewQuery().addNewTerms().addNewFields(HEIGHT).addNewValues(heights);
+        apipClientData.setRawFcdsl(fcdsl);
+
+        String urlTail = ApiNames.APIP2V1Path + ApiNames.BlockByHeightsAPI;
 
         boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
         if (!isGood) return null;

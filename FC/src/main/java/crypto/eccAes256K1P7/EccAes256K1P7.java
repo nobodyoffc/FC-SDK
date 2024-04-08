@@ -1,7 +1,7 @@
 package crypto.eccAes256K1P7;
 
-import FC.fcData.Affair;
-import FC.fcData.Op;
+import fcData.Affair;
+import fcData.Op;
 import constants.Constants;
 import crypto.cryptoTools.Hash;
 import crypto.cryptoTools.KeyTools;

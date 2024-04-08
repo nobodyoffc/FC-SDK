@@ -1,8 +1,10 @@
 package server.order;
 
-import appUtils.Inputer;
-import appUtils.Menu;
-import appUtils.Shower;
+import FCH.ParseTools;
+import FEIP.feipData.Service;
+import appTools.Inputer;
+import appTools.Menu;
+import appTools.Shower;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
@@ -11,13 +13,12 @@ import com.google.gson.GsonBuilder;
 import constants.IndicesNames;
 import constants.Strings;
 import constants.Values;
-import fcTools.ParseTools;
-import feipClass.Service;
-import keyTools.KeyTools;
+import crypto.cryptoTools.KeyTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
-import startAPIP.StartAPIP;
+import server.Counter;
+import server.Starter;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -25,8 +26,10 @@ import java.util.ArrayList;
 
 import static constants.Constants.*;
 import static constants.Strings.*;
-import static startAPIP.IndicesAPIP.orderMappingJsonStr;
-import static startAPIP.IndicesAPIP.recreateApipIndex;
+import static server.Indices.orderMappingJsonStr;
+import static server.Indices.recreateApipIndex;
+import static server.Starter.addSidBriefToName;
+
 
 public class OrderManager {
 
@@ -34,12 +37,12 @@ public class OrderManager {
     private final ElasticsearchClient esClient;
     private final BufferedReader br;
 
-    private final OrderScanner orderScanner;
+    private final Counter counter;
 
-    public OrderManager(ElasticsearchClient esClient, BufferedReader br, OrderScanner orderScanner) {
+    public OrderManager(ElasticsearchClient esClient, BufferedReader br, Counter counter) {
         this.esClient = esClient;
         this.br = br;
-        this.orderScanner = orderScanner;
+        this.counter = counter;
     }
 
     public void menu(){
@@ -60,10 +63,10 @@ public class OrderManager {
             menu.show();
             int choice = menu.choose(br);
             switch (choice) {
-                case 1-> howToByService(br);
+                case 1-> howToBuyService(br);
                 case 2 -> recreateIndexAndResetOrderHeight(br, esClient,  IndicesNames.ORDER, orderMappingJsonStr);
                 case 3 -> switchScanOpReturn(br);
-                case 4 -> switchOrderScanner(orderScanner);
+                case 4 -> switchOrderScanner(counter);
                 case 5 -> findFidOrders(br,esClient);
                 case 6 -> resetLastOrderHeight(br);
                 case 0 -> {
@@ -86,9 +89,9 @@ public class OrderManager {
         String input = Inputer.inputString(br);
 
         if ("reset".equals(input)) {
-            try(Jedis jedis = StartAPIP.jedisPool.getResource()) {
-                jedis.set(StartAPIP.serviceName+"_"+ORDER_LAST_HEIGHT, "0");
-                jedis.set(StartAPIP.serviceName+"_"+ORDER_LAST_BLOCK_ID, zeroBlockId);
+            try(Jedis jedis = Starter.jedisPool.getResource()) {
+                jedis.set(Starter.sidBrief+"_"+ORDER_LAST_HEIGHT, "0");
+                jedis.set(Starter.sidBrief+"_"+ORDER_LAST_BLOCK_ID, zeroBlockId);
                 System.out.println("Last order height has set to 0.");
             }catch (Exception e){
                 log.error("Set order height and blockId into jedis wrong.");
@@ -98,15 +101,15 @@ public class OrderManager {
         Menu.anyKeyToContinue(br);
     }
 
-    private void switchOrderScanner(OrderScanner orderScanner) {
-        System.out.println("OrderScanner running is "+orderScanner.isRunning()+".");
+    private void switchOrderScanner(Counter counter) {
+        System.out.println("OrderScanner running is "+ counter.isRunning()+".");
         Menu.askIfToDo("Switch it?",br);
-        if(orderScanner.isRunning().get()){
-            orderScanner.shutdown();
+        if(counter.isRunning().get()){
+            counter.shutdown();
         }else{
-            orderScanner.restart();
+            counter.restart();
         }
-        System.out.println("OrderScanner running is "+orderScanner.isRunning()+" now.");
+        System.out.println("OrderScanner running is "+ counter.isRunning()+" now.");
         Menu.anyKeyToContinue(br);
     }
 
@@ -134,7 +137,7 @@ public class OrderManager {
         SearchResponse<Order> result = null;
         try {
             result = esClient.search(s -> s
-                            .index(StartAPIP.getNameOfService(IndicesNames.ORDER))
+                            .index(addSidBriefToName(IndicesNames.ORDER))
                             .query(q -> q.term(t -> t.field(FROM_FID).value(finalFid)))
                             .sort(so->so.field(f->f.field(TIME)))
                             .size(100)
@@ -175,7 +178,7 @@ public class OrderManager {
     }
 
     private void switchScanOpReturn(BufferedReader br) {
-        try(Jedis jedis = StartAPIP.jedisPool.getResource()) {
+        try(Jedis jedis = Starter.jedisPool.getResource()) {
             String isCheckOrderOpReturn = jedis.hget(CONFIG, Strings.CHECK_ORDER_OPRETURN);
             System.out.println("Check order's OpReturn: " + isCheckOrderOpReturn + ". Change it? 'y' to switch.");
             String input;
@@ -199,11 +202,11 @@ public class OrderManager {
         Menu.anyKeyToContinue(br);
     }
 
-    private static void howToByService(BufferedReader br) {
+    private static void howToBuyService(BufferedReader br) {
         System.out.println("Anyone can send a freecash TX with following json in Op_Return to buy your service:" +
                 "\n--------");
-        try(Jedis jedis = StartAPIP.jedisPool.getResource()) {
-            String sidStr = jedis.get(StartAPIP.serviceName + "_" + SERVICE);
+        try(Jedis jedis = Starter.jedisPool.getResource()) {
+            String sidStr = jedis.get(Starter.sidBrief + "_" + SERVICE);
             if (sidStr == null) {
                 System.out.println("No service yet.");
                 return;

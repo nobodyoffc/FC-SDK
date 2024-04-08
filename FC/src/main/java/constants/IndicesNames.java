@@ -40,65 +40,73 @@ public class IndicesNames {
     public static final String WEBHOOK = "webhook";
     public static final String NOBODY = "nobody";
 
+    public static final String SWAP_STATE = "swap_state";
+    public static final String SWAP_LP = "swap_lp";
+    public static final String SWAP_FINISHED = "swap_finished";
+    public static final String SWAP_PENDING = "swap_pending";
+    public static final String SWAP_PRICE = "swap_price";
+    public static final String TOKEN_HISTORY = "token_history";
+    public static final String TOKEN = "token";
+    public static final String TOKEN_HOLDER = "token_holder";
+
     public static void printIndices() {
         Indices indices = Indices.CID;
-        System.out.println(indices.name() + indices.ordinal());
+        System.out.println(indices.name()+indices.ordinal());
 
-        for (Indices in : Indices.values()) {
-            System.out.println(in.sn() + ". " + in.name());
+        for(Indices in : Indices.values()){
+            System.out.println(in.sn()+". "+in.name());
         }
     }
 
-    public enum Indices {
+    public enum Indices{
 
-        BLOCK(IndicesNames.BLOCK, 1),
-        BLOCK_HAS(IndicesNames.BLOCK_HAS, 2),
-        TX(IndicesNames.TX, 3),
-        TX_HAS(IndicesNames.TX_HAS, 4),
-        CASH(IndicesNames.CASH, 5),
-        OPRETURN(IndicesNames.OPRETURN, 6),
-        ADDRESS(IndicesNames.ADDRESS, 7),
-        P2SH(IndicesNames.P2SH, 8),
-        BLOCK_MARK(IndicesNames.BLOCK_MARK, 9),
+        BLOCK(IndicesNames.BLOCK,1),
+        BLOCK_HAS(IndicesNames.BLOCK_HAS,2),
+        TX(IndicesNames.TX,3),
+        TX_HAS(IndicesNames.TX_HAS,4),
+        CASH(IndicesNames.CASH,5),
+        OPRETURN(IndicesNames.OPRETURN,6),
+        ADDRESS(IndicesNames.ADDRESS,7),
+        P2SH(IndicesNames.P2SH,8),
+        BLOCK_MARK(IndicesNames.BLOCK_MARK,9),
 
-        CID(IndicesNames.CID, 10),
-        CID_HISTORY(IndicesNames.CID_HISTORY, 11),
-        REPUTATION_HISTORY(IndicesNames.REPUTATION_HISTORY, 12),
+        CID(IndicesNames.CID,10),
+        CID_HISTORY(IndicesNames.CID_HISTORY,11),
+        REPUTATION_HISTORY(IndicesNames.REPUTATION_HISTORY,12),
 
-        PROTOCOL(IndicesNames.PROTOCOL, 13),
-        CODE(IndicesNames.CODE, 14),
-        SERVICE(IndicesNames.SERVICE, 15),
-        APP(IndicesNames.APP, 16),
-        PROTOCOL_HISTORY(IndicesNames.PROTOCOL_HISTORY, 17),
-        CODE_HISTORY(IndicesNames.CODE_HISTORY, 18),
-        SERVICE_HISTORY(IndicesNames.SERVICE_HISTORY, 19),
-        APP_HISTORY(IndicesNames.APP_HISTORY, 20),
+        PROTOCOL(IndicesNames.PROTOCOL,13),
+        CODE(IndicesNames.CODE,14),
+        SERVICE(IndicesNames.SERVICE,15),
+        APP(IndicesNames.APP,16),
+        PROTOCOL_HISTORY(IndicesNames.PROTOCOL_HISTORY,17),
+        CODE_HISTORY(IndicesNames.CODE_HISTORY,18),
+        SERVICE_HISTORY(IndicesNames.SERVICE_HISTORY,19),
+        APP_HISTORY(IndicesNames.APP_HISTORY,20),
 
-        CONTACT(IndicesNames.CONTACT, 21),
-        MAIL(IndicesNames.MAIL, 22),
-        SECRET(IndicesNames.SECRET, 23),
-        BOX(IndicesNames.BOX, 24),
-        BOX_HISTORY(IndicesNames.BOX_HISTORY, 25),
+        CONTACT(IndicesNames.CONTACT,21),
+        MAIL(IndicesNames.MAIL,22),
+        SECRET(IndicesNames.SECRET,23),
+        BOX(IndicesNames.BOX,24),
+        BOX_HISTORY(IndicesNames.BOX_HISTORY,25),
 
-        GROUP(IndicesNames.GROUP, 26),
-        TEAM(IndicesNames.TEAM, 27),
-        GROUP_HISTORY(IndicesNames.GROUP_HISTORY, 28),
-        TEAM_HISTORY(IndicesNames.TEAM_HISTORY, 29),
+        GROUP(IndicesNames.GROUP,26),
+        TEAM(IndicesNames.TEAM,27),
+        GROUP_HISTORY(IndicesNames.GROUP_HISTORY,28),
+        TEAM_HISTORY(IndicesNames.TEAM_HISTORY,29),
 
-        STATEMENT(IndicesNames.STATEMENT, 30),
-        PROOF(IndicesNames.PROOF, 31),
-        PROOF_HISTORY(IndicesNames.PROOF_HISTORY, 32),
+        STATEMENT(IndicesNames.STATEMENT,30),
+        PROOF(IndicesNames.PROOF,31),
+        PROOF_HISTORY(IndicesNames.PROOF_HISTORY,32),
 
-        FEIP_MARK(IndicesNames.FEIP_MARK, 33),
-        NID(IndicesNames.NID, 34);
+        FEIP_MARK(IndicesNames.FEIP_MARK,33),
+        NID(IndicesNames.NID,34);
 
         private int sn;
 
         Indices(String name, int sn) {
-            this.sn = sn;
+            this.sn=sn;
         }
-
-        public final int sn() {
+        public final int sn(){
             return this.sn;
         }
     }

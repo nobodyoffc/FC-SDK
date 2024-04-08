@@ -551,8 +551,8 @@ public class ApipDataGetter {
     }
 
     // Method for Tx
-    public static Map<String, Tx> getTxMap(Object responseData) {
-        Type t = new TypeToken<HashMap<String, Tx>>() {
+    public static Map<String, TxInfo> getTxMap(Object responseData) {
+        Type t = new TypeToken<HashMap<String, TxInfo>>() {
         }.getType();
         Gson gson = new Gson();
         return gson.fromJson(gson.toJson(responseData), t);

@@ -11,7 +11,8 @@
     <modules>
         <module>FC</module>
         <module>Freeverse</module>
-        <module>OpenDrive</module>
+        <module>OpenDriveWebServer</module>
+        <module>OpenDriveManager</module>
     </modules>
 
     <properties>

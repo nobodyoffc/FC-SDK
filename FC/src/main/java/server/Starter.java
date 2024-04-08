@@ -2,6 +2,7 @@ package server;
 
 import APIP.apipClient.ApipClient;
 import APIP.apipClient.ApipDataGetter;
+import APIP.apipData.BlockInfo;
 import APIP.apipData.Fcdsl;
 import FEIP.feipData.Cid;
 import FEIP.feipData.Service;
@@ -14,6 +15,8 @@ import co.elastic.clients.elasticsearch.core.GetResponse;
 import com.google.gson.Gson;
 import config.ApiAccount;
 import config.ApiProvider;
+import config.Config;
+import config.ConfigSwap;
 import constants.FieldNames;
 import constants.Strings;
 import constants.UpStrings;
@@ -28,12 +31,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import server.serviceManagers.SwapManager;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static constants.Constants.COIN_TO_SATOSHI;
 
@@ -43,7 +46,10 @@ public class Starter {
     public static BufferedReader br;
     public static Service myService;
     public static ApipClient initApipClient;
-
+    public static String sidBrief;
+    public static JedisPool jedisPool;
+    public static ElasticsearchClient esClient;
+    public static NaSaRpcClient naSaRpcClient;
     public Starter(BufferedReader br) {
         this.br =br;
     }
@@ -56,12 +62,12 @@ public class Starter {
         //Set password
         byte[] symKey = starter.checkPassword();
 
-        Setting setting = new Setting(config,br);
+//        Setting setting = new Setting(config,br);
 //        symKey = setting.resetPassword();
 //        setting.updateApiProvider();
 //        setting.updateApiAccount(setting.choseApiProvider(),symKey);
 //        setting.deleteApiProvider();
-        setting.deleteApiAccount(symKey);
+//        setting.deleteApiAccount(symKey);
 
 
         //Set config, add Api providers, connect APIP service
@@ -78,6 +84,11 @@ public class Starter {
         JsonTools.gsonPrint(config);
         JsonTools.gsonPrint(myService);
         showInitApipBalance();
+        Map<String, BlockInfo> block = initApipClient.blockByHeights(new String[]{"2"}, HttpMethods.POST);
+        JsonTools.gsonPrint(block.get("2"));
+
+        //test order scanner
+
 
         //test es
         try {
@@ -112,11 +123,17 @@ public class Starter {
         return params;
     }
 
+    public static String addSidBriefToName(String name) {
+        String finalName;
+        finalName = (sidBrief + "_" + name).toLowerCase();
+        return finalName;
+    }
+
     public void loadConfig(){
         config = Config.loadConfig();
         if(config==null){
             log.debug("Failed to load config from "+Config.CONFIG_DOT_JSON);
-            config = new Config();
+            config = new ConfigSwap();
         }
     }
     public byte[] checkPassword(){
@@ -133,7 +150,7 @@ public class Starter {
                     }
                     randomBytes = BytesTools.getRandomBytes(16);
                     symKey = Hash.Sha256x2(BytesTools.bytesMerger(passwordBytes, randomBytes));
-                    if (config == null) config = new Config();
+                    if (config == null) config = new ConfigSwap();
                     config.setNonce(Hex.toHex(randomBytes));
                     String nonceCipher = EccAes256K1P7.encryptWithSymKey(Hex.fromHex(config.getNonce()), symKey);
                     if (nonceCipher.contains("Error")) {
@@ -171,10 +188,7 @@ public class Starter {
 
         if(config.getOwner()==null) initApiAccounts(symKey);
 
-        if(config.getInitApipAccountId()!=null) {
-            loadApiClient(config.getInitApipAccountId(),symKey);
-            initApipClient = (ApipClient) config.getApiAccountMap().get(config.getInitApipAccountId()).getClient();
-        }
+        if(config.getInitApipAccountId()!=null) loadApiClient(config.getInitApipAccountId(),symKey);
 
         if(config.getNaSaNodeAccountId()!=null) loadApiClient(config.getNaSaNodeAccountId(), symKey);
 
@@ -191,8 +205,16 @@ public class Starter {
         ApiAccount apiAccount = config.getApiAccountMap().get(id);
         ApiProvider apiProvider = config.getApiProviderMap().get(apiAccount.getSid());
         apiAccount.connectApi(apiProvider, symKey, br);
+        switch (apiProvider.getType()){
+            case APIP -> Starter.initApipClient=(ApipClient) apiAccount.getClient();
+            case ES -> Starter.esClient = (ElasticsearchClient) apiAccount.getClient();
+            case NaSaRPC -> Starter.naSaRpcClient = (NaSaRpcClient) apiAccount.getClient();
+            case Redis -> Starter.jedisPool = (JedisPool) apiAccount.getClient();
+        }
+        if(apiProvider.getType()== ApiProvider.ApiType.Redis){
+            Starter.jedisPool = (JedisPool) apiAccount.getClient();
+        }
     }
-
 
     private void initApiAccounts(byte[] symKey) {
         System.out.println("Initial the API accounts...");
@@ -258,8 +280,9 @@ public class Starter {
             System.out.println("Load swap services wrong.");
             return null;
         }
-
-        return selectMyService(serviceList,symKey);
+        Service myService = selectMyService(serviceList,symKey);
+        sidBrief = myService.getSid().substring(0,6);
+        return myService;
     }
 
     public static void showInitApipBalance(){
@@ -278,7 +301,7 @@ public class Starter {
 
         fcdsl.addNewSort(FieldNames.LAST_HEIGHT,Strings.DESC);
         initApipClient.serviceSearch(fcdsl,HttpMethods.POST);
-        Object result = initApipClient.checkApipResult(symKey, "get service");
+        Object result = initApipClient.checkApipResult("get service");
         return ApipDataGetter.getServiceList(result);
     }
 
@@ -290,7 +313,8 @@ public class Starter {
         int choice = Shower.choose(br,0,serviceList.size());
         if(choice==0){
             if(Inputer.askIfYes(br,"Publish a new service? y/n")){
-                new ServiceManager(initApipClient.getApiAccount(), SwapParams.class).publishService(symKey,br);
+                SwapManager swapManager = new SwapManager(initApipClient.getApiAccount(), SwapParams.class);
+                swapManager.publishService(symKey,br);
                 System.out.println("Wait for a few minutes and try to start again.");
                 System.exit(0);
             }

@@ -70,8 +70,8 @@ public class TxCreator {
         int newMaxKeyLength;
         try {
             if ((newMaxKeyLength = Cipher.getMaxAllowedKeyLength("AES")) < 256) {
-                Class c = Class.forName("javax.crypto.CryptoAllPermissionCollection");
-                Constructor con = c.getDeclaredConstructor();
+                Class<?> c = Class.forName("javax.crypto.CryptoAllPermissionCollection");
+                Constructor<?> con = c.getDeclaredConstructor();
                 con.setAccessible(true);
                 Object allPermissionCollection = con.newInstance();
                 Field f = c.getDeclaredField("all_allowed");
@@ -218,7 +218,7 @@ public class TxCreator {
         ECKey eckey = ECKey.fromPrivate(priKey);
 
         for (SendTo output : outputs) {
-            long value = ParseTools.fchToSatoshi(output.getAmount());
+            long value = ParseTools.coinToSatoshi(output.getAmount());
             totalOutput += value;
             transaction.addOutput(Coin.valueOf(value), Address.fromBase58(FchMainNetwork.MAINNETWORK, output.getFid()));
         }
@@ -300,7 +300,7 @@ public class TxCreator {
         long totalOutput = 0;
 
         for (SendTo output : outputs) {
-            long value = ParseTools.fchToSatoshi(output.getAmount());
+            long value = ParseTools.coinToSatoshi(output.getAmount());
             totalOutput += value;
             transaction.addOutput(Coin.valueOf(value), Address.fromBase58(FchMainNetwork.MAINNETWORK, output.getFid()));
         }
@@ -448,7 +448,7 @@ public class TxCreator {
         ECKey eckey = ECKey.fromPrivate(priKey);
 
         for (SendTo output : outputs) {
-            long value = ParseTools.fchToSatoshi(output.getAmount());
+            long value = ParseTools.coinToSatoshi(output.getAmount());
             byte[] pubKeyHash = KeyTools.addrToHash160(output.getFid());
             totalOutput += value;
 

@@ -10,6 +10,8 @@ import crypto.cryptoTools.Hash;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.*;
 import java.text.DecimalFormat;
 import java.time.Instant;
@@ -20,6 +22,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static tx.NumberTools.roundDouble2;
 
 public class ParseTools {
 
@@ -224,7 +228,13 @@ public class ParseTools {
         }
     }
 
-    public static double satoshiToFch(long satoshis) {
+    public static long coinToSatoshi(double amount) {
+        BigDecimal coins = BigDecimal.valueOf(amount);
+        BigDecimal satoshis = coins.multiply(new BigDecimal(100000000)); // Convert BTC to Satoshis
+        return satoshis.setScale(0, RoundingMode.HALF_UP).longValueExact(); // Set scale to 0 (no fractional part) and use HALF_UP rounding
+    }
+
+    public static double satoshiToCoin(long satoshis) {
         return NumberTools.roundDouble8((double) satoshis / Constants.COIN_TO_SATOSHI);
     }
 
@@ -234,10 +244,6 @@ public class ParseTools {
 
     public static long doubleToWei(double wei) {
         return (long) (wei * Constants.COIN_TO_SATOSHI * Constants.COIN_TO_SATOSHI);
-    }
-
-    public static long fchToSatoshi(double fch) {
-        return (long) (fch * Constants.COIN_TO_SATOSHI);
     }
 
     public static String getLast3(double amt) {
@@ -303,7 +309,7 @@ public class ParseTools {
 
     @Test
     public void test() {
-        NumberTools.roundDouble2(1.343);
+        roundDouble2(1.343);
         return;
     }
 

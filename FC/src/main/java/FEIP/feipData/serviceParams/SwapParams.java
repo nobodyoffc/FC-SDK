@@ -22,7 +22,7 @@ import static constants.Strings.LTC;
 import static constants.Ticks.*;
 
 
-public class SwapParams {
+public class SwapParams extends Params {
     private String goods;
     private String money;
     private String gTick;
@@ -36,8 +36,48 @@ public class SwapParams {
     private String gWithdrawFee;
     private String mWithdrawFee;
     private String curve;
+    private transient String priKeyCipher;
 
-    public static SwapParams getParamsFromService(Service service) {
+    @Override
+    public Params inputParams(BufferedReader br, byte[] symKey) {
+        this.goods = Inputer.inputString(br,"Input the name of the goods:");
+        this.money = Inputer.inputString(br,"Input the name of the money:");
+        this.gTick = Inputer.inputString(br,"Input the tick of the goods:");
+        this.mTick = Inputer.inputString(br,"Input the tick of the money:");
+        priKeyCipher = setAddrs(br, symKey);
+        this.curve = Inputer.inputString(br,"Input the curve formula of the AMM:");
+        this.gConfirm = Inputer.inputIntegerStr(br,"Input the required confirmation for goods payment:");
+        this.mConfirm = Inputer.inputIntegerStr(br,"Input the required confirmation for money payment:");
+        this.gWithdrawFee = Inputer.inputDoubleAsString(br,"Input the fee charged when withdrawing goods from LP:");
+        this.mWithdrawFee = Inputer.inputDoubleAsString(br,"Input the fee charged when withdrawing money from LP:");
+        this.swapFee = Inputer.inputDoubleAsString(br,"Input the fee charged for LPs:");
+        this.serviceFee = Inputer.inputDoubleAsString(br,"Input the fee for the owner:");
+        return this;
+    }
+
+    @Override
+    public Params updateParams(BufferedReader br, byte[] symKey) {
+        priKeyCipher = null;
+        System.out.println("The goods address is " + gAddr);
+        System.out.println("The money address is " + mAddr);
+        if(Inputer.askIfYes(br,"Update dealer addresses? y/n:")){
+            priKeyCipher = setAddrs(br, symKey.clone());
+        }
+        updateGoods(br);
+        updateMoney(br);
+        updateGTick(br);
+        updateMTick(br);
+        updateCurve(br);
+        updateGConfirm(br);
+        updateMConfirm(br);
+        updateGWithdrawFee(br);
+        updateMWithdrawFee(br);
+        updateSwapFee(br);
+        updateServiceFee(br);
+        return this;
+    }
+
+    public SwapParams getParamsFromService(Service service) {
         SwapParams params;
         Gson gson = new Gson();
         try {
@@ -48,21 +88,21 @@ public class SwapParams {
         }
         return params;
     }
-    public String inputParams(BufferedReader br, byte[] initSymKey){
-        this.goods = Inputer.inputString(br,"Input the name of the goods:");
-        this.money = Inputer.inputString(br,"Input the name of the money:");
-        this.gTick = Inputer.inputString(br,"Input the tick of the goods:");
-        this.mTick = Inputer.inputString(br,"Input the tick of the money:");
-        String priKeyCipher = setAddrs(br, initSymKey);
-        this.curve = Inputer.inputString(br,"Input the curve formula of the AMM:");
-        this.gConfirm = Inputer.inputIntegerStr(br,"Input the required confirmation for goods payment:");
-        this.mConfirm = Inputer.inputIntegerStr(br,"Input the required confirmation for money payment:");
-        this.gWithdrawFee = Inputer.inputDoubleAsString(br,"Input the fee charged when withdrawing goods from LP:");
-        this.mWithdrawFee = Inputer.inputDoubleAsString(br,"Input the fee charged when withdrawing money from LP:");
-        this.swapFee = Inputer.inputDoubleAsString(br,"Input the fee charged for LPs:");
-        this.serviceFee = Inputer.inputDoubleAsString(br,"Input the fee for the owner:");
-        return priKeyCipher;
-    }
+//    public String inputParams(BufferedReader br, byte[] initSymKey){
+//        this.goods = Inputer.inputString(br,"Input the name of the goods:");
+//        this.money = Inputer.inputString(br,"Input the name of the money:");
+//        this.gTick = Inputer.inputString(br,"Input the tick of the goods:");
+//        this.mTick = Inputer.inputString(br,"Input the tick of the money:");
+//        String priKeyCipher = setAddrs(br, initSymKey);
+//        this.curve = Inputer.inputString(br,"Input the curve formula of the AMM:");
+//        this.gConfirm = Inputer.inputIntegerStr(br,"Input the required confirmation for goods payment:");
+//        this.mConfirm = Inputer.inputIntegerStr(br,"Input the required confirmation for money payment:");
+//        this.gWithdrawFee = Inputer.inputDoubleAsString(br,"Input the fee charged when withdrawing goods from LP:");
+//        this.mWithdrawFee = Inputer.inputDoubleAsString(br,"Input the fee charged when withdrawing money from LP:");
+//        this.swapFee = Inputer.inputDoubleAsString(br,"Input the fee charged for LPs:");
+//        this.serviceFee = Inputer.inputDoubleAsString(br,"Input the fee for the owner:");
+//        return priKeyCipher;
+//    }
 
     @Nullable
     private String setAddrs(BufferedReader br, byte[] initSymKey) {
@@ -112,26 +152,26 @@ public class SwapParams {
         }
     }
 
-    public String updateParams(BufferedReader br, byte[] initSymKey){
-        String priKeyCipher = null;
-        System.out.println("The goods address is " + gAddr);
-        System.out.println("The money address is " + mAddr);
-        if(Inputer.askIfYes(br,"Update dealer addresses? y/n:")){
-            priKeyCipher = setAddrs(br, initSymKey.clone());
-        }
-        updateGoods(br);
-        updateMoney(br);
-        updateGTick(br);
-        updateMTick(br);
-        updateCurve(br);
-        updateGConfirm(br);
-        updateMConfirm(br);
-        updateGWithdrawFee(br);
-        updateMWithdrawFee(br);
-        updateSwapFee(br);
-        updateServiceFee(br);
-        return priKeyCipher;
-    }
+//    public String updateParams(BufferedReader br, byte[] initSymKey){
+//        String priKeyCipher = null;
+//        System.out.println("The goods address is " + gAddr);
+//        System.out.println("The money address is " + mAddr);
+//        if(Inputer.askIfYes(br,"Update dealer addresses? y/n:")){
+//            priKeyCipher = setAddrs(br, initSymKey.clone());
+//        }
+//        updateGoods(br);
+//        updateMoney(br);
+//        updateGTick(br);
+//        updateMTick(br);
+//        updateCurve(br);
+//        updateGConfirm(br);
+//        updateMConfirm(br);
+//        updateGWithdrawFee(br);
+//        updateMWithdrawFee(br);
+//        updateSwapFee(br);
+//        updateServiceFee(br);
+//        return priKeyCipher;
+//    }
 
     private void updateGAddr(BufferedReader br) {
         System.out.println("The goods address is " + gAddr);
@@ -288,5 +328,13 @@ public class SwapParams {
 
     public void setCurve(String curve) {
         this.curve = curve;
+    }
+
+    public String getPriKeyCipher() {
+        return priKeyCipher;
+    }
+
+    public void setPriKeyCipher(String priKeyCipher) {
+        this.priKeyCipher = priKeyCipher;
     }
 }

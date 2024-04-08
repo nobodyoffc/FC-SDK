@@ -29,11 +29,18 @@ public class NumberTools {
         }
         return true;
     }
-    public static double roundDouble8(double raw) {
-        long i = 0;
-        i = (long) (raw * 100000000);
-        return (double) i / 100000000;
+    public static double roundDouble8(double raw){
+        BigDecimal bd = new BigDecimal(raw);
+        bd = bd.setScale(8, RoundingMode.HALF_UP); // Choose the rounding mode as needed
+        return bd.doubleValue();
     }
+
+    public static double roundDouble16(double raw){
+        BigDecimal bd = new BigDecimal(raw);
+        bd = bd.setScale(16, RoundingMode.HALF_UP); // Choose the rounding mode as needed
+        return bd.doubleValue();
+    }
+
     public static int getDecimalPlaces(double number) {
         if (number == (long) number) {
             // The number has no significant decimal places
@@ -48,12 +55,6 @@ public class NumberTools {
         }
     }
 
-    public static double roundDouble16(double raw){
-        BigDecimal bd = new BigDecimal(raw);
-        bd = bd.setScale(16, RoundingMode.FLOOR); // Choose the rounding mode as needed
-        return bd.doubleValue();
-    }
-
     public static double roundDouble4(double raw){
         BigDecimal bd = new BigDecimal(raw);
         bd = bd.setScale(4, RoundingMode.FLOOR); // Choose the rounding mode as needed
@@ -66,15 +67,7 @@ public class NumberTools {
         return bd.doubleValue();
     }
 
-    public static double roundDouble2(double raw) {
-        long i = 0;
-        i = (long) (raw * 100);
-        double j = (double) i / 100;
-//        System.out.println(raw + " is rounded to "+ j);
-        return j;
-    }
-
-    public static String numberToPlainString(String number, String deci) {
+    public static String numberToPlainString(String number,String deci){
         BigDecimal bigDecimal = new BigDecimal(number);
 
         // Get a NumberFormat instance for formatting numbers with commas
@@ -82,7 +75,7 @@ public class NumberTools {
 
         // Set the maximum number of fraction digits to avoid unnecessary decimal places
         // This is important if your BigDecimal value has non-zero fraction part
-        if (deci != null) formatter.setMaximumFractionDigits(Integer.parseInt(deci));
+        if(deci!=null)formatter.setMaximumFractionDigits(Integer.parseInt(deci));
 
         // Format the BigDecimal number with commas
         return formatter.format(bigDecimal);

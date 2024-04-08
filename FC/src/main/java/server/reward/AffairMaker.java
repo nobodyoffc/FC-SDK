@@ -1,19 +1,23 @@
 package server.reward;
 
+import fcData.Affair;
+import fcData.DataSignTx;
+import fcData.Op;
+import FCH.CashListReturn;
+import FCH.CryptoSign;
+import FCH.DataForOffLineTx;
+import FCH.WalletTools;
+import FCH.fchData.Cash;
+import FCH.fchData.SendTo;
+import FEIP.feipData.FcInfo;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.google.gson.Gson;
-import fcTools.ParseTools;
-import fchClass.Cash;
-import feipClass.FcInfo;
-import fipaClass.Affair;
-import fipaClass.DataSignTx;
-import fipaClass.Op;
 import javaTools.JsonTools;
+import javaTools.NumberTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
-import startAPIP.StartAPIP;
-import walletTools.*;
+import server.Starter;
 
 import java.util.*;
 
@@ -46,8 +50,8 @@ public class AffairMaker {
         getPendingMapFromRedis();
     }
     public Map<String, Long> getPendingMapFromRedis() {
-        try(Jedis jedis = StartAPIP.jedisPool.getResource()) {
-            Map<String, String> pendingStrMap = jedis.hgetAll(REWARD_PENDING_MAP);
+        try(Jedis jedis = Starter.jedisPool.getResource()) {
+            Map<String, String> pendingStrMap = jedis.hgetAll(Starter.addSidBriefToName(REWARD_PENDING_MAP));
             for (String key : pendingStrMap.keySet()) {
                 Long amount = Long.parseLong(pendingStrMap.get(key));
                 pendingMap.put(key, amount);
@@ -85,7 +89,7 @@ public class AffairMaker {
             return null;
         }
 
-        HashMap<String,SendTo> sendToMap = makeSendToMap(rewardInfo);
+        HashMap<String, SendTo> sendToMap = makeSendToMap(rewardInfo);
 
         pendingDust(sendToMap);
 
@@ -168,9 +172,9 @@ public class AffairMaker {
             double amount = (double) payDetail.getAmount() /FchToSatoshi;
             if(sendToMap.get(fid)!=null){
                 amount = amount+ sendToMap.get(fid).getAmount();
-                sendTo.setAmount(ParseTools.roundDouble8(amount));
+                sendTo.setAmount(NumberTools.roundDouble8(amount));
             }else{
-                sendTo.setAmount(ParseTools.roundDouble8(amount));
+                sendTo.setAmount(NumberTools.roundDouble8(amount));
             }
             sendToMap.put(sendTo.getFid(),sendTo);
         }
@@ -178,7 +182,7 @@ public class AffairMaker {
 
     private void addToPending(String fid, Long amount) {
         Long pendingValue = 0L;
-        try(Jedis jedis = StartAPIP.jedisPool.getResource()) {
+        try(Jedis jedis = Starter.jedisPool.getResource()) {
             pendingValue = Long.parseLong(jedis.hget(REWARD_PENDING_MAP, fid));
         }catch (Exception ignore){}
         if(pendingMap.get(fid)!=null) pendingValue += pendingMap.get(fid);

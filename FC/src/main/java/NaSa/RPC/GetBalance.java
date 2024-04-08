@@ -1,6 +1,5 @@
 package NaSa.RPC;
 
-import Exceptions.ExceptionTools;
 import NaSa.data.TransactionBrief;
 import com.google.gson.Gson;
 import javaTools.JsonTools;
@@ -28,7 +27,7 @@ public class GetBalance {
 
         JsonTools.gsonPrint(jsonRPC2Request);
         Object result = RpcRequest.requestRpc(url, username, password, "listSinceBlock", jsonRPC2Request);
-        if (result == null) ExceptionTools.throwRunTimeException("Getting balance for RPC wrong.");
+        if (result == null) throw new RuntimeException("Getting balance for RPC wrong.");
         return (double) result;
     }
 

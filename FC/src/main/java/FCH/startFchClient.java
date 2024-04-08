@@ -13,7 +13,7 @@ import crypto.eccAes256K1P7.EccAes256K1P7;
 import FCH.fchData.Address;
 import FCH.fchData.Cash;
 import FCH.fchData.P2SH;
-import FC.fcData.Signature;
+import fcData.Signature;
 import javaTools.BytesTools;
 import javaTools.JsonTools;
 import appTools.Inputer;
@@ -218,7 +218,7 @@ public class startFchClient {
             }
             System.out.print(Shower.formatString(niceCash.getCashId(), 68));
             System.out.print(Shower.formatString(niceCash.getOwner(), 38));
-            System.out.println(Shower.formatString(String.valueOf(ParseTools.satoshiToFch(niceCash.getValue())), 20));
+            System.out.println(Shower.formatString(String.valueOf(ParseTools.satoshiToCoin(niceCash.getValue())), 20));
         }
         Shower.printUnderline(60);
         Menu.anyKeyToContinue(br);
@@ -229,7 +229,7 @@ public class startFchClient {
         Shower.printUnderline(60);
         for (Cash cash : issuredCashList) {
             System.out.print(Shower.formatString(cash.getOwner(), 38));
-            System.out.println(Shower.formatString(String.valueOf(ParseTools.satoshiToFch(cash.getValue())), 20));
+            System.out.println(Shower.formatString(String.valueOf(ParseTools.satoshiToCoin(cash.getValue())), 20));
         }
         Shower.printUnderline(60);
         Shower.printUnderline(60);

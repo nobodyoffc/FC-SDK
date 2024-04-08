@@ -16,7 +16,7 @@ import javaTools.Hex;
 import crypto.cryptoTools.Hash;
 import FCH.fchData.Cash;
 import FCH.fchData.P2SH;
-import FC.fcData.Signature;
+import fcData.Signature;
 import javaTools.BytesTools;
 import javaTools.JsonTools;
 import appTools.Inputer;

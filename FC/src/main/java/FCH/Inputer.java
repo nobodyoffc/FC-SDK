@@ -9,6 +9,8 @@ import crypto.cryptoTools.Base58;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Inputer extends appTools.Inputer {
     public static String inputGoodFid(BufferedReader br, String ask) {
@@ -27,7 +29,58 @@ public class Inputer extends appTools.Inputer {
             return fid;
         }
     }
+    public static Map<String,String> inputGoodFidValueStrMap(BufferedReader br, String mapName, boolean checkFullShare)  {
+        Map<String,String> map = new HashMap<>();
 
+        while(true) {
+
+            while(true) {
+                System.out.println("Set " + mapName + ". 'y' to input. 'q' to quit. 'i' to quit ignore all changes.");
+                String input;
+                try {
+                    input = br.readLine();
+                } catch (IOException e) {
+                    System.out.println("br.readLine() wrong.");
+                    return null;
+                }
+                if("y".equals(input))break;
+                if("q".equals(input)){
+                    System.out.println(mapName + " is set.");
+                    return map;
+                }
+                if("i".equals(input))return null;
+                System.out.println("Invalid input. Try again.");
+            }
+
+            String key;
+            while (true) {
+                System.out.println("Input FID. 'q' to quit:");
+                key = inputString(br);
+                if(key == null)return null;
+                if ("q".equals(key)) break;
+
+                if (!KeyTools.isValidFchAddr(key)) {
+                    System.out.println("It's not a valid FID. Try again.");
+                    continue;
+                }
+                break;
+            }
+            Double value = null;
+
+            if(!"q".equals(key)) {
+                if (checkFullShare) {
+                    value = inputGoodShare(br);
+                } else {
+                    String ask = "Input the number. Enter to quit.";
+                    value = inputDouble(br,ask);
+                }
+            }
+
+            if(value!=null){
+                map.put(key,String.valueOf(value));
+            }
+        }
+    }
     public static String[] inputFidArray(BufferedReader br, String ask, int len) {
         ArrayList<String> itemList = new ArrayList<String>();
         System.out.println(ask);

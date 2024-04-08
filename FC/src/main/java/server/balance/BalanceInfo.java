@@ -12,8 +12,6 @@ import javaTools.JsonTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
-import redisTools.ReadRedis;
-import startAPIP.StartAPIP;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,6 +19,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static constants.Strings.*;
+import static database.redisTools.ReadRedis.readLong;
+import static server.Starter.addSidBriefToName;
+import static server.Starter.jedisPool;
+import static server.Starter.sidBrief;
 
 public class BalanceInfo {
     private static final Logger log = LoggerFactory.getLogger(BalanceInfo.class);
@@ -30,9 +32,10 @@ public class BalanceInfo {
     private String consumeVia;
     private String orderVia;
     private String pending;
+    private String serviceName;
 
     public static void recoverUserBalanceFromFile() {
-        try(Jedis jedis = StartAPIP.jedisPool.getResource()) {
+        try(Jedis jedis = jedisPool.getResource()) {
             BalanceInfo balanceInfo = JsonTools.readObjectFromJsonFile(null,BALANCE_BACKUP_JSON, BalanceInfo.class);
             if(balanceInfo==null)return;
             recoverBalanceToRedis(balanceInfo, jedis);
@@ -50,9 +53,9 @@ public class BalanceInfo {
     }
 
     public static void deleteOldBalance(ElasticsearchClient esClient) {
-        String index = StartAPIP.getNameOfService(BALANCE);
+        String index = addSidBriefToName(BALANCE);
         long BALANCE_BACKUP_KEEP_MINUTES=144000;
-        long height = ReadRedis.readLong(BEST_HEIGHT)-BALANCE_BACKUP_KEEP_MINUTES;
+        long height = readLong(BEST_HEIGHT)-BALANCE_BACKUP_KEEP_MINUTES;
         try {
             esClient.deleteByQuery(d -> d.index(index).query(q -> q.range(r -> r.field(BEST_HEIGHT).lt(JsonData.of(height)))));
         }catch (Exception e){
@@ -69,11 +72,11 @@ public class BalanceInfo {
 
     public static void recoverUserBalanceFromEs(ElasticsearchClient esClient) {
         Gson gson = new Gson();
-        String index = StartAPIP.getNameOfService(BALANCE);
+        String index = addSidBriefToName(BALANCE);
 
         String balancesStr = null;
         String viaTStr = null;
-        try(Jedis jedis = StartAPIP.jedisPool.getResource()) {
+        try(Jedis jedis = jedisPool.getResource()) {
             BalanceInfo balanceInfo = null;
             try {
                 SearchResponse<BalanceInfo> result = esClient.search(s -> s.index(index).size(1).sort(so -> so.field(f -> f.field(BEST_HEIGHT).order(SortOrder.Desc))), BalanceInfo.class);
@@ -98,7 +101,7 @@ public class BalanceInfo {
                 Map<String, String> viaTMap = gson.fromJson(viaTStr, new TypeToken<HashMap<String, String>>() {
                 }.getType());
                 for (String id : viaTMap.keySet()) {
-                    jedis.hset(StartAPIP.serviceName + "_" + CONSUME_VIA, id, viaTMap.get(id));
+                    jedis.hset(sidBrief + "_" + CONSUME_VIA, id, viaTMap.get(id));
                 }
                 log.debug("Consuming ViaT recovered from ES.");
             } else {
@@ -115,21 +118,21 @@ public class BalanceInfo {
         Map<String, String> viaTMap = gson.fromJson(balanceInfo.getOrderVia(), new TypeToken<HashMap<String, String>>() {
         }.getType());
         for (String id : balanceMap.keySet()) {
-            jedis.hset(StartAPIP.serviceName + "_" + Strings.FID_BALANCE, id, balanceMap.get(id));
+            jedis.hset(sidBrief + "_" + Strings.FID_BALANCE, id, balanceMap.get(id));
         }
         for (String id : viaTMap.keySet()) {
 
 
-            jedis.hset(StartAPIP.serviceName + "_" + CONSUME_VIA, id, viaTMap.get(id));
+            jedis.hset(sidBrief + "_" + CONSUME_VIA, id, viaTMap.get(id));
         }
         log.debug("Balances recovered from ES.");
     }
 
-    public static void backupUserBalanceToEs(ElasticsearchClient esClient)  {
-        try(Jedis jedis0Common = StartAPIP.jedisPool.getResource()) {
-            Map<String, String> balanceMap = jedis0Common.hgetAll(StartAPIP.serviceName + "_" + Strings.FID_BALANCE);
-            Map<String, String> consumeViaMap = jedis0Common.hgetAll(StartAPIP.serviceName + "_" + CONSUME_VIA);
-            Map<String, String> orderViaMap = jedis0Common.hgetAll(StartAPIP.serviceName + "_" + ORDER_VIA);
+    public static void backupBalance(ElasticsearchClient esClient)  {
+        try(Jedis jedis0Common = jedisPool.getResource()) {
+            Map<String, String> balanceMap = jedis0Common.hgetAll(sidBrief + "_" + Strings.FID_BALANCE);
+            Map<String, String> consumeViaMap = jedis0Common.hgetAll(sidBrief + "_" + CONSUME_VIA);
+            Map<String, String> orderViaMap = jedis0Common.hgetAll(sidBrief + "_" + ORDER_VIA);
             Map<String, String> pendingStrMap = jedis0Common.hgetAll(REWARD_PENDING_MAP);
             Gson gson = new Gson();
 
@@ -145,29 +148,60 @@ public class BalanceInfo {
             balanceInfo.setOrderVia(orderViaStr);
             balanceInfo.setPending(pendingStr);
 
-            long bestHeight = ReadRedis.readLong(BEST_HEIGHT);
+            long bestHeight = readLong(BEST_HEIGHT);
 
             balanceInfo.setBestHeight(bestHeight);
-            String index = StartAPIP.getNameOfService(BALANCE);
 
-            IndexResponse result = null;
-            try {
-                result = esClient.index(i -> i.index(index).id(String.valueOf(bestHeight)).document(balanceInfo));
-            } catch (IOException e) {
-                log.error("Read ES wrong.", e);
-            }
+            backupBalanceToEx(esClient, balanceInfo, bestHeight);
 
-            File file = new File(BALANCE_BACKUP_JSON);
-            if(!file.exists())file.createNewFile();
-            JsonTools.writeObjectToJsonFile(balanceInfo, BALANCE_BACKUP_JSON,false);
-            System.out.println("User balance backed up to file:"+BALANCE_BACKUP_JSON);
+            String fileName = addSidBriefToName(BALANCE);
+            backupBalanceToFile(balanceInfo, fileName);
 
-            if (result != null) {
-                System.out.println("User balance backup: " + result.result().toString());
-            }
-            log.debug(result.result().jsonValue());
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private static void backupBalanceToEx(ElasticsearchClient esClient, BalanceInfo balanceInfo, long bestHeight) throws IOException {
+        String index = addSidBriefToName(BALANCE);
+        IndexResponse result = null;
+        try {
+            result = esClient.index(i -> i.index(index).id(String.valueOf(bestHeight)).document(balanceInfo));
+        } catch (IOException e) {
+            log.error("Read ES wrong.", e);
+        }
+
+        File file = new File(BALANCE_BACKUP_JSON);
+        if(!file.exists())file.createNewFile();
+        JsonTools.writeObjectToJsonFile(balanceInfo, BALANCE_BACKUP_JSON,false);
+        System.out.println("User balance backed up to file:"+BALANCE_BACKUP_JSON);
+
+        if (result != null) {
+            System.out.println("User balance backup: " + result.result().toString());
+        }
+        log.debug(result.result().jsonValue());
+    }
+
+    private static void backupBalanceToFile(BalanceInfo balanceInfo, String index) {
+        for(int i=0;i<30;i++){
+            File file = new File(index +i+DOT_JSON);
+            if(file.exists()) {
+                if (i == 0){
+                    if(new File(index +29+DOT_JSON).exists())
+                        file.delete();
+                } else {
+                    if(new File(index +29+DOT_JSON).exists()) {
+                        file.renameTo(new File(index + (i - 1) + DOT_JSON));
+                        if(i==29){
+                            JsonTools.writeObjectToJsonFile(balanceInfo, index +i+DOT_JSON,false);
+                            break;
+                        }
+                    }
+                }
+            }else {
+                JsonTools.writeObjectToJsonFile(balanceInfo, index +i+DOT_JSON,false);
+                break;
+            }
         }
     }
 

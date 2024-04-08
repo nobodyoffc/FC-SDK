@@ -56,6 +56,7 @@ public class Strings {
     public static final String PRICE_PER_REQUEST = "pricePerRequest";
     public static final String BALANCE = "balance";
     public static final String REWARD = "reward";
+    public static final String LAST_REWARD = "last_reward";
     public static final String WEBHOOK = "webhook";
     public static final String REWARD_ID = "rewardId";
 

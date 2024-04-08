@@ -3,13 +3,14 @@ package APIP;
 import APIP.apipClient.*;
 import FCH.fchData.Cash;
 import config.ApiAccount;
-import APIP.apipData.ApipParams;
+import FEIP.feipData.serviceParams.ApipParams;
 import FEIP.feipClient.IdentityFEIPs;
 import APIP.apipData.CidInfo;
 
 
 import FEIP.feipData.Service;
 import com.google.gson.Gson;
+import config.ApiProvider;
 import constants.ApiNames;
 import crypto.eccAes256K1P7.EccAes256K1P7;
 
@@ -80,49 +81,6 @@ public class ApipTools {
         return HexFormat.of().formatHex(Arrays.copyOf(sessionKey, 6));
     }
 
-
-
-    public static void checkMaster(String priKeyCipher, String masterFidOrPubKey, byte[] initSymKey, ApiAccount apiAccount, BufferedReader br) {
-        byte[] priKey = EccAes256K1P7.decryptJsonBytes(priKeyCipher, initSymKey);
-        if (priKey == null) {
-            throw new RuntimeException("Failed to decrypt priKey.");
-        }
-        String fid = priKeyToFid(priKey);
-        byte[] sessionKey = apiAccount.decryptSessionKey(apiAccount.getSessionKeyCipher(), initSymKey.clone());
-        CidInfo cidInfo = ApipClient.getCidInfo(fid, apiAccount, sessionKey);
-        if (cidInfo == null) {
-            System.out.println("This fid was never seen on chain. Send some fch to it.");
-            if (Inputer.askIfYes(br, "Stop to send? y/n")) System.exit(0);
-        }
-        if (cidInfo != null) {
-            if (cidInfo.getMaster() != null) {
-                System.out.println("The master of the dealer is " + cidInfo.getMaster());
-                return;
-            }
-            if (Inputer.askIfYes(br, "Assign a master for " + fid + "? y/n:")) {
-                if (getFreeCashes(apiAccount.getApiUrl(), fid) == null) return;
-                String master;
-                while (true) {
-                    if (masterFidOrPubKey != null) {
-                        master = masterFidOrPubKey;
-                    } else master = Inputer.inputString(br, "Input the master FID or pubKey:");
-
-                    if (KeyTools.isValidPubKey(master) || KeyTools.isValidFchAddr(master)) {
-                        String result = IdentityFEIPs.setMasterOnChain(priKeyCipher, master, apiAccount, sessionKey, initSymKey);
-                        if (result == null) System.out.println("Failed to set master.");
-                        if (master.length() > 34) master = KeyTools.pubKeyToFchAddr(master);
-                        if (Hex.isHexString(result))
-                            System.out.println("Master " + master + " was set at txId: " + result);
-                        else System.out.println(result);
-                        break;
-                    }
-                }
-            }
-        } else {
-            System.out.println("Failed to get CID information of " + fid + ".");
-
-        }
-    }
     public static List<Cash> getFreeCashes(String apiUrl, String fid) {
         ApipClientData apipClientData = FreeGetAPIs.getCashes(apiUrl, fid, 0);
         if (apipClientData.isBadResponse("get cashes")) {

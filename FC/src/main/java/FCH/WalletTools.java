@@ -1,7 +1,6 @@
 package FCH;
 
 import APIP.apipClient.ApipClientData;
-import Exceptions.ExceptionTools;
 import FCH.fchData.SendTo;
 import NaSa.RPC.SendRawTransaction;
 import NaSa.data.TxInput;
@@ -667,8 +666,7 @@ public class WalletTools {
             System.out.println(signedTx);
             String txId = new SendRawTransaction().sendRawTransaction(signedTx, url, username, password);
             if (txId == null) {
-                ExceptionTools.throwRunTimeException("Failed to send tx.");
-                return;
+                throw new RuntimeException("Failed to send tx.");
             }
             System.out.println(txId);
         } else {

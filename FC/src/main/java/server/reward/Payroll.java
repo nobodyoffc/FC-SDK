@@ -1,7 +1,6 @@
 package server.reward;
 
-import fcTools.DataForOffLineTx;
-import fchClass.Cash;
+import FCH.fchData.Cash;
 
 import java.util.List;
 
@@ -9,7 +8,7 @@ public class Payroll {
 
     RewardInfo rewardInfo;
     String account;
-    DataForOffLineTx dataForOffLineTx;
+    FCH.DataForOffLineTx dataForOffLineTx;
     List<Cash> meetCashList;
 
     public Payroll(String account,RewardInfo rewardInfo) {

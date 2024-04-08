@@ -23,13 +23,49 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.concurrent.TimeUnit;
 
 public class EsTools {
 
     public static final int READ_MAX = 5000;
     public static final int WRITE_MAX = 3000;
     final static Logger log = LoggerFactory.getLogger(EsTools.class);
+    public static void recreateIndex(String index, ElasticsearchClient esClient, String mappingJsonStr) throws InterruptedException {
 
+        if(esClient==null) {
+            System.out.println("Create a Java client for ES first.");
+            return;
+        }
+        try {
+            DeleteIndexResponse req = esClient.indices().delete(c -> c.index(index));
+
+            if(req.acknowledged()) {
+                log.debug("Index {} was deleted.", index);
+            }
+        }catch(ElasticsearchException | IOException e) {
+            log.debug("Deleting index {} failed.", index,e);
+        }
+
+        TimeUnit.SECONDS.sleep(2);
+
+        createIndex(index,esClient,mappingJsonStr);
+    }
+    private static void createIndex(String index, ElasticsearchClient esClient, String mappingJsonStr) {
+
+        InputStream orderJsonStrIs = new ByteArrayInputStream(mappingJsonStr.getBytes());
+        try {
+            CreateIndexResponse req = esClient.indices().create(c -> c.index(index).withJson(orderJsonStrIs));
+            orderJsonStrIs.close();
+            System.out.println(req.toString());
+            if(req.acknowledged()) {
+                log.debug("Index {} was created.", index);
+            }else {
+                log.debug("Creating index {} failed.", index);
+            }
+        }catch(ElasticsearchException | IOException e) {
+            log.debug("Creating index {} failed.", index,e);
+        }
+    }
     public static <T> T getBestOne(ElasticsearchClient esClient, String index, String orderField, SortOrder sortOrder, Class<T> clazz) throws IOException {
         if (esClient == null) {
             System.out.println("Start a ES client first.");

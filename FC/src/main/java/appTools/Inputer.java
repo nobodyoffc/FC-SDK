@@ -1,7 +1,6 @@
 package appTools;
 
-
-import config.ApiProvider;
+import crypto.cryptoTools.KeyTools;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.NumberTools;
@@ -9,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
 import java.io.Console;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -435,6 +435,43 @@ public class Inputer {
         }
     }
 
+    public static String[] inputFidArray(BufferedReader br, String ask, int len) {
+        ArrayList<String> itemList = new ArrayList<String>();
+        System.out.println(ask);
+        while(true) {
+            String item =Inputer.inputString(br);
+            if(item.equals(""))break;
+            if(!KeyTools.isValidFchAddr(item)){
+                System.out.println("Invalid FID. Try again.");
+                continue;
+            }
+            if(item.startsWith("3")){
+                System.out.println("Multi-sign FID can not used to make new multi-sign FID. Try again.");
+                continue;
+            }
+            if(len>0) {
+                if(item.length()!=len) {
+                    System.out.println("The length does not match.");
+                    continue;
+                }
+            }
+            itemList.add(item);
+            System.out.println("Input next item if you want or enter to end:");
+        }
+        if(itemList.isEmpty())return new String [0];
 
+        String[] items = itemList.toArray(new String[itemList.size()]);
 
+        return items;
+    }
+
+    public static String inputPath(BufferedReader br) {
+        String path;
+        while(true) {
+            path = inputString(br, "Set the listen Path by listing it to check orders.");
+            if(new File(path).exists())break;
+            System.out.println("The path doesn't exist. Try again.");
+        }
+        return path;
+    }
 }

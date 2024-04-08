@@ -2,9 +2,8 @@ package config;
 
 import APIP.ApipTools;
 import APIP.apipClient.*;
-import APIP.apipData.ApipParams;
+import FEIP.feipData.serviceParams.ApipParams;
 import APIP.apipData.SignInData;
-import Exceptions.ExceptionTools;
 import FCH.ParseTools;
 import FCH.TxCreator;
 import FCH.fchData.Cash;
@@ -16,7 +15,6 @@ import appTools.Inputer;
 import appTools.Menu;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
-import co.elastic.clients.json.JsonpUtils;
 import com.google.gson.Gson;
 import constants.CodeAndMsg;
 import crypto.cryptoTools.Hash;
@@ -91,7 +89,7 @@ public class ApiAccount {
                 log.debug("Failed to buy APIP service.");
                 return;
             }
-            apipAccount.setBalance(balance + ParseTools.fchToSatoshi(topUp));
+            apipAccount.setBalance(balance + ParseTools.coinToSatoshi(topUp));
         }
     }
 
@@ -151,9 +149,9 @@ public class ApiAccount {
         }
 
         if(! apiProvider.getApiUrl().equals(this.apiUrl)){
-            if(Inputer.askIfYes(br,"The apiUrl of apiProvider "+ apiProvider.getApiUrl() +" is not the same as the apiUrl "+ apiUrl+" of the apiAccount. \nReset the apiUrl of apiAccount? y/n")) {
+//            if(Inputer.askIfYes(br,"The apiUrl of apiProvider "+ apiProvider.getApiUrl() +" is not the same as the apiUrl "+ apiUrl+" of the apiAccount. \nReset the apiUrl of apiAccount? y/n")) {
                 this.apiUrl = apiProvider.getApiUrl();
-            }
+//            }
         }
         return false;
     }
@@ -665,7 +663,7 @@ public class ApiAccount {
 
         sessionKey = sessionKey1;
         System.out.println("Connected to the initial APIP service: " + sid + " on " + apiUrl);
-        ApipClient apipClient = new ApipClient(apiProvider,this);
+        ApipClient apipClient = new ApipClient(apiProvider,this,symKey);
         client = apipClient;
         return apipClient;
     }
@@ -719,14 +717,14 @@ public class ApiAccount {
                 apipClientData = ConstructAPIs.serviceByIdsPost(this.apiUrl, new String[]{sid}, via, this.sessionKey);
             }
         }
-        freshApipService(apipClientData,br);
+        freshApipService(apipClientData);
 
         balance = apipClientData.getResponseBody().getBalance();
         if(isApipBalanceSufficient()) buyApip(symKey);
         return sessionKey;
     }
 
-    private void freshApipService(ApipClientData apipClientData,BufferedReader br) {
+    private void freshApipService(ApipClientData apipClientData) {
         Map<String, Service> stringServiceMap = ApipTools.parseApipServiceMap(apipClientData);
         if(stringServiceMap==null){
             System.out.println("Failed to get service with the sessionKey.");
@@ -742,9 +740,7 @@ public class ApiAccount {
         apipParams = ApipParams.fromObject(service.getParams());
         service.setParams(apipParams);
         if(!apiUrl.equals(apipParams.getUrlHead())){
-            if(Inputer.askIfYes(br,"The current API URL is "+ apiUrl + ". Replace it with the new updated URL "+apipParams.getUrlHead()+"? y/n")){
-                apiUrl = apipParams.getUrlHead();
-            }
+           apiUrl = apipParams.getUrlHead();
         }
 
     }
@@ -820,7 +816,7 @@ public class ApiAccount {
         this.sessionKeyCipher=sessionKeyCipher;
 
         apipSessionKey = EccAes256K1P7.decryptJsonBytes(sessionKeyCipher,symKey);
-        if(apipSessionKey==null) ExceptionTools.throwRunTimeException("Decrypting sessionKey wrong.");
+        if(apipSessionKey==null) throw new RuntimeException("Decrypting sessionKey wrong.");
         sessionKey = apipSessionKey;
 
         BytesTools.clearByteArray(priKey);
