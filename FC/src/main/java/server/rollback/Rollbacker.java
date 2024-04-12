@@ -10,7 +10,6 @@ import database.redisTools.ReadRedis;
 import javaTools.http.HttpMethods;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import server.Starter;
 import server.order.Order;
 
 import java.io.IOException;
@@ -47,7 +46,7 @@ public class Rollbacker {
             orderList= EsTools.getListSinceHeight(esClient, index,"height",height,Order.class);
 
             if(orderList==null || orderList.size()==0)return;
-            minusFromBalance(esClient,orderList);
+            minusFromBalance(orderList, esClient, jedisPool);
 
             jedis0Common.set(addSidBriefToName(ORDER_LAST_HEIGHT), String.valueOf(height));
             Block block = getBlockByHeight(esClient, height);
@@ -57,9 +56,9 @@ public class Rollbacker {
         }
     }
 
-    private static void minusFromBalance(ElasticsearchClient esClient, ArrayList<Order> orderList) throws Exception {
+    private static void minusFromBalance(ArrayList<Order> orderList, ElasticsearchClient esClient, JedisPool jedisPool) throws Exception {
         ArrayList<String> idList= new ArrayList<>();
-        try(Jedis jedis = Starter.jedisPool.getResource()) {
+        try(Jedis jedis = jedisPool.getResource()) {
             for (Order order : orderList) {
                 String addr = order.getFromFid();
                 long balance = ReadRedis.readHashLong(jedis, addSidBriefToName(Strings.FID_BALANCE), addr);

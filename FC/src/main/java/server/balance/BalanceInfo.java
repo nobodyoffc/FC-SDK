@@ -12,6 +12,8 @@ import javaTools.JsonTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import server.Starter;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,7 +23,6 @@ import java.util.Map;
 import static constants.Strings.*;
 import static database.redisTools.ReadRedis.readLong;
 import static server.Starter.addSidBriefToName;
-import static server.Starter.jedisPool;
 import static server.Starter.sidBrief;
 
 public class BalanceInfo {
@@ -34,7 +35,7 @@ public class BalanceInfo {
     private String pending;
     private String serviceName;
 
-    public static void recoverUserBalanceFromFile() {
+    public static void recoverUserBalanceFromFile(JedisPool jedisPool) {
         try(Jedis jedis = jedisPool.getResource()) {
             BalanceInfo balanceInfo = JsonTools.readObjectFromJsonFile(null,BALANCE_BACKUP_JSON, BalanceInfo.class);
             if(balanceInfo==null)return;
@@ -70,7 +71,7 @@ public class BalanceInfo {
         this.consumeVia = consumeVia;
     }
 
-    public static void recoverUserBalanceFromEs(ElasticsearchClient esClient) {
+    public static void recoverUserBalanceFromEs(ElasticsearchClient esClient, JedisPool jedisPool) {
         Gson gson = new Gson();
         String index = addSidBriefToName(BALANCE);
 
@@ -128,12 +129,12 @@ public class BalanceInfo {
         log.debug("Balances recovered from ES.");
     }
 
-    public static void backupBalance(ElasticsearchClient esClient)  {
+    public static void backupBalance(ElasticsearchClient esClient,JedisPool jedisPool)  {
         try(Jedis jedis0Common = jedisPool.getResource()) {
-            Map<String, String> balanceMap = jedis0Common.hgetAll(sidBrief + "_" + Strings.FID_BALANCE);
-            Map<String, String> consumeViaMap = jedis0Common.hgetAll(sidBrief + "_" + CONSUME_VIA);
-            Map<String, String> orderViaMap = jedis0Common.hgetAll(sidBrief + "_" + ORDER_VIA);
-            Map<String, String> pendingStrMap = jedis0Common.hgetAll(REWARD_PENDING_MAP);
+            Map<String, String> balanceMap = jedis0Common.hgetAll(Starter.addSidBriefToName(Strings.FID_BALANCE));
+            Map<String, String> consumeViaMap = jedis0Common.hgetAll(Starter.addSidBriefToName(CONSUME_VIA));
+            Map<String, String> orderViaMap = jedis0Common.hgetAll(Starter.addSidBriefToName(ORDER_VIA));
+            Map<String, String> pendingStrMap = jedis0Common.hgetAll(Starter.addSidBriefToName(REWARD_PENDING_MAP));
             Gson gson = new Gson();
 
             String balanceStr = gson.toJson(balanceMap);
@@ -163,7 +164,7 @@ public class BalanceInfo {
     }
 
     private static void backupBalanceToEx(ElasticsearchClient esClient, BalanceInfo balanceInfo, long bestHeight) throws IOException {
-        String index = addSidBriefToName(BALANCE);
+        String index = addSidBriefToName(BALANCE).toLowerCase();
         IndexResponse result = null;
         try {
             result = esClient.index(i -> i.index(index).id(String.valueOf(bestHeight)).document(balanceInfo));

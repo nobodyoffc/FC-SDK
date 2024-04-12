@@ -3,56 +3,42 @@ package config;
 import FEIP.feipData.Service;
 import appTools.Inputer;
 import appTools.Shower;
+import javaTools.JsonTools;
 import org.jetbrains.annotations.NotNull;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import server.Starter;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-public abstract class Config {
+import static constants.Strings.CONFIG;
+
+public class Config {
     protected String nonce;
     protected String nonceCipher;
     protected String owner;
-    protected Service myService;
     protected String initApipAccountId;
     protected Map<String, ApiProvider> apiProviderMap;
     protected Map<String, ApiAccount> apiAccountMap;
-    protected String memDatabaseAccountId;
-    protected String mainDatabaseAccountId;
-    protected String chainDatabaseAccountId;
+    protected String redisAccountId;
+    protected String esAccountId;
     protected String naSaNodeAccountId;
     public static String CONFIG_DOT_JSON = "config.json";
 
-//    public ApipClient initialApipClient(byte[] symKey) {
-//        ApipClient apipClient = new ApipClient();
-//        ApiAccount apiAccount = apiAccountMap.get(initApipAccountId);
-//        if(apiAccount.getSessionKeyCipher()!=null) {
-//            byte[] sessionKey = EccAes256K1P7.decryptJsonBytes(apiAccount.getSessionKeyCipher(), symKey);
-//            apiAccount.setSessionKey(sessionKey);
-//        }else {
-//            apiAccount.freshApipSessionKey(symKey,null);
-//        }
-//        ApiProvider apiProvider = apiProviderMap.get(apiAccount.getSid());
-//        apipClient.setApiAccount(apiAccount);
-//        apipClient.setApiProvider(apiProvider);
-//        ApipClientData result = apipClient.totals(HttpMethods.POST);
-//        if(result.isBadResponse("get totals"))return null;
-//        System.out.println("Initial Apip Client is created.");
-//        return apipClient;
-//    }
-
-    public ApiProvider addApiProvider(BufferedReader br, ApiProvider.ApiType apiType) {
+    public ApiProvider addApiProvider(BufferedReader br, ApiProvider.ApiType apiType,JedisPool jedisPool) {
         ApiProvider apiProvider = new ApiProvider();
         apiProvider.inputAll(br,apiType);
         if(apiProviderMap==null)apiProviderMap= new HashMap<>();
         apiProviderMap.put(apiProvider.getSid(),apiProvider);
         System.out.println(apiProvider.getSid()+" on "+apiProvider.getApiUrl() + " added.");
-        saveConfig();
+        saveConfig(jedisPool);
         return apiProvider;
     }
 
-    public ApiAccount addApiAccount(@NotNull ApiProvider apiProvider, byte[] symKey, BufferedReader br) {
+    public ApiAccount addApiAccount(@NotNull ApiProvider apiProvider, byte[] symKey,JedisPool jedisPool, BufferedReader br) {
         System.out.println("Add API account for provider "+ apiProvider.getSid()+"...");
         if(apiAccountMap==null)apiAccountMap = new HashMap<>();
         ApiAccount apiAccount;
@@ -66,11 +52,21 @@ public abstract class Config {
                     continue;
                 }
             }
-            Object client = apiAccount.connectApi(apiProvider, symKey, br);
-            if(client==null) {
-                System.out.println("This account can't connect withe the API. Reset again.");
-                continue;
+            try {
+                Object client = apiAccount.connectApi(apiProvider, symKey, br);
+                if(client==null) {
+                    System.out.println("This account can't connect withe the API. Reset again.");
+                    continue;
+                }
+            }catch (Exception e){
+                System.out.println("Can't connect the API provider of "+apiProvider.getSid());
+                if(Inputer.askIfYes(br,"Do you want to revise the API provider? y/n")){
+                    apiProvider.updateAll(br);
+                    saveConfig(jedisPool);
+                    continue;
+                }
             }
+
             apiAccountMap.put(apiAccount.getId(), apiAccount);
             break;
         }
@@ -138,7 +134,7 @@ public abstract class Config {
         this.apiAccountMap = apiAccountMap;
     }
 
-    public void saveConfig() {
+    public void saveConfig(JedisPool jedisPool) {
         File file = new File(CONFIG_DOT_JSON);
         if(!file.exists()) {
             try {
@@ -148,45 +144,28 @@ public abstract class Config {
             }
         }
         javaTools.JsonTools.writeObjectToJsonFile(this,CONFIG_DOT_JSON,false);
-    }
-    public static Config loadConfig(){
-        try {
-            return javaTools.JsonTools.readObjectFromJsonFile(null,CONFIG_DOT_JSON, Config.class);
-        } catch (IOException e) {
-            return null;
+        if(jedisPool!=null)try(Jedis jedis = jedisPool.getResource()){
+            String configStr = JsonTools.getNiceString(this);
+            String key = Starter.addSidBriefToName(CONFIG);
+            jedis.set(key, configStr);
         }
     }
 
-    public String getMemDatabaseAccountId() {
-        return memDatabaseAccountId;
+
+    public String getRedisAccountId() {
+        return redisAccountId;
     }
 
-    public void setMemDatabaseAccountId(String memDatabaseSid) {
-        this.memDatabaseAccountId = memDatabaseSid;
+    public void setRedisAccountId(String memDatabaseSid) {
+        this.redisAccountId = memDatabaseSid;
     }
 
-    public String getMainDatabaseAccountId() {
-        return mainDatabaseAccountId;
+    public String getEsAccountId() {
+        return esAccountId;
     }
 
-    public void setMainDatabaseAccountId(String mainDatabaseSid) {
-        this.mainDatabaseAccountId = mainDatabaseSid;
-    }
-
-    public String getChainDatabaseAccountId() {
-        return chainDatabaseAccountId;
-    }
-
-    public void setChainDatabaseAccountId(String chainDatabaseAccountId) {
-        this.chainDatabaseAccountId = chainDatabaseAccountId;
-    }
-
-    public Service getMyService() {
-        return myService;
-    }
-
-    public void setMyService(Service myService) {
-        this.myService = myService;
+    public void setEsAccountId(String mainDatabaseSid) {
+        this.esAccountId = mainDatabaseSid;
     }
 
     public String getInitApipAccountId() {

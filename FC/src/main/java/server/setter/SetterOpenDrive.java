@@ -2,20 +2,21 @@ package server.setter;
 
 import appTools.Menu;
 import config.Config;
-import config.ConfigOpenDrive;
+import config.MySettings;
+import redis.clients.jedis.JedisPool;
 
 import java.io.BufferedReader;
 
 public class SetterOpenDrive extends Setter{
-    private ConfigOpenDrive configOpenDrive;
+    private MySettings mySettings;
 
-    public SetterOpenDrive(ConfigOpenDrive configOpenDrive,BufferedReader br) {
-        super(configOpenDrive,br);
-        configOpenDrive = (ConfigOpenDrive) config;
+    public SetterOpenDrive(Config config, MySettings mySettings, BufferedReader br, JedisPool jedisPool) {
+        super(config, br, jedisPool);
+        this.mySettings = mySettings;
     }
 
     @Override
-    public void resetOtherParams(byte[] symKey) {
+    public void resetMyLocalSettings(byte[] symKey) {
         Menu menu = new Menu();
         menu.add("Reset listenPath");
         menu.add("Reset account");
@@ -23,7 +24,7 @@ public class SetterOpenDrive extends Setter{
         int choice = menu.choose(br);
         menu.show();
         switch (choice){
-            case 1 -> configOpenDrive.updateListenPath(br);
+            case 1 -> mySettings.updateAll(br);
         }
     }
 }

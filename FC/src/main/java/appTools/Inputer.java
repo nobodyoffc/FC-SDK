@@ -1,5 +1,6 @@
 package appTools;
 
+import config.ApiProvider;
 import crypto.cryptoTools.KeyTools;
 import javaTools.BytesTools;
 import javaTools.Hex;
@@ -382,10 +383,10 @@ public class Inputer {
     }
 
 
-    public static String[] promptAndSet(BufferedReader reader, String fieldName, String[] currentValue) throws IOException {
+    public static String[] promptAndSet(BufferedReader reader, String fieldName, String[] currentValues) throws IOException {
         String ask = "Enter " + fieldName + " (Press Enter to skip): ";
         String[] newValue = inputStringArray(reader, ask, 0);
-        return newValue.length == 0 ? currentValue : newValue;
+        return newValue.length == 0 ? currentValues : newValue;
     }
 
     public static String promptAndSet(BufferedReader reader, String fieldName, String currentValue) throws IOException {
@@ -394,6 +395,10 @@ public class Inputer {
         return newValue.isEmpty() ? currentValue : newValue;
     }
 
+    public static boolean promptAndSet(BufferedReader reader, String fieldName, boolean currentValue) throws IOException {
+        System.out.print("Enter " + fieldName + ". It is "+currentValue+ " now. (Press Enter to keep it): ");
+        return Boolean.parseBoolean(reader.readLine());
+    }
     public static long promptForLong(BufferedReader reader, String fieldName, long currentValue) throws IOException {
         System.out.print("Enter " + fieldName + " (Press Enter to skip): ");
         String newValue = reader.readLine();
@@ -412,11 +417,11 @@ public class Inputer {
     }
 
     public static String promptAndUpdate(BufferedReader reader, String fieldName, String currentValue) throws IOException {
-        System.out.println(fieldName + ". Current value: " + currentValue);
+        System.out.println("The " + fieldName + "is :" + currentValue);
         System.out.print("Do you want to update it? (y/n): ");
 
         if ("y".equalsIgnoreCase(reader.readLine())) {
-            String ask = "Enter new values for " + fieldName + ": ";
+            String ask = "Enter new values for the " + fieldName + ": ";
             return inputString(reader, ask);
         }
         return currentValue;
@@ -473,5 +478,16 @@ public class Inputer {
             System.out.println("The path doesn't exist. Try again.");
         }
         return path;
+    }
+
+    public static <T> T chooseOne(T[] values,String ask,BufferedReader br) {
+        System.out.println(ask);
+        Shower.printUnderline(10);
+        for(int i=0;i<values.length;i++){
+            System.out.println((i+1)+" "+values[i].toString());
+        }
+        Shower.printUnderline(10);
+        int choice = inputInteger(br,"Choose the number:",values.length);
+        return values[choice-1];
     }
 }

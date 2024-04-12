@@ -1,6 +1,9 @@
 package FCH;
 
+import APIP.apipClient.ApipClient;
 import crypto.cryptoTools.KeyTools;
+import crypto.eccAes256K1P7.EccAes256K1P7;
+import javaTools.Hex;
 import org.bitcoinj.core.ECKey;
 import org.jetbrains.annotations.Nullable;
 import crypto.cryptoTools.Base58;
@@ -10,6 +13,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Inputer extends appTools.Inputer {
@@ -22,12 +26,47 @@ public class Inputer extends appTools.Inputer {
             if (fid == null) return null;
             if ("".equals(fid)) return "";
             if ("d".equals(fid)) return "d";
+            if ("c".equals(fid)) return "c";
             if (!KeyTools.isValidFchAddr(fid)) {
                 System.out.println("It's not a valid FID. Try again.");
                 continue;
             }
             return fid;
         }
+    }
+
+    public static String inputOrCreateFid(String ask,BufferedReader br,byte[] symKey,ApipClient apipClient) {
+        System.out.println(ask);
+        String fid;
+        while (true) {
+            fid = inputGoodFid(br,"Input the FID or 'c' to create a new one. Enter to quit:");
+            if ("".equals(fid)) return null;
+            if("d".equals(fid))return null;
+            if ("c".equals(fid)) {
+                ECKey ecKey = KeyTools.genNewFid(br);
+                byte[] priKey = ecKey.getPrivKeyBytes();
+                fid = ecKey.toAddress(FchMainNetwork.MAINNETWORK).toBase58();
+
+                if(apipClient!=null){
+                    String priKeyCipher = EccAes256K1P7.encryptWithSymKey(priKey,symKey);
+                    apipClient.checkMaster(priKeyCipher,br);
+                }
+                return fid;
+            }
+            if (!KeyTools.isValidFchAddr(fid)) {
+                System.out.println("It's not a valid FID. Try again.");
+                continue;
+            }
+            return fid;
+        }
+    }
+
+    public static String[] inputOrCreateFidArray(BufferedReader br,byte[] symKey,ApipClient apipClient){
+        List<String> fidList = new ArrayList<>();
+        do {
+            fidList.add(inputOrCreateFid("Set FIDs...", br, symKey, apipClient));
+        }while(askIfYes(br,"Add more? y/n"));
+        return fidList.toArray(new String[0]);
     }
     public static Map<String,String> inputGoodFidValueStrMap(BufferedReader br, String mapName, boolean checkFullShare)  {
         Map<String,String> map = new HashMap<>();

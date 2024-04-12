@@ -2,7 +2,7 @@ package constants;
 
 public class Constants {
     public static final Long COIN_TO_SATOSHI = 100000000L;
-    public static final Long OneDayInterval = 1440L;
+    public static final Long OneDayInterval = 1L;//1440L;
     public static final Long BalanceBackupInterval = OneDayInterval;
     public static final Long RewardInterval = OneDayInterval * 10;
     public static final String UserDir = "user.dir";
@@ -59,13 +59,13 @@ public class Constants {
     public static int RedisDb4Webhook = 4;
     public static int RedisDb3Mempool = 3;
     public static int RedisDb0Common = 0;
-    public static String ECC256k1_AES256CBC = "ECC256k1-AES256CBC";
-    public static String EccAes256BitPay_No1_NrC7 = "EccAes256BitPay@No1_NrC7";
-    public static String EcdsaBtcMsg_No1_NrC7 = "EcdsaBtcMsg@No1_NrC7";
-    public static String Schnorr_No1_NrC7 = "SchnorrMsg@No1_NrC7";
+    public final static String ECC256k1_AES256CBC = "ECC256k1-AES256CBC";
+    public final static String EccAes256BitPay_No1_NrC7 = "EccAes256BitPay@No1_NrC7";
+    public final static String EcdsaBtcMsg_No1_NrC7 = "EcdsaBtcMsg@No1_NrC7";
+    public final static String Schnorr_No1_NrC7 = "SchnorrMsg@No1_NrC7";
     public static String UrlHead_CID_CASH = "https://cid.cash/APIP";
     public static long DustInSatoshi = 1000;
     public static String Dot_JSON = ".json";
-    public static String FCH_0BlockId = "00000000cbe04361b1d6de82b893a7d8419e76e99dd2073ac0db2ba0e652eea8";
-    public static String DOGE_0BlockId = "1a91e3dace36e2be3bf030a65679fe821aa1d6ef92e7c9902eb318182c355691";
+    public final static String FCH_0BlockId = "00000000cbe04361b1d6de82b893a7d8419e76e99dd2073ac0db2ba0e652eea8";
+    public final static String DOGE_0BlockId = "1a91e3dace36e2be3bf030a65679fe821aa1d6ef92e7c9902eb318182c355691";
 }

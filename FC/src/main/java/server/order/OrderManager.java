@@ -17,6 +17,7 @@ import crypto.cryptoTools.KeyTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 import server.Counter;
 import server.Starter;
 
@@ -36,12 +37,13 @@ public class OrderManager {
     private static final Logger log = LoggerFactory.getLogger(OrderManager.class);
     private final ElasticsearchClient esClient;
     private final BufferedReader br;
-
+    private final JedisPool jedisPool;
     private final Counter counter;
 
-    public OrderManager(ElasticsearchClient esClient, BufferedReader br, Counter counter) {
+    public OrderManager(ElasticsearchClient esClient, BufferedReader br, JedisPool jedisPool, Counter counter) {
         this.esClient = esClient;
         this.br = br;
+        this.jedisPool = jedisPool;
         this.counter = counter;
     }
 
@@ -63,7 +65,7 @@ public class OrderManager {
             menu.show();
             int choice = menu.choose(br);
             switch (choice) {
-                case 1-> howToBuyService(br);
+                case 1-> howToBuyService(br,jedisPool);
                 case 2 -> recreateIndexAndResetOrderHeight(br, esClient,  IndicesNames.ORDER, orderMappingJsonStr);
                 case 3 -> switchScanOpReturn(br);
                 case 4 -> switchOrderScanner(counter);
@@ -89,7 +91,7 @@ public class OrderManager {
         String input = Inputer.inputString(br);
 
         if ("reset".equals(input)) {
-            try(Jedis jedis = Starter.jedisPool.getResource()) {
+            try(Jedis jedis = jedisPool.getResource()) {
                 jedis.set(Starter.sidBrief+"_"+ORDER_LAST_HEIGHT, "0");
                 jedis.set(Starter.sidBrief+"_"+ORDER_LAST_BLOCK_ID, zeroBlockId);
                 System.out.println("Last order height has set to 0.");
@@ -178,7 +180,7 @@ public class OrderManager {
     }
 
     private void switchScanOpReturn(BufferedReader br) {
-        try(Jedis jedis = Starter.jedisPool.getResource()) {
+        try(Jedis jedis = jedisPool.getResource()) {
             String isCheckOrderOpReturn = jedis.hget(CONFIG, Strings.CHECK_ORDER_OPRETURN);
             System.out.println("Check order's OpReturn: " + isCheckOrderOpReturn + ". Change it? 'y' to switch.");
             String input;
@@ -202,10 +204,10 @@ public class OrderManager {
         Menu.anyKeyToContinue(br);
     }
 
-    private static void howToBuyService(BufferedReader br) {
+    private static void howToBuyService(BufferedReader br,JedisPool jedisPool) {
         System.out.println("Anyone can send a freecash TX with following json in Op_Return to buy your service:" +
                 "\n--------");
-        try(Jedis jedis = Starter.jedisPool.getResource()) {
+        try(Jedis jedis = jedisPool.getResource()) {
             String sidStr = jedis.get(Starter.sidBrief + "_" + SERVICE);
             if (sidStr == null) {
                 System.out.println("No service yet.");

@@ -1,10 +1,9 @@
 package javaTools;
 
+import crypto.cryptoTools.Hash;
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -71,6 +70,79 @@ public class FileTools {
         }
     }
 
+    public static boolean writeBytesToDidFile(byte[] bytes, String storageDir) {
+        String did = Hex.toHex(Hash.Sha256x2(bytes));
+        String subDir = getSubDirPathOfDid(did);
+        String path = storageDir+subDir;
+
+        File file = new File(path,did);
+        if(!file.exists()) {
+            try {
+                boolean done = createFileWithDirectories(path+"/"+did);
+                if(!done)return false;
+                try (OutputStream outputStream = new FileOutputStream(file)) {
+                    outputStream.write(bytes);
+                    return true;
+                }
+            } catch (IOException e) {
+                return false;
+            }
+        }else return checkFileExistsWithDid(bytes, storageDir, did);
+    }
+
+    public static boolean createFileWithDirectories(String filePathString) {
+        Path path = Paths.get(filePathString);
+        try {
+            // Create parent directories if they do not exist
+            if (Files.notExists(path.getParent())) {
+                Files.createDirectories(path.getParent());
+            }
+
+            // Create file if it does not exist
+            if (Files.notExists(path)) {
+                Files.createFile(path);
+                return true;
+            } else {
+                return true;
+            }
+        } catch (IOException e) {
+            System.err.println("Error creating file or directories: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public static String getSubDirPathOfDid(String did) {
+        return "/"+did.substring(0,2)+"/"+did.substring(2,4)+"/"+did.substring(4,6)+"/"+did.substring(6,8);
+    }
+
+    public static boolean checkFileExistsWithDid(byte[] bytes, String storageDir, String did) {
+        if (bytes==null)return false;
+        File file = new File(storageDir,did);
+        if(!file.exists())return false;
+        String inputDid = Hex.toHex(Hash.Sha256x2(bytes));
+        byte[] existBytes;
+        try(FileInputStream fileInputStream = new FileInputStream(file)) {
+            existBytes = fileInputStream.readAllBytes();
+        } catch (IOException e) {
+            return false;
+        }
+        String existDid = Hex.toHex(Hash.Sha256x2(existBytes));
+        return inputDid.equals(existDid);
+    }
+
+    public static boolean checkFileExistsWithDid(String storageDir, String did) {
+        String path = FileTools.getSubDirPathOfDid(did);
+        File file = new File(storageDir+path, did);
+        if(!file.exists())return false;
+        byte[] existBytes;
+        try(FileInputStream fileInputStream = new FileInputStream(file)) {
+            existBytes = fileInputStream.readAllBytes();
+        } catch (IOException e) {
+            return false;
+        }
+        String existDid = Hex.toHex(Hash.Sha256x2(existBytes));
+        return did.equals(existDid);
+    }
     public static enum Mode{
         REWRITE,ADD_1,RETURN_NULL,THROW_EXCEPTION
     }

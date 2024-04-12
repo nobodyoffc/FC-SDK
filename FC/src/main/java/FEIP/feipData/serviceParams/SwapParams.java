@@ -39,7 +39,7 @@ public class SwapParams extends Params {
     private transient String priKeyCipher;
 
     @Override
-    public Params inputParams(BufferedReader br, byte[] symKey) {
+    public void inputParams(BufferedReader br, byte[] symKey) {
         this.goods = Inputer.inputString(br,"Input the name of the goods:");
         this.money = Inputer.inputString(br,"Input the name of the money:");
         this.gTick = Inputer.inputString(br,"Input the tick of the goods:");
@@ -52,11 +52,10 @@ public class SwapParams extends Params {
         this.mWithdrawFee = Inputer.inputDoubleAsString(br,"Input the fee charged when withdrawing money from LP:");
         this.swapFee = Inputer.inputDoubleAsString(br,"Input the fee charged for LPs:");
         this.serviceFee = Inputer.inputDoubleAsString(br,"Input the fee for the owner:");
-        return this;
     }
 
     @Override
-    public Params updateParams(BufferedReader br, byte[] symKey) {
+    public void updateParams(BufferedReader br, byte[] symKey) {
         priKeyCipher = null;
         System.out.println("The goods address is " + gAddr);
         System.out.println("The money address is " + mAddr);
@@ -74,10 +73,9 @@ public class SwapParams extends Params {
         updateMWithdrawFee(br);
         updateSwapFee(br);
         updateServiceFee(br);
-        return this;
     }
 
-    public SwapParams getParamsFromService(Service service) {
+    public static SwapParams getParamsFromService(Service service) {
         SwapParams params;
         Gson gson = new Gson();
         try {
@@ -115,7 +113,6 @@ public class SwapParams extends Params {
                 Menu.anyKeyToContinue(br);
                 return null;
             }
-
             priKeyCipher = crypto.eccAes256K1P7.EccAes256K1P7.encryptWithSymKey(ecKey.getPrivKeyBytes(), initSymKey.clone());
             setAddr(ecKey, true,gTick);
             setAddr(ecKey,false, mTick);
@@ -123,6 +120,7 @@ public class SwapParams extends Params {
             System.out.println("Goods addr is "+gAddr);
             System.out.println("Money addr is "+gAddr);
             Shower.printUnderline(10);
+            if(apipClient!=null)apipClient.checkMaster(priKeyCipher,br);
         }else {
             this.gAddr = Inputer.inputString(br, "Input the dealer address of the goods:");
             this.mAddr = Inputer.inputString(br, "Input the dealer address of the money:");

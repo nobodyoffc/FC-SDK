@@ -20,6 +20,7 @@ import static appTools.Inputer.promptAndUpdate;
 
 public class ApiProvider {
     private static final Logger log = LoggerFactory.getLogger(ApiProvider.class);
+    private static final String DEFAULT_API_URL = "https://cid.cash/APIP";
     private String sid;
     private ApiType type;
     private String orgUrl;
@@ -50,8 +51,9 @@ public class ApiProvider {
     }
 
     public ApiProvider setApipProvider(BufferedReader br) {
-        apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service:");
+        apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service. Enter to set default as "+ DEFAULT_API_URL);
         if(apiUrl==null) return null;
+        if("".equals(apiUrl))apiUrl = DEFAULT_API_URL;
         ApipClientData apipClientData = OpenAPIs.getService(apiUrl);
         if(apipClientData.isBadResponse("get service from"+apiUrl)){
             System.out.println("Failed to get the APIP service from "+apiUrl);
@@ -82,11 +84,18 @@ public class ApiProvider {
         APIP,
         ES,
         Redis,
-        Other
+        Other;
+
+        @Override
+        public String toString() {
+            return this.name();
+        }
     }
+
 
     public void inputAll(BufferedReader br, ApiType apiType) {
         try  {
+
             if(apiType==null)inputType(br);
             else type =apiType;
 
@@ -140,16 +149,18 @@ public class ApiProvider {
     private ApiType inputType(BufferedReader br) throws IOException {
         ApiType[] choices = ApiType.values();
         System.out.println("Choose the type of the API:");
-        for(int i=0;i<choices.length;i++){
-            System.out.println((i+1)+" "+choices[i].name());
-        }
-        int choice = Inputer.inputInteger(br,"Input the number:",choices.length+1);
-        type = choices[choice-1];
+        type = Inputer.chooseOne(choices,"Choose the type of API provider:",br);
+//
+//        for(int i=0;i<choices.length;i++){
+//            System.out.println((i+1)+" "+choices[i].name());
+//        }
+//        int choice = Inputer.inputInteger(br,"Input the number:",choices.length+1);
+//        type = choices[choice-1];
         return type;
     }
 
     private void inputApiURL(BufferedReader br, String defaultUrl) throws IOException {
-        this.apiUrl = Inputer.promptAndSet(br, "url of API request", this.apiUrl);
+        this.apiUrl = Inputer.promptAndSet(br, "the url of API request", this.apiUrl);
         if(apiUrl==null){
             if(Inputer.askIfYes(br,"Set to the default: "+defaultUrl+" ?y/n"))
                 apiUrl=defaultUrl;
@@ -157,11 +168,11 @@ public class ApiProvider {
     }
 
     private void inputDocUrl(BufferedReader br) throws IOException {
-        this.docUrl = Inputer.promptAndSet(br, "url of API document", this.docUrl);
+        this.docUrl = Inputer.promptAndSet(br, "the url of API document", this.docUrl);
     }
 
     private void inputOrgUrl(BufferedReader br) throws IOException {
-        this.orgUrl = Inputer.promptAndSet(br, "url of organization", this.orgUrl);
+        this.orgUrl = Inputer.promptAndSet(br, "the url of organization", this.orgUrl);
     }
 
     private void inputProtocol(BufferedReader br) throws IOException {
@@ -175,7 +186,7 @@ public class ApiProvider {
 
     public void updateAll(BufferedReader br) {
         try {
-            this.type = ApiType.valueOf(promptAndUpdate(br, "type ("+ Arrays.toString(ApiType.values())+")", String.valueOf(this.type)));
+            this.type = Inputer.chooseOne(ApiType.values(),"Choose the type:",br);//ApiType.valueOf(promptAndUpdate(br, "type ("+ Arrays.toString(ApiType.values())+")", String.valueOf(this.type)));
             if(type==ApiType.APIP){
                 if(Inputer.askIfYes(br,"The apiUrl is "+apiUrl+". Update it? y/n:")){
                     apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service:");

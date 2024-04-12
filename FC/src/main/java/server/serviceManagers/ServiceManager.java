@@ -1,5 +1,6 @@
 package server.serviceManagers;
 
+import APIP.apipClient.ApipClient;
 import APIP.apipClient.ApipClientData;
 import APIP.apipClient.ConstructAPIs;
 import FEIP.feipData.FcInfo;
@@ -8,6 +9,7 @@ import FEIP.feipData.ServiceData;
 import FEIP.feipData.serviceParams.Params;
 import FEIP.feipData.serviceParams.SwapParams;
 import appTools.Menu;
+import appTools.Shower;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import config.ApiAccount;
@@ -98,7 +100,11 @@ public abstract class ServiceManager {
 
         data.inputTypes(br);
 
-        data.inputServicePublish(br);
+        if(symKey!=null && apipAccount.getClient()!=null)
+            data.inputServiceHead(br,symKey, (ApipClient) apipAccount.getClient());
+        else data.inputServiceHead(br);
+
+        System.out.println("Set the service parameters...");
 
         Params serviceParams = inputParams(symKey, br);
 
@@ -108,7 +114,11 @@ public abstract class ServiceManager {
 
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-        System.out.println(gson.toJson(fcInfo));
+        Shower.printUnderline(10);
+        String opReturnJson = gson.toJson(fcInfo);
+//        opReturnJson = opReturnJson.replaceAll(",\n {4}\"rate\": 0", "");
+        System.out.println(opReturnJson);
+        Shower.printUnderline(10);
         System.out.println("Check, and edit if you want, the JSON text above. Send it in a TX by the owner of the service to freecash blockchain:");
         Menu.anyKeyToContinue(br);
     }
@@ -140,7 +150,9 @@ public abstract class ServiceManager {
 
         data.updateTypes(br);
 
-        data.updateServiceHead(br);
+        if(apipAccount.getClient()!=null && symKey!=null)
+            data.updateServiceHead(br,symKey, (ApipClient) apipAccount.getClient());
+        else data.updateServiceHead(br);
 
         SwapParams serviceParams = (SwapParams) data.getParams();
 

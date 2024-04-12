@@ -120,11 +120,11 @@ public class Rewarder {
 
         log.debug("Made a rewardInfo. The sum of payment is {}.",calcSumPay(rewardInfo));
 
-        AffairMaker affairMaker = new AffairMaker(account, rewardInfo,esClient);
+        AffairMaker affairMaker = new AffairMaker(account, rewardInfo,esClient,jedisPool);
 
         String affairSignTxJson = affairMaker.makeAffair();
 
-        pendingMap = affairMaker.getPendingMapFromRedis();
+        pendingMap = affairMaker.getPendingMapFromRedis(jedisPool);
         if(pendingMap!=null && !pendingMap.isEmpty()) {
             if (!backUpPending()) log.debug("Backup pendingMap failed.");
         }
@@ -300,7 +300,7 @@ public class Rewarder {
             paramMap.put("state",JsonData.of(rewardState.name()));
 
             esClient.update(u->u
-                            .index(addSidBriefToName(REWARD))
+                            .index(addSidBriefToName(REWARD).toLowerCase())
                             .id(rewardId)
                             .script(s->s
                                     .inline(in->in
@@ -344,7 +344,7 @@ public class Rewarder {
         SearchResponse<RewardInfo> result;
         try {
             result = esClient.search(s -> s
-                            .index(addSidBriefToName(REWARD))
+                            .index(addSidBriefToName(REWARD).toLowerCase())
                             .size(1)
                             .sort(so -> so.field(f -> f
                                     .field(TIME)
@@ -378,7 +378,7 @@ public class Rewarder {
         SearchResponse<RewardInfo> result;
         try {
             result = esClient.search(s -> s
-                            .index(addSidBriefToName(REWARD))
+                            .index(addSidBriefToName(REWARD).toLowerCase())
                             .query(q->q
                                     .term(t->t
                                             .field(STATE)
@@ -415,7 +415,7 @@ public class Rewarder {
         SearchResponse<Order> result;
         try {
             result = esClient.search(s -> s
-                            .index(addSidBriefToName(ORDER))
+                            .index(addSidBriefToName(ORDER).toLowerCase())
                             .sort(sortOptionsList)
                             .size(EsTools.READ_MAX)
                     , Order.class);
@@ -447,7 +447,7 @@ public class Rewarder {
             try {
                 List<String> finalLast = last;
                 result = esClient.search(s -> s
-                                .index(addSidBriefToName(ORDER))
+                                .index(addSidBriefToName(ORDER).toLowerCase())
                                 .sort(sortOptionsList)
                                 .size(EsTools.READ_MAX)
                                 .searchAfter(finalLast)
@@ -713,7 +713,7 @@ public class Rewarder {
     private boolean backUpRewardInfo(RewardInfo rewardInfo, ElasticsearchClient esClient) {
 
         try {
-            esClient.index(i->i.index(addSidBriefToName(REWARD)).id(rewardInfo.getRewardId()).document(rewardInfo));
+            esClient.index(i->i.index(addSidBriefToName(REWARD).toLowerCase()).id(rewardInfo.getRewardId()).document(rewardInfo));
         } catch (IOException e) {
             log.error("Backup rewardInfo wrong. Check ES.",e);
             return false;

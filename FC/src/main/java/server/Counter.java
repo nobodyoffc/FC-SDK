@@ -1,12 +1,13 @@
 package server;
 
 import APIP.apipClient.ApipClient;
-import APIP.apipClient.ApipDataGetter;
 import APIP.apipData.Fcdsl;
 import FCH.ParseTools;
+import FEIP.feipData.Service;
 import com.google.gson.reflect.TypeToken;
 import database.esTools.EsTools;
 import database.redisTools.ReadRedis;
+import javaTools.NumberTools;
 import javaTools.http.HttpMethods;
 import redis.clients.jedis.JedisPool;
 import server.balance.BalanceInfo;
@@ -42,7 +43,7 @@ import static constants.IndicesNames.ORDER;
 import static constants.Strings.*;
 import static database.redisTools.ReadRedis.readHashLong;
 import static server.Starter.addSidBriefToName;
-import static server.Starter.myService;
+
     /*
     - 账户：fid
     - 存储：APIP-chain data，es-order and reward, redis-consume，file-backup
@@ -60,13 +61,14 @@ public class Counter implements Runnable {
     private final ApipClient apipClient; //for the data of the FCH and FEIP
     private final JedisPool jedisPool; //for the running data of this service
     private final Gson gson = new Gson();
-
+    private final Service myService;
     private final String account;
     private final String minPayment;
     private final String listenDir;
     private final boolean fromWebhook;
 
-    public Counter(String listenPath, String account, String minPayment, boolean fromWebhook,ElasticsearchClient esClient, ApipClient apipClient, JedisPool jedisPool) {
+    public Counter(Service myService, String listenPath, String account, String minPayment, boolean fromWebhook, ElasticsearchClient esClient, ApipClient apipClient, JedisPool jedisPool) {
+        this.myService = myService;
         this.listenDir = listenPath;
         this.esClient = esClient;
         this.apipClient = apipClient;
@@ -81,37 +83,6 @@ public class Counter implements Runnable {
 
     public void run() {
         log.debug("The counter is running...");
-//        ConfigAPIP configAPIP = new ConfigAPIP();
-//        try(Jedis jedis0Common = Starter.jedisPool.getResource()) {
-//            configAPIP.setConfigFilePath(jedis0Common.hget(CONFIG, CONFIG_FILE_PATH));
-//            try {
-//                configAPIP = configAPIP.getClassInstanceFromFile(ConfigAPIP.class);
-//            } catch (IOException e) {
-//                log.error("Order scanner read config file wrong.");
-//                throw new RuntimeException(e);
-//            }
-//
-//            if (configAPIP.getEsIp() == null || configAPIP.getEsPort() == 0) {
-//                log.error("Es IP is null. Config first.");
-//                return;
-//            }
-//            serviceName = configAPIP.getServiceName() + "_";
-//
-//            service = gson.fromJson(jedis0Common.get(serviceName + Strings.SERVICE), Service.class);
-//            log.debug("Order scanner got the service. SID: {}", service.getSid());
-//
-//            params = service.getParams();
-//            String serviceAccount = params.getAccount();
-//            if (serviceAccount == null) {
-//                log.error("No service account.");
-//                return;
-//            }
-//
-//            log.debug("SID: " + service.getSid()
-//                    + "\nService Name: "
-//                    + service.getStdName()
-//                    + "\nAccount: " + params.getAccount());
-//            System.out.println("Any Key to continue...");
         int countBackUpBalance = 0;
         int countReward = 0;
         Rewarder rewarder;
@@ -127,7 +98,7 @@ public class Counter implements Runnable {
             countReward++;
             if (countBackUpBalance == BalanceBackupInterval) {
                 try {
-                    BalanceInfo.backupBalance(this.esClient);
+                    BalanceInfo.backupBalance(this.esClient,jedisPool);
                     BalanceInfo.deleteOldBalance(esClient);
                 } catch (Exception e) {
                     log.error("Failed to backup user balance, consumeVia, orderVia, or pending reward to ES.", e);
@@ -151,11 +122,11 @@ public class Counter implements Runnable {
     }
 
     private void checkIfNewStart() {
-        try(Jedis jedis0Common = Starter.jedisPool.getResource()) {
-            String lastHeightStr = jedis0Common.get(Starter.sidBrief + "_" + ORDER_LAST_HEIGHT);
+        try(Jedis jedis0Common = jedisPool.getResource()) {
+            String lastHeightStr = jedis0Common.get(Starter.addSidBriefToName(ORDER_LAST_HEIGHT));
             if (lastHeightStr == null) {
-                jedis0Common.set(Starter.sidBrief + "_" + ORDER_LAST_HEIGHT, "0");
-                jedis0Common.set(Starter.sidBrief + "_" + Strings.ORDER_LAST_BLOCK_ID, Constants.zeroBlockId);
+                jedis0Common.set(Starter.addSidBriefToName(ORDER_LAST_HEIGHT), "0");
+                jedis0Common.set(Starter.addSidBriefToName(ORDER_LAST_BLOCK_ID), Constants.zeroBlockId);
             }
         }
     }
@@ -167,9 +138,9 @@ private void waitNewOrder() {
 }
 
     private void checkRollback() {
-        try(Jedis jedis0Common = Starter.jedisPool.getResource()) {
-            long lastHeight = ReadRedis.readLong(Starter.sidBrief + "_" + ORDER_LAST_HEIGHT);
-            String lastBlockId = jedis0Common.get(Starter.sidBrief + "_" + Strings.ORDER_LAST_BLOCK_ID);
+        try(Jedis jedis0Common = jedisPool.getResource()) {
+            long lastHeight = ReadRedis.readLong(Starter.addSidBriefToName(ORDER_LAST_HEIGHT));
+            String lastBlockId = jedis0Common.get(Starter.addSidBriefToName(Strings.ORDER_LAST_BLOCK_ID));
             try {
                 if (Rollbacker.isRolledBack(lastHeight, lastBlockId,apipClient))
                     Rollbacker.rollback(lastHeight - 30, esClient, jedisPool);
@@ -211,11 +182,11 @@ private void waitNewOrder() {
     }
 
     private void getValidOrderList(List<Cash> cashList) {
-        try(Jedis jedis0Common = Starter.jedisPool.getResource()) {
+        try(Jedis jedis0Common = jedisPool.getResource()) {
             ArrayList<Order> orderList = getNewOrderList(cashList);
             if (orderList.size() == 0) return;
 
-            String isCheckOrderOpReturn = jedis0Common.hget(CONFIG, Strings.CHECK_ORDER_OPRETURN);
+            String isCheckOrderOpReturn = jedis0Common.hget(CONFIG, Starter.addSidBriefToName(Strings.CHECK_ORDER_OPRETURN));
             Map<String, OrderInfo> validOpReturnOrderInfoMap;
 
             if ("true".equals(isCheckOrderOpReturn)) {
@@ -234,15 +205,15 @@ private void waitNewOrder() {
             for (Order order : orderList) {
                 String payer = order.getFromFid();
                 if (payer != null) {
-                    long balance = readHashLong(jedis0Common, Starter.sidBrief + "_" + Strings.FID_BALANCE, payer);
-                    jedis0Common.hset(Starter.sidBrief + "_" + Strings.FID_BALANCE, payer, String.valueOf(balance + order.getAmount()));
+                    long balance = readHashLong(jedis0Common, Starter.addSidBriefToName(Strings.FID_BALANCE), payer);
+                    jedis0Common.hset(Starter.addSidBriefToName(Strings.FID_BALANCE), payer, String.valueOf(balance + order.getAmount()));
                 } else continue;
 
                 String via = order.getVia();
                 if (via != null) {
                     order.setVia(via);
-                    long viaT = readHashLong(jedis0Common, Starter.sidBrief + "_" + Strings.ORDER_VIA, via);
-                    jedis0Common.hset(Starter.sidBrief + "_" + Strings.CONSUME_VIA, via, String.valueOf(viaT + order.getAmount()));
+                    long viaT = readHashLong(jedis0Common, Starter.addSidBriefToName(Strings.ORDER_VIA), via);
+                    jedis0Common.hset(Starter.addSidBriefToName(Strings.CONSUME_VIA), via, String.valueOf(viaT + order.getAmount()));
                 }
 
                 log.debug("New order from [" + order.getFromFid() + "]: " + order.getAmount() / 100000000 + " F");
@@ -250,7 +221,7 @@ private void waitNewOrder() {
                 orderIdList.add(order.getOrderId());
             }
             try {
-                String index = addSidBriefToName(ORDER);
+                String index = addSidBriefToName(ORDER).toLowerCase();
                 EsTools.bulkWriteList(esClient, index, orderList, orderIdList, Order.class);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -279,7 +250,7 @@ private void waitNewOrder() {
                 continue;
             }
             String issuer = cash.getIssuer();
-            if(issuer.equals(account)||issuer.equals(Starter.myService.getOwner())){
+            if(issuer.equals(account) ||"999".equals(ParseTools.getLast3(cash.getValue()))){
                 iterator.remove();
                 continue;
             }
@@ -329,7 +300,7 @@ private void waitNewOrder() {
                         && orderOpreturn.getType().equals("APIP")
                         && orderOpreturn.getSn().equals("0")
                         && orderOpreturn.getData().getOp().equals(Values.BUY)
-                        && orderOpreturn.getData().getSid().equals(Starter.myService.getSid())
+                        && orderOpreturn.getData().getSid().equals(myService.getSid())
                 ) {
                     orderInfo.setVia(orderOpreturn.getData().getVia());
                 }
@@ -351,9 +322,9 @@ private void waitNewOrder() {
                 lastBlockId = cash.getBirthBlockId();
             }
         }
-        try(Jedis jedis0Common = Starter.jedisPool.getResource()) {
-            jedis0Common.set(Starter.sidBrief + "_" + ORDER_LAST_HEIGHT, String.valueOf(lastHeight));
-            jedis0Common.set(Starter.sidBrief + "_" + Strings.ORDER_LAST_BLOCK_ID, lastBlockId);
+        try(Jedis jedis0Common = jedisPool.getResource()) {
+            jedis0Common.set(Starter.addSidBriefToName(ORDER_LAST_HEIGHT), String.valueOf(lastHeight));
+            jedis0Common.set(Starter.addSidBriefToName(Strings.ORDER_LAST_BLOCK_ID), lastBlockId);
         }
     }
 

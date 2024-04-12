@@ -7,6 +7,7 @@ import javaTools.JsonTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 import server.Starter;
 import server.order.User;
 
@@ -24,12 +25,14 @@ import static server.Starter.addSidBriefToName;
 public class BalanceManager {
     private static final Logger log = LoggerFactory.getLogger(BalanceManager.class);
     private final ElasticsearchClient esClient;
+    private final JedisPool jedisPool;
     private final BufferedReader br;
     public static  final  String  balanceMappingJsonStr = "{\"mappings\":{\"properties\":{\"user\":{\"type\":\"text\"},\"consumeVia\":{\"type\":\"text\"},\"orderVia\":{\"type\":\"text\"},\"bestHeight\":{\"type\":\"keyword\"}}}}";
 
 
-    public BalanceManager(ElasticsearchClient esClient, BufferedReader br) {
+    public BalanceManager(ElasticsearchClient esClient, JedisPool jedisPool, BufferedReader br) {
         this.esClient = esClient;
+        this.jedisPool = jedisPool;
         this.br = br;
     }
 
@@ -53,9 +56,9 @@ public class BalanceManager {
             switch (choice) {
 
                 case 1 -> findUsers(br);
-                case 2 -> BalanceInfo.backupBalance(esClient);
-                case 3 -> BalanceInfo.recoverUserBalanceFromEs(esClient);
-                case 4 -> BalanceInfo.recoverUserBalanceFromFile();
+                case 2 -> BalanceInfo.backupBalance(esClient,jedisPool);
+                case 3 -> BalanceInfo.recoverUserBalanceFromEs(esClient,jedisPool);
+                case 4 -> BalanceInfo.recoverUserBalanceFromFile(jedisPool);
                 case 5 -> recreateBalanceIndex(br, esClient,  BALANCE, balanceMappingJsonStr);
                 case 0 -> {
                     return;

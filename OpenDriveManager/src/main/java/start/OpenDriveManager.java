@@ -1,5 +1,6 @@
 package start;
 
+import APIP.apipClient.ApipClient;
 import FEIP.feipData.serviceParams.Params;
 import config.ApiAccount;
 import server.serviceManagers.ServiceManager;
@@ -13,7 +14,7 @@ public class OpenDriveManager extends ServiceManager {
     }
     @Override
     protected Params inputParams(byte[] symKey, BufferedReader br) {
-        OpenDriveParams openDriveParams = new OpenDriveParams();
+        OpenDriveParams openDriveParams = new OpenDriveParams((ApipClient) apipAccount.getClient());
         openDriveParams.inputParams(br, symKey);
         return openDriveParams;
     }

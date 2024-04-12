@@ -1,5 +1,6 @@
 package FEIP.feipData;
 
+import APIP.apipClient.ApipClient;
 import appTools.Inputer;
 import constants.OpNames;
 import java.io.BufferedReader;
@@ -17,10 +18,10 @@ public class ServiceData {
 	private String[] protocols;
 	private String[] codes;
 	private Object params;
-	private int rate;
+	private transient int rate;
 	private String closeStatement;
 
-	public void inputServicePublish(BufferedReader br)  {
+	public void inputServiceHead(BufferedReader br)  {
 
 		inputStdName(br);
 
@@ -31,6 +32,22 @@ public class ServiceData {
 		inputUrls(br);
 
 		inputWaiters(br);
+
+		inputProtocols(br);
+
+	}
+
+	public void inputServiceHead(BufferedReader br,byte[] symKey,ApipClient apipClient)  {
+
+		inputStdName(br);
+
+		inputLocalNames(br);
+
+		inputDesc(br);
+
+		inputUrls(br);
+
+		inputWaiters(br,symKey,apipClient);
 
 		inputProtocols(br);
 
@@ -89,6 +106,13 @@ public class ServiceData {
 		ask = "Input the FCH address of the waiter for your service if you want. Enter to ignore:";
 		String[] waiters = Inputer.inputStringArray(br,ask,0);
 		if(waiters.length!=0) setWaiters(waiters);
+	}
+
+	private void inputWaiters(BufferedReader br, byte[] symKey, ApipClient apipClient) {
+		if(Inputer.askIfYes(br,"Input the FCH address of the waiter for your service? y/n:")) {
+			String[] waiters = FCH.Inputer.inputOrCreateFidArray(br,symKey,apipClient);
+			if(waiters.length!=0) setWaiters(waiters);
+		}
 	}
 
 	private void inputProtocols(BufferedReader br) {
@@ -217,6 +241,20 @@ public class ServiceData {
 		updateProtocols(br);
 	}
 
+	public void updateServiceHead(BufferedReader br,byte[] symKey, ApipClient apipClient) {
+		updateStdName(br);
+
+		updateLocalNames(br);
+
+		updateDesc(br);
+
+		updateUrls(br);
+
+		updateWaiters(br,symKey,apipClient);
+
+		updateProtocols(br);
+	}
+
 	private void updateProtocols(BufferedReader br) {
 		System.out.println("Protocols are: "+ Arrays.toString(protocols));
 		inputProtocols(br);
@@ -225,6 +263,11 @@ public class ServiceData {
 	private void updateWaiters(BufferedReader br) {
 		System.out.println("Waiters are: "+ Arrays.toString(waiters));
 		inputWaiters(br);
+	}
+
+	private void updateWaiters(BufferedReader br,byte[]symKey,ApipClient apipClient) {
+		System.out.println("Waiters are: "+ Arrays.toString(waiters));
+		inputWaiters(br,symKey,apipClient);
 	}
 
 	private void updateUrls(BufferedReader br) {

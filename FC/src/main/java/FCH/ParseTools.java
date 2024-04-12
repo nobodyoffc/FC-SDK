@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import constants.Constants;
 import javaTools.BytesTools;
 import javaTools.NumberTools;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import crypto.cryptoTools.Hash;
 
@@ -261,6 +262,16 @@ public class ParseTools {
             last3Str = amtStr.substring(ind + 1);
             if (last3Str.length() == 8) last3Str = last3Str.substring(last3Str.length() - 3);
         }
+        return last3Str;
+    }
+
+    public static String getLast3(long satoshis) {
+
+        String amtStr = String.valueOf(satoshis);
+
+        String last3Str;
+
+        last3Str = amtStr.substring(amtStr.length() - 3);
         return last3Str;
     }
 

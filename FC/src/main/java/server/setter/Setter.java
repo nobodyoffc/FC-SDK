@@ -9,6 +9,7 @@ import crypto.cryptoTools.Hash;
 import crypto.eccAes256K1P7.EccAes256K1P7;
 import javaTools.BytesTools;
 import javaTools.Hex;
+import redis.clients.jedis.JedisPool;
 
 import java.io.BufferedReader;
 import java.util.HashMap;
@@ -17,10 +18,12 @@ import java.util.Map;
 public abstract class Setter {
     protected Config config;
     protected BufferedReader br;
+    private final JedisPool jedisPool;
 
-    public Setter(Config config, BufferedReader br) {
+    public Setter(Config config, BufferedReader br,JedisPool jedisPool) {
         this.config = config;
         this.br = br;
+        this.jedisPool = jedisPool;
     }
 
     public void setting( byte[] symKey, BufferedReader br) {
@@ -34,8 +37,9 @@ public abstract class Setter {
                     "Update API account",
                     "Delete API provider",
                     "Delete API account",
-                    "Reset Default APIs",
-                    "Reset other parameters"
+                    "Reset my local settings",
+                    "Reset Default APIs"
+
             );
             menu.show();
             int choice = menu.choose(br);
@@ -52,8 +56,8 @@ public abstract class Setter {
                 case 5 -> updateApiAccount(chooseApiProvider(),symKey);
                 case 6 -> deleteApiProvider();
                 case 7 -> deleteApiAccount(symKey);
-                case 8 -> resetDefaultApi(symKey);
-                case 9 -> resetOtherParams(symKey);
+                case 8 -> resetMyLocalSettings(symKey);
+                case 9 -> resetDefaultApis(symKey);
                 case 0 -> {
                     return;
                 }
@@ -105,7 +109,7 @@ public abstract class Setter {
                 }
             }
 
-            config.saveConfig();
+            config.saveConfig(jedisPool);
 
             BytesTools.clearByteArray(oldPasswordBytes);
             BytesTools.clearByteArray(newPasswordBytes);
@@ -124,19 +128,19 @@ public abstract class Setter {
         System.out.println("Add API accounts...");
         ApiProvider apiProvider = chooseApiProvider();
         if(apiProvider!=null) {
-            ApiAccount apiAccount = config.addApiAccount(apiProvider, symKey, br);
-            config.saveConfig();
+            ApiAccount apiAccount = config.addApiAccount(apiProvider, symKey, jedisPool,br);
+            config.saveConfig(jedisPool);
             System.out.println("Add API account "+apiAccount.getId()+" is added.");
         }
     }
 
     public void addApiProvider(byte[] symKey){
         System.out.println("Add API providers...");
-        ApiProvider apiProvider = config.addApiProvider(br,null);
+        ApiProvider apiProvider = config.addApiProvider(br,null,jedisPool);
         if(apiProvider!=null) {
-            ApiAccount apiAccount = config.addApiAccount(apiProvider, symKey, br);
+            ApiAccount apiAccount = config.addApiAccount(apiProvider, symKey,jedisPool,br);
             if(apiAccount!=null) apiAccount.connectApi(apiProvider, symKey, br);
-            config.saveConfig();
+            config.saveConfig(jedisPool);
         }
         System.out.println("Add API provider "+apiProvider.getSid()+" is added.");
     }
@@ -150,7 +154,7 @@ public abstract class Setter {
             System.out.println("Update API account: "+apiAccount.getSid()+"...");
             apiAccount.updateAll(symKey, apiProvider, br);
             config.getApiAccountMap().put(apiAccount.getId(), apiAccount);
-            config.saveConfig();
+            config.saveConfig(jedisPool);
         }
         System.out.println("Api account "+apiAccount.getId()+" is updated.");
     }
@@ -160,7 +164,7 @@ public abstract class Setter {
         if(apiProvider!=null) {
             apiProvider.updateAll(br);
             config.getApiProviderMap().put(apiProvider.getSid(), apiProvider);
-            config.saveConfig();
+            config.saveConfig(jedisPool);
             System.out.println("Api provider "+apiProvider.getSid()+" is updated.");
         }
     }
@@ -174,14 +178,14 @@ public abstract class Setter {
                 if(Inputer.askIfYes(br,"There is the API account "+apiAccount.getId()+" of "+apiProvider.getSid()+". \nDelete it? y/n ")){
                     config.getApiAccountMap().remove(apiAccount.getId());
                     System.out.println("Api account "+apiAccount.getId()+" is deleted.");
-                    config.saveConfig();
+                    config.saveConfig(jedisPool);
                 }
             }
         }
         if(Inputer.askIfYes(br,"Delete API provider "+apiProvider.getSid()+"? y/n")){
             config.getApiProviderMap().remove(apiProvider.getSid());
             System.out.println("Api provider " + apiProvider.getSid() + " is deleted.");
-            config.saveConfig();
+            config.saveConfig(jedisPool);
         }
     }
     public void deleteApiAccount(byte[] symKey){
@@ -191,11 +195,11 @@ public abstract class Setter {
         if(Inputer.askIfYes(br,"Delete API account "+apiAccount.getId()+"? y/n")) {
             config.getApiAccountMap().remove(apiAccount.getId());
             System.out.println("Api account " + apiAccount.getId() + " is deleted.");
-            config.saveConfig();
+            config.saveConfig(jedisPool);
         }
     }
 
-    public void resetDefaultApi(byte[] symKey){
+    public void resetDefaultApis(byte[] symKey){
         Menu menu = new Menu();
         menu.add("Reset initial APIP");
         menu.add("Reset NaSa node");
@@ -214,13 +218,13 @@ public abstract class Setter {
                     switch (choice) {
                         case 1 -> config.setInitApipAccountId(apiAccount.getId());
                         case 2 -> config.setNaSaNodeAccountId(apiAccount.getId());
-                        case 3 -> config.setMainDatabaseAccountId(apiAccount.getId());
-                        case 4 -> config.setMemDatabaseAccountId(apiAccount.getId());
+                        case 3 -> config.setEsAccountId(apiAccount.getId());
+                        case 4 -> config.setRedisAccountId(apiAccount.getId());
                         default -> {
                             return;
                         }
                     }
-                    config.saveConfig();
+                    config.saveConfig(jedisPool);
                     System.out.println("Done.");
                 } else System.out.println("Failed to connect the apiAccount: " + apiAccount.getApiUrl());
             } else System.out.println("Failed to get the apiAccount.");
@@ -234,7 +238,7 @@ public abstract class Setter {
         if (input == 0) {
             if(Inputer.askIfYes(br,"Add a new API account? y/n")) {
                 ApiProvider apiProvider = chooseApiProvider();
-                apiAccount = config.addApiAccount(apiProvider, symKey, br);
+                apiAccount = config.addApiAccount(apiProvider, symKey, jedisPool,br);
             }
         } else {
             apiAccount = (ApiAccount) config.getApiAccountMap().values().toArray()[input - 1];
@@ -251,12 +255,13 @@ public abstract class Setter {
         }
         if (config.getApiProviderMap().size() == 0) {
             System.out.println("No any API provider yet.");
-            apiProvider = config.addApiProvider(br, null);
+            apiProvider = config.addApiProvider(br, null,jedisPool);
         } else {
             config.showApiProviders(config.getApiProviderMap());
-            int input = Inputer.inputInteger(br, "Input the number of the API provider you want:", config.getApiProviderMap().size());
+            int input = Inputer.inputInteger(br, "Input the number of the API provider you want. Enter to add new one:", config.getApiProviderMap().size());
             if (input == 0) {
-                apiProvider = config.addApiProvider(br, ApiProvider.ApiType.APIP);
+                ApiProvider.ApiType type = Inputer.chooseOne(ApiProvider.ApiType.values(),"Choose the type of the API:",br);
+                apiProvider = config.addApiProvider(br, type,jedisPool);
             } else apiProvider = (ApiProvider) config.getApiProviderMap().values().toArray()[input - 1];
         }
 
@@ -269,14 +274,14 @@ public abstract class Setter {
         if (config.getApiAccountMap() == null) config.setApiAccountMap(new HashMap<>());
         if (config.getApiAccountMap().size() == 0) {
             System.out.println("No API accounts yet. Add new one...");
-            apiAccount = config.addApiAccount(apiProvider, symKey, br);
+            apiAccount = config.addApiAccount(apiProvider, symKey, jedisPool,br);
         } else {
             for (ApiAccount apiAccount1 : config.getApiAccountMap().values()) {
                 if (apiAccount1.getSid().equals(apiProvider.getSid()))
                     hitApiAccountMap.put(apiAccount1.getId(), apiAccount1);
             }
             if (hitApiAccountMap.size() == 0) {
-                apiAccount = config.addApiAccount(apiProvider, symKey, br);
+                apiAccount = config.addApiAccount(apiProvider, symKey,jedisPool, br);
             } else {
                 config.showAccounts(hitApiAccountMap);
                 int input = Inputer.inputInteger(br, "Input the number of the account you want. Enter to add new one:", hitApiAccountMap.size());
@@ -297,5 +302,31 @@ public abstract class Setter {
         this.config = config;
     }
 
-    public abstract void resetOtherParams(byte[] symKey) ;
+    public void resetMyLocalSettings(byte[] symKey){
+        System.out.println("Please override Setter.resetMyServiceParams().");
+    }
+
+    public Object resetDefaultApi(byte[] symKey, ApiProvider.ApiType apiType) {
+        System.out.println("Reset API service...");
+        ApiProvider apiProvider = chooseApiProvider();
+        ApiAccount apiAccount = chooseApiProvidersAccount(apiProvider, symKey);
+        Object client = null;
+        if (apiAccount != null) {
+            client = apiAccount.connectApi(apiProvider, symKey, br);
+            if (client != null) {
+                switch (apiType) {
+                    case APIP -> config.setInitApipAccountId(apiAccount.getId());
+                    case NaSaRPC -> config.setNaSaNodeAccountId(apiAccount.getId());
+                    case ES -> config.setEsAccountId(apiAccount.getId());
+                    case Redis -> config.setRedisAccountId(apiAccount.getId());
+                    default -> {
+                        return client;
+                    }
+                }
+                config.saveConfig(jedisPool);
+                System.out.println("Done.");
+            } else System.out.println("Failed to connect the apiAccount: " + apiAccount.getApiUrl());
+        } else System.out.println("Failed to get the apiAccount.");
+        return client;
+    }
 }

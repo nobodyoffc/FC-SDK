@@ -17,6 +17,7 @@ import javaTools.NumberTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 import server.Starter;
 
 import java.util.*;
@@ -38,19 +39,21 @@ public class AffairMaker {
     private DataSignTx dataSignTx = new DataSignTx();
 
     private final ElasticsearchClient esClient;
+    private final JedisPool jedisPool;
 
     private Map<String, Long> pendingMap = new HashMap<>();
     private static final Logger log = LoggerFactory.getLogger(AffairMaker.class);
 
-    public AffairMaker(String account, RewardInfo rewardInfo, ElasticsearchClient esClient) {
+    public AffairMaker(String account, RewardInfo rewardInfo, ElasticsearchClient esClient,JedisPool jedisPool) {
         this.rewardInfo = rewardInfo;
         this.account = account;
         this.esClient = esClient;
+        this.jedisPool = jedisPool;
 
-        getPendingMapFromRedis();
+        getPendingMapFromRedis(jedisPool);
     }
-    public Map<String, Long> getPendingMapFromRedis() {
-        try(Jedis jedis = Starter.jedisPool.getResource()) {
+    public Map<String, Long> getPendingMapFromRedis(JedisPool jedisPool) {
+        try(Jedis jedis = jedisPool.getResource()) {
             Map<String, String> pendingStrMap = jedis.hgetAll(Starter.addSidBriefToName(REWARD_PENDING_MAP));
             for (String key : pendingStrMap.keySet()) {
                 Long amount = Long.parseLong(pendingStrMap.get(key));
@@ -91,7 +94,7 @@ public class AffairMaker {
 
         HashMap<String, SendTo> sendToMap = makeSendToMap(rewardInfo);
 
-        pendingDust(sendToMap);
+        pendingDust(sendToMap,jedisPool);
 
         addQualifiedPendingToPay(sendToMap);
 
@@ -132,7 +135,7 @@ public class AffairMaker {
         }
     }
 
-    private void pendingDust(HashMap<String, SendTo> sendToMap) {
+    private void pendingDust(HashMap<String, SendTo> sendToMap,JedisPool jedisPool) {
         Iterator<Map.Entry<String, SendTo>> iterator = sendToMap.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, SendTo> entry = iterator.next();
@@ -141,7 +144,7 @@ public class AffairMaker {
             String fid = sendTo.getFid();
             double amount = sendTo.getAmount();
             if (amount < MinPayValue) {
-                addToPending(fid, (long) (amount*FchToSatoshi));
+                addToPending(fid, (long) (amount*FchToSatoshi),jedisPool);
                 iterator.remove();
             }
         }
@@ -180,9 +183,9 @@ public class AffairMaker {
         }
     }
 
-    private void addToPending(String fid, Long amount) {
+    private void addToPending(String fid, Long amount,JedisPool jedisPool) {
         Long pendingValue = 0L;
-        try(Jedis jedis = Starter.jedisPool.getResource()) {
+        try(Jedis jedis = jedisPool.getResource()) {
             pendingValue = Long.parseLong(jedis.hget(REWARD_PENDING_MAP, fid));
         }catch (Exception ignore){}
         if(pendingMap.get(fid)!=null) pendingValue += pendingMap.get(fid);

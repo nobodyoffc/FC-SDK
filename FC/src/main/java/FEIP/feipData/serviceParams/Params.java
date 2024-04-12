@@ -1,16 +1,22 @@
 package FEIP.feipData.serviceParams;
 
-import FEIP.feipData.Service;
+import APIP.apipClient.ApipClient;
+import javaTools.JsonTools;
 
 import java.io.BufferedReader;
 
 public abstract class Params {
-//    Params inputParams(BufferedReader br, byte[] symKey){};
+    protected transient ApipClient apipClient;
 
-    protected abstract Params inputParams(BufferedReader br, byte[] symKey);
-    public abstract Params updateParams(BufferedReader br, byte[] symKey);
 
-    protected static Params getParamsFromService(Service service) {
-        return null;
+    public Params() {}
+    public Params(ApipClient apipClient) {
+        this.apipClient = apipClient;
+    }
+
+    public abstract void inputParams(BufferedReader br, byte[] symKey);
+    public abstract void updateParams(BufferedReader br, byte[] symKey);
+    public String toJson(){
+        return JsonTools.getNiceString(this);
     }
 }

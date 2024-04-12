@@ -85,6 +85,7 @@ public class ApipClient {
             return null;
         }
         ApiAccount.checkApipBalance(apiAccount, apipClientData, symKey);
+
         return apipClientData.getResponseBody().getData();
     }
 
@@ -123,32 +124,29 @@ public class ApipClient {
         return HexFormat.of().formatHex(Arrays.copyOf(sessionKey, 6));
     }
 
-    public void checkMaster(String priKeyCipher, String masterFidOrPubKey, ApipClient apipClient, BufferedReader br) {
+    public void checkMaster(String priKeyCipher,BufferedReader br) {
 
         byte[] priKey = EccAes256K1P7.decryptJsonBytes(priKeyCipher, symKey);
         if (priKey == null) {
             throw new RuntimeException("Failed to decrypt priKey.");
         }
+
         String fid = priKeyToFid(priKey);
-        byte[] sessionKey = ApiAccount.decryptSessionKey(apiAccount.getSessionKeyCipher(), symKey);
-        CidInfo cidInfo = apipClient.getCidInfo(fid, apiAccount);
+        CidInfo cidInfo = getCidInfo(fid, apiAccount);
         if (cidInfo == null) {
             System.out.println("This fid was never seen on chain. Send some fch to it.");
             if (Inputer.askIfYes(br, "Stop to send? y/n")) System.exit(0);
         }
         if (cidInfo != null) {
             if (cidInfo.getMaster() != null) {
-                System.out.println("The master of the dealer is " + cidInfo.getMaster());
+                System.out.println("The master of "+fid+" is " + cidInfo.getMaster());
                 return;
             }
-            if (Inputer.askIfYes(br, "Assign a master for " + fid + "? y/n:")) {
+            if (Inputer.askIfYes(br, "Assign the master for " + fid + "? y/n:")) {
                 if (getCashes(apiAccount.getApiUrl(), fid) == null) return;
                 String master;
                 while (true) {
-                    if (masterFidOrPubKey != null) {
-                        master = masterFidOrPubKey;
-                    } else master = Inputer.inputString(br, "Input the master FID or pubKey:");
-
+                    master = Inputer.inputString(br, "Input the master FID or pubKey:");
                     if (KeyTools.isValidPubKey(master) || KeyTools.isValidFchAddr(master)) {
                         String result = IdentityFEIPs.setMaster(priKeyCipher, master, this);
                         if (result == null) System.out.println("Failed to set master.");
@@ -222,7 +220,6 @@ public class ApipClient {
     public CidInfo getCidInfo(String fid, ApiAccount apiAccount) {
         apipClientData = IdentityAPIs.cidInfoByIdsPost(apiAccount.getApiUrl(), new String[]{fid}, apiAccount.getVia(), sessionKey);
         Object data = checkApipResult("get block info by heights");
-        if(data==null)data = checkApipResult("get block info by heights");
         if(data==null)return null;
         return ApipDataGetter.getCidInfoMap(data).get(fid);
     }
@@ -294,7 +291,7 @@ public class ApipClient {
         }
         List<Cash> cashList = ApipDataGetter.getCashList(apipClientData.getResponseBody().getData());
         if (cashList == null || cashList.isEmpty()) {
-            System.out.println("No FCH of this FID. Send at lest 0.001 fch to it.");
+            log.debug("No FCH of this FID. Send at lest 0.001 fch to it.");
             return null;
         }
         return cashList;

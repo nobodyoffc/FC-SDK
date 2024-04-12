@@ -19,6 +19,11 @@ public class FieldNames {
     public static final String GOODS = "goods";
     public static final String CID = "usedCid";
     public static final String FID = "fid";
+    public static final String LISTEN_PATH = "listenPath";
+    public static final String FROM_WEBHOOK = "fromWebhook";
+    public static final String OPEN_DISK_SID_BRIEF = "openDiskSidBrief";
+    public static final String SETTINGS = "settings";
+    public static final String IS_FREE_GET_FORBIDDEN = "isFreeGetForbidden";
     public static String TXID = "txId";
     public static String INDEX = "index";
 }

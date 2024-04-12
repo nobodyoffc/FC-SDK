@@ -19,4 +19,6 @@ public class UpStrings {
     public static final String SWAP = "Swap";
     public static final String ADDR = "Addr";
     public static final String SUCCESS = "Success";
+    public static final String DISK = "Disk";
+    public static final String DRIVE = "Drive";
 }

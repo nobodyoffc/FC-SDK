@@ -57,12 +57,12 @@ public class ApipClientData {
 
     public boolean isBadResponse(String taskName) {
         if (checkResponse() != 0) {
-            System.out.println("Failed to " + taskName);
+            log.debug("Failed to " + taskName);
             if (responseBody == null) {
-                System.out.println("ResponseBody is null.");
-                System.out.println(message);
+                log.debug("ResponseBody is null.");
+                log.debug(message);
             } else {
-                System.out.println(responseBody.getCode() + ":" + responseBody.getMessage());
+                log.debug(responseBody.getCode() + ":" + responseBody.getMessage());
                 if (responseBody.getData() != null) System.out.println(JsonTools.getString(responseBody.getData()));
             }
             return true;
@@ -272,7 +272,6 @@ public class ApipClientData {
             responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
 
             responseBodyStr = new String(responseBodyBytes);
-
             parseApipResponse(httpResponse);
         } catch (Exception e) {
             e.printStackTrace();

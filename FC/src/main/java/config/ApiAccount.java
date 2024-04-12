@@ -70,7 +70,7 @@ public class ApiAccount {
     private transient Object client;
     private transient EsClientMaker esClientMaker;
 
-    public static void checkApipBalance(ApiAccount apipAccount, ApipClientData apipClientData, byte[] initSymKey) {
+    public static void checkApipBalance(ApiAccount apipAccount, final ApipClientData apipClientData, byte[] initSymKey) {
         if(apipClientData ==null|| apipClientData.getResponseBody()==null)return;
 
         long price = ParseTools.fchStrToSatoshi(apipAccount.getApipParams().getPricePerKBytes());

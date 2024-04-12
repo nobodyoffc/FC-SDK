@@ -102,7 +102,7 @@ public class RewardManager {
         int size;
         try {
             result = esClient.search(s -> s
-                            .index(addSidBriefToName(REWARD))
+                            .index(addSidBriefToName(REWARD).toLowerCase())
                             .size(EsTools.READ_MAX / 10)
                             .sort(sort)
                     , RewardInfo.class);
@@ -124,7 +124,7 @@ public class RewardManager {
             try {
                 List<String> finalLast = last;
                 result = esClient.search(s -> s
-                                .index(addSidBriefToName(REWARD))
+                                .index(addSidBriefToName(REWARD).toLowerCase())
                                 .size(EsTools.READ_MAX / 10)
                                 .sort(sort)
                                 .searchAfter(finalLast)
@@ -158,7 +158,7 @@ public class RewardManager {
 
         AffairMaker affairMaker;
         String account = null;
-        try(Jedis jedis = Starter.jedisPool.getResource()) {
+        try(Jedis jedis = jedisPool.getResource()) {
             account = jedis.hget(jedis.hget(CONFIG,SERVICE_NAME)+"_"+ PARAMS_ON_CHAIN, ACCOUNT);
         }catch (Exception e){
             log.error("Get service account wrong. Check redis.");
@@ -187,7 +187,7 @@ public class RewardManager {
         }
 
         for(RewardInfo rewardInfo: unpaidRewardList){
-            affairMaker = new AffairMaker(account, rewardInfo,esClient);
+            affairMaker = new AffairMaker(account, rewardInfo,esClient,jedisPool);
             String affairSignTxJson = affairMaker.makeAffair();
             byte[] txBytes = (affairSignTxJson+"\n\n").getBytes();
             try {
@@ -244,7 +244,7 @@ public class RewardManager {
         SearchResponse<RewardInfo> result;
         try{
             result = esClient.search(s -> s
-                            .index(addSidBriefToName(REWARD))
+                            .index(addSidBriefToName(REWARD).toLowerCase())
                             .query(q->q.term(t->t.field(STATE).value(UNPAID)))
                             .size(200)
                             .sort(sortOptionsList)
@@ -308,7 +308,7 @@ public class RewardManager {
         Jedis jedis1 = new Jedis();
         try{
             SearchResponse<RewardInfo> result = esClient.search(s -> s
-                            .index(addSidBriefToName(REWARD))
+                            .index(addSidBriefToName(REWARD).toLowerCase())
                             .size(1)
                             .sort(sortOptionsList)
                     , RewardInfo.class);
@@ -336,7 +336,7 @@ public class RewardManager {
     private void deleteByRewardId(ElasticsearchClient esClient, String rewardId) {
         try{
             DeleteResponse result = esClient.delete(d -> d
-                    .index(addSidBriefToName(REWARD))
+                    .index(addSidBriefToName(REWARD).toLowerCase())
                     .id(rewardId)
             );
 

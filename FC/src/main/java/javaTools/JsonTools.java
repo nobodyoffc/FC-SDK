@@ -112,7 +112,6 @@ public class JsonTools {
         gsonBuilder.setPrettyPrinting();
         Gson gson = gsonBuilder.create();
         try (Writer writer = new FileWriter(fileName, append)) {
-
             gson.toJson(obj, writer);
         } catch (IOException e) {
             e.printStackTrace();
