@@ -12,7 +12,7 @@
         <module>FC</module>
         <module>Freeverse</module>
         <module>DiskManager</module>
-        <module>DiskServer1</module>
+        <module>DiskServer</module>
         <module>DiskClient</module>
         <module>ChatServer</module>
     </modules>
