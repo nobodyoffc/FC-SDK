@@ -1,5 +1,7 @@
 package constants;
 
+import APIP.apipData.RequestBody;
+
 public class Strings {
 
     //Redis keys
@@ -35,8 +37,8 @@ public class Strings {
     public static final String CHECK_ORDER_OPRETURN = "checkOrderOpReturn";
     public static final String AVATAR_ELEMENTS_PATH = "avatarElementsPath";
     public static final String AVATAR_PNG_PATH = "avatarPngPath";
-    public static final String FORBID_FREE_GET = "forbidFreeGet";
     public static final String CONFIG_FILE_PATH = "configFilePath";
+    public static final String LOCAL_DATA_PATH = "localDataPath";
     public static final String CONSUME_VIA = "consumeVia";
     public static final String ORDER_VIA = "orderVia";
     public static final String REWARD_PENDING_MAP = "rewardPendingMap";
@@ -97,7 +99,6 @@ public class Strings {
     public static final String ERROR = "error";
     public static final String PARAMS = "params";
     public static final String UNSIGNED_TX_FOR_CS = "unsignedTxForCs";
-    public static final String REFRESH = "refresh";
     public static final String IGNORE = "ignore";
     public static final String INIT_SYM_KEY_CIPHER = "initSymKeyCipher";
     public static final String API = "api";
@@ -116,6 +117,10 @@ public class Strings {
     public static final String LTC = "ltc";
     public static final String XEC = "xec";
     public static final String LP = "lp";
+    public static final String SETTINGS = "settings";
+    public static final String DATA_LIFE_DAYS = "dataLifeDays";
+    public static final String DATA = "data";
+    public static final String ES_ACCOUNT_ID = "esProviderId";
     public static String spendCashMapKey = "spentCashMap";
     public static String newCashMapKey = "newCashMap";
 }

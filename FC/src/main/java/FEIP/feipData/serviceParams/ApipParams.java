@@ -2,14 +2,11 @@ package FEIP.feipData.serviceParams;
 
 import com.google.gson.Gson;
 
-public class ApipParams {
+import java.io.BufferedReader;
+
+public class ApipParams extends Params{
     private String urlHead;
     private String currency;
-    private String account;
-    private String pricePerKBytes;
-    private String pricePerRequest;
-    private String minPayment;
-    private String sessionDays;
     private String consumeViaShare;
     private String orderViaShare;
 
@@ -58,14 +55,6 @@ public class ApipParams {
         this.pricePerRequest = pricePerRequest;
     }
 
-    public String getMinPayment() {
-        return minPayment;
-    }
-
-    public void setMinPayment(String minPayment) {
-        this.minPayment = minPayment;
-    }
-
     public String getSessionDays() {
         return sessionDays;
     }
@@ -88,5 +77,15 @@ public class ApipParams {
 
     public void setOrderViaShare(String orderViaShare) {
         this.orderViaShare = orderViaShare;
+    }
+
+    @Override
+    public void inputParams(BufferedReader br, byte[] symKey) {
+
+    }
+
+    @Override
+    public void updateParams(BufferedReader br, byte[] symKey) {
+
     }
 }

@@ -1,6 +1,6 @@
 package FEIP.feipData;
 
-import APIP.apipClient.ApipClient;
+import clients.apipClient.ApipClient;
 import appTools.Inputer;
 import constants.OpNames;
 import java.io.BufferedReader;

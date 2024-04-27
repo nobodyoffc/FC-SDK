@@ -1,5 +1,6 @@
 package FEIP.feipData.serviceParams;
 
+import clients.apipClient.ApipClient;
 import FCH.FchMainNetwork;
 import FEIP.feipData.Service;
 import appTools.Inputer;
@@ -37,6 +38,14 @@ public class SwapParams extends Params {
     private String mWithdrawFee;
     private String curve;
     private transient String priKeyCipher;
+    private transient ApipClient apipClient;
+
+    public SwapParams(ApipClient apipClient) {
+        this.apipClient = apipClient;
+    }
+
+    public SwapParams() {
+    }
 
     @Override
     public void inputParams(BufferedReader br, byte[] symKey) {
@@ -224,12 +233,20 @@ public class SwapParams extends Params {
         if(Inputer.askIfYes(br,"Change it? y/n"))serviceFee= Inputer.inputDoubleAsString(br, "Input the serviceFee:");
     }
 
-    public String getgAddr() {
-        return gAddr;
+    public String getGoods() {
+        return goods;
     }
 
-    public void setgAddr(String gAddr) {
-        this.gAddr = gAddr;
+    public void setGoods(String goods) {
+        this.goods = goods;
+    }
+
+    public String getMoney() {
+        return money;
+    }
+
+    public void setMoney(String money) {
+        this.money = money;
     }
 
     public String getgTick() {
@@ -246,6 +263,38 @@ public class SwapParams extends Params {
 
     public void setmTick(String mTick) {
         this.mTick = mTick;
+    }
+
+    public String getgAddr() {
+        return gAddr;
+    }
+
+    public void setgAddr(String gAddr) {
+        this.gAddr = gAddr;
+    }
+
+    public String getmAddr() {
+        return mAddr;
+    }
+
+    public void setmAddr(String mAddr) {
+        this.mAddr = mAddr;
+    }
+
+    public String getSwapFee() {
+        return swapFee;
+    }
+
+    public void setSwapFee(String swapFee) {
+        this.swapFee = swapFee;
+    }
+
+    public String getServiceFee() {
+        return serviceFee;
+    }
+
+    public void setServiceFee(String serviceFee) {
+        this.serviceFee = serviceFee;
     }
 
     public String getgConfirm() {
@@ -280,46 +329,6 @@ public class SwapParams extends Params {
         this.mWithdrawFee = mWithdrawFee;
     }
 
-    public String getSwapFee() {
-        return swapFee;
-    }
-
-    public void setSwapFee(String swapFee) {
-        this.swapFee = swapFee;
-    }
-
-    public String getServiceFee() {
-        return serviceFee;
-    }
-
-    public void setServiceFee(String serviceFee) {
-        this.serviceFee = serviceFee;
-    }
-
-    public String getGoods() {
-        return goods;
-    }
-
-    public void setGoods(String goods) {
-        this.goods = goods;
-    }
-
-    public String getMoney() {
-        return money;
-    }
-
-    public void setMoney(String money) {
-        this.money = money;
-    }
-
-    public String getmAddr() {
-        return mAddr;
-    }
-
-    public void setmAddr(String mAddr) {
-        this.mAddr = mAddr;
-    }
-
     public String getCurve() {
         return curve;
     }
@@ -334,5 +343,13 @@ public class SwapParams extends Params {
 
     public void setPriKeyCipher(String priKeyCipher) {
         this.priKeyCipher = priKeyCipher;
+    }
+
+    public ApipClient getApipClient() {
+        return apipClient;
+    }
+
+    public void setApipClient(ApipClient apipClient) {
+        this.apipClient = apipClient;
     }
 }

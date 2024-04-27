@@ -1,5 +1,6 @@
 package config.old;
 
+import constants.FieldNames;
 import redis.clients.jedis.Jedis;
 
 import java.io.BufferedReader;
@@ -54,7 +55,7 @@ public class ConfigAPIP extends ConfigService {
             jedis.hset(CONFIG, TOMCAT_BASE_PATH, this.tomcatBasePath);
             jedis.hset(CONFIG, LISTEN_PATH, this.getListenPath());
             if (serviceName != null) jedis.hset(CONFIG, SERVICE_NAME, serviceName);
-            jedis.hset(CONFIG, FORBID_FREE_GET, String.valueOf(forbidFreeGet));
+            jedis.hset(CONFIG, FieldNames.FORBID_FREE_API, String.valueOf(forbidFreeGet));
             jedis.hset(CONFIG, CHECK_ORDER_OPRETURN, String.valueOf(checkOrderOpReturn));
             jedis.hset(CONFIG, SCAN_MEMPOOL, String.valueOf(scanMempool));
             jedis.hset(CONFIG, WINDOW_TIME, String.valueOf(this.windowTime));

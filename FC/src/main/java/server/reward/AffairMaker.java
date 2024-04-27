@@ -18,7 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import server.Starter;
+import server.Settings;
 
 import java.util.*;
 
@@ -33,6 +33,7 @@ public class AffairMaker {
     private DataForOffLineTx dataForOffLineTx;
     private List<Cash> meetCashList;
     private String msg;
+    private final String sid;
     private final Gson gson = new Gson();
 
     private Affair affairReward = new Affair();
@@ -44,7 +45,8 @@ public class AffairMaker {
     private Map<String, Long> pendingMap = new HashMap<>();
     private static final Logger log = LoggerFactory.getLogger(AffairMaker.class);
 
-    public AffairMaker(String account, RewardInfo rewardInfo, ElasticsearchClient esClient,JedisPool jedisPool) {
+    public AffairMaker(String sid,String account, RewardInfo rewardInfo, ElasticsearchClient esClient,JedisPool jedisPool) {
+        this.sid = sid;
         this.rewardInfo = rewardInfo;
         this.account = account;
         this.esClient = esClient;
@@ -54,7 +56,7 @@ public class AffairMaker {
     }
     public Map<String, Long> getPendingMapFromRedis(JedisPool jedisPool) {
         try(Jedis jedis = jedisPool.getResource()) {
-            Map<String, String> pendingStrMap = jedis.hgetAll(Starter.addSidBriefToName(REWARD_PENDING_MAP));
+            Map<String, String> pendingStrMap = jedis.hgetAll(Settings.addSidBriefToName(sid,REWARD_PENDING_MAP));
             for (String key : pendingStrMap.keySet()) {
                 Long amount = Long.parseLong(pendingStrMap.get(key));
                 pendingMap.put(key, amount);

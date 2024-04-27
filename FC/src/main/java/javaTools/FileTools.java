@@ -30,7 +30,19 @@ public class FileTools {
             }
         }
     }
-
+    public static byte[] readAllBytes(String filename) {
+        try {
+            Path path = Paths.get(filename);
+            if (!Files.exists(path)) {
+                System.err.println("File does not exist: " + filename);
+                return null;
+            }
+            return Files.readAllBytes(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
     public static File getNewFile(String filePath, String fileName,Mode mode) {
         File file = new File(filePath, fileName);
 
@@ -70,9 +82,9 @@ public class FileTools {
         }
     }
 
-    public static boolean writeBytesToDidFile(byte[] bytes, String storageDir) {
+    public static boolean writeBytesToFreeDisk(byte[] bytes, String storageDir) {
         String did = Hex.toHex(Hash.Sha256x2(bytes));
-        String subDir = getSubDirPathOfDid(did);
+        String subDir = getSubPathForFreeDisk(did);
         String path = storageDir+subDir;
 
         File file = new File(path,did);
@@ -87,7 +99,7 @@ public class FileTools {
             } catch (IOException e) {
                 return false;
             }
-        }else return checkFileExistsWithDid(bytes, storageDir, did);
+        }else return checkFileOfFreeDisk(bytes, storageDir, did);
     }
 
     public static boolean createFileWithDirectories(String filePathString) {
@@ -111,11 +123,25 @@ public class FileTools {
         }
     }
 
-    public static String getSubDirPathOfDid(String did) {
+    public static boolean createFileDirectories(String filePathString) {
+        Path path = Paths.get(filePathString);
+        try {
+            // Create parent directories if they do not exist
+            if (Files.notExists(path.getParent())) {
+                Files.createDirectories(path.getParent());
+            }
+            return true;
+        } catch (IOException e) {
+            System.err.println("Error creating file or directories: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public static String getSubPathForFreeDisk(String did) {
         return "/"+did.substring(0,2)+"/"+did.substring(2,4)+"/"+did.substring(4,6)+"/"+did.substring(6,8);
     }
 
-    public static boolean checkFileExistsWithDid(byte[] bytes, String storageDir, String did) {
+    public static boolean checkFileOfFreeDisk(byte[] bytes, String storageDir, String did) {
         if (bytes==null)return false;
         File file = new File(storageDir,did);
         if(!file.exists())return false;
@@ -130,8 +156,8 @@ public class FileTools {
         return inputDid.equals(existDid);
     }
 
-    public static boolean checkFileExistsWithDid(String storageDir, String did) {
-        String path = FileTools.getSubDirPathOfDid(did);
+    public static boolean checkFileOfFreeDisk(String storageDir, String did) {
+        String path = FileTools.getSubPathForFreeDisk(did);
         File file = new File(storageDir+path, did);
         if(!file.exists())return false;
         byte[] existBytes;
@@ -153,11 +179,11 @@ public class FileTools {
         System.out.println(getFileNameTail(name,false));
         getNewFile(null,"config.json",Mode.REWRITE);
     }
-    private static String getFileNameHead(String fileName) {
+    public static String getFileNameHead(String fileName) {
         int dotIndex = fileName.lastIndexOf(".");
         return fileName.substring(0,dotIndex);
     }
-    private static String getFileNameTail(String fileName,boolean withDot) {
+    public static String getFileNameTail(String fileName,boolean withDot) {
         int dotIndex = fileName.lastIndexOf(".");
         if(!withDot)dotIndex+=1;
         return fileName.substring(dotIndex);

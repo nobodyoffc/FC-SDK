@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import server.Counter;
-import server.Starter;
+import server.Settings;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -29,7 +29,7 @@ import static constants.Constants.*;
 import static constants.Strings.*;
 import static server.Indices.orderMappingJsonStr;
 import static server.Indices.recreateApipIndex;
-import static server.Starter.addSidBriefToName;
+import static server.Settings.addSidBriefToName;
 
 
 public class OrderManager {
@@ -39,12 +39,14 @@ public class OrderManager {
     private final BufferedReader br;
     private final JedisPool jedisPool;
     private final Counter counter;
+    private static String sid;
 
-    public OrderManager(ElasticsearchClient esClient, BufferedReader br, JedisPool jedisPool, Counter counter) {
+    public OrderManager(String sid,ElasticsearchClient esClient, BufferedReader br, JedisPool jedisPool, Counter counter) {
         this.esClient = esClient;
         this.br = br;
         this.jedisPool = jedisPool;
         this.counter = counter;
+        OrderManager.sid =sid;
     }
 
     public void menu(){
@@ -66,7 +68,7 @@ public class OrderManager {
             int choice = menu.choose(br);
             switch (choice) {
                 case 1-> howToBuyService(br,jedisPool);
-                case 2 -> recreateIndexAndResetOrderHeight(br, esClient,  IndicesNames.ORDER, orderMappingJsonStr);
+                case 2 -> recreateIndexAndResetOrderHeight(sid,br, esClient,  IndicesNames.ORDER, orderMappingJsonStr);
                 case 3 -> switchScanOpReturn(br);
                 case 4 -> switchOrderScanner(counter);
                 case 5 -> findFidOrders(br,esClient);
@@ -78,9 +80,9 @@ public class OrderManager {
         }
     }
 
-    private void recreateIndexAndResetOrderHeight(BufferedReader br, ElasticsearchClient esClient, String order, String orderMappingJsonStr) {
+    private void recreateIndexAndResetOrderHeight(String sid,BufferedReader br, ElasticsearchClient esClient, String order, String orderMappingJsonStr) {
         Menu.askIfToDo("You will loss all orders info in the 'order' index of ES and Redis. Do you want to RECREATE?",br);
-        recreateApipIndex(br, esClient, IndicesNames.ORDER, orderMappingJsonStr);
+        recreateApipIndex(sid,br, esClient, IndicesNames.ORDER, orderMappingJsonStr);
         resetLastOrderHeight(br);
     }
 
@@ -92,8 +94,8 @@ public class OrderManager {
 
         if ("reset".equals(input)) {
             try(Jedis jedis = jedisPool.getResource()) {
-                jedis.set(Starter.sidBrief+"_"+ORDER_LAST_HEIGHT, "0");
-                jedis.set(Starter.sidBrief+"_"+ORDER_LAST_BLOCK_ID, zeroBlockId);
+                jedis.set(Settings.addSidBriefToName(sid,ORDER_LAST_HEIGHT), "0");
+                jedis.set(Settings.addSidBriefToName(sid,ORDER_LAST_BLOCK_ID), zeroBlockId);
                 System.out.println("Last order height has set to 0.");
             }catch (Exception e){
                 log.error("Set order height and blockId into jedis wrong.");
@@ -139,7 +141,7 @@ public class OrderManager {
         SearchResponse<Order> result = null;
         try {
             result = esClient.search(s -> s
-                            .index(addSidBriefToName(IndicesNames.ORDER))
+                            .index(addSidBriefToName(sid,IndicesNames.ORDER))
                             .query(q -> q.term(t -> t.field(FROM_FID).value(finalFid)))
                             .sort(so->so.field(f->f.field(TIME)))
                             .size(100)
@@ -208,7 +210,7 @@ public class OrderManager {
         System.out.println("Anyone can send a freecash TX with following json in Op_Return to buy your service:" +
                 "\n--------");
         try(Jedis jedis = jedisPool.getResource()) {
-            String sidStr = jedis.get(Starter.sidBrief + "_" + SERVICE);
+            String sidStr = jedis.get(Settings.addSidBriefToName(sid,SERVICE));
             if (sidStr == null) {
                 System.out.println("No service yet.");
                 return;

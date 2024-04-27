@@ -79,7 +79,7 @@ public class EccAes256K1P7 {
 
     public static byte[] decryptJsonBytes(String keyCipherJson, byte[] keyOrPassword) {
         EccAes256K1P7 ecc = new EccAes256K1P7();
-        System.out.println("Decrypt key...");
+//        System.out.println("Decrypt key...");
 
         EccAesDataByte result = ecc.decrypt(keyCipherJson, keyOrPassword);
         if (result.getError() != null) {
@@ -96,7 +96,7 @@ public class EccAes256K1P7 {
         return encryptWithSymKey(priKeyBytes, initSymKey);
     }
 
-    public static EccAesDataByte encryptSymKeyWithPassword(byte[] initSymKey, byte[] passwordBytes) {
+    public static EccAesDataByte encryptWithPassword(byte[] initSymKey, byte[] passwordBytes) {
         EccAes256K1P7 ecc = new EccAes256K1P7();
         EccAesDataByte eccAesDataByte = new EccAesDataByte();
         eccAesDataByte.setType(EccAesType.Password);
@@ -104,7 +104,7 @@ public class EccAes256K1P7 {
         eccAesDataByte.setPassword(passwordBytes);
         ecc.encrypt(eccAesDataByte);
         if (eccAesDataByte.getError() != null) {
-            System.out.println("Encrypt sessionKey to redis wrong: " + eccAesDataByte.getError());
+            System.out.println("Failed to encrypt key: " + eccAesDataByte.getError());
             return null;
         }
         return eccAesDataByte;
@@ -156,6 +156,18 @@ public class EccAes256K1P7 {
         ECPrivateKeyParameters priKey = priKeyFromBytes(priKeyByte);
         byte[] pubKeyFromPriKey = pubKeyToBytes(pubKeyFromPriKey(priKey));
         return Arrays.equals(pubKeyByte, pubKeyFromPriKey);
+    }
+
+    public static byte[] decryptWithPriKey(String cipher, byte[] priKey) {
+        EccAes256K1P7 ecc = new EccAes256K1P7();
+        EccAesDataByte eccAesDataBytes = ecc.decrypt(cipher, priKey);
+        if (eccAesDataBytes.getError() != null) {
+            System.out.println("Decrypt sessionKey wrong: " + eccAesDataBytes.getError());
+            BytesTools.clearByteArray(priKey);
+            return null;
+        }
+        String sessionKeyHex = new String(eccAesDataBytes.getMsg(), StandardCharsets.UTF_8);
+        return HexFormat.of().parseHex(sessionKeyHex);
     }
 
     public void encrypt(EccAesDataByte eccAesDataByte) {

@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import server.Starter;
+import server.Settings;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,19 +21,21 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static constants.Strings.*;
-import static database.redisTools.ReadRedis.readLong;
-import static server.Starter.addSidBriefToName;
-import static server.Starter.sidBrief;
+import static clients.redisClient.RedisTools.readLong;
+import static server.Settings.addSidBriefToName;
 
 public class BalanceInfo {
-    private static final Logger log = LoggerFactory.getLogger(BalanceInfo.class);
-    public static final String BALANCE_BACKUP_JSON = "balanceBackup.json";
     private String user;
     private long bestHeight;
     private String consumeVia;
     private String orderVia;
     private String pending;
-    private String serviceName;
+
+
+    private static final Logger log = LoggerFactory.getLogger(BalanceInfo.class);
+    public static final String BALANCE_BACKUP_JSON = "balanceBackup.json";
+
+    public static final String MAPPINGS = "{\"mappings\":{\"properties\":{\"user\":{\"type\":\"keyword\"},\"bestHeight\":{\"type\":\"long\"},\"consumeVia\":{\"type\":\"keyword\"},\"orderVia\":{\"type\":\"keyword\"},\"pending\":{\"type\":\"text\",\"fields\":{\"keyword\":{\"type\":\"keyword\",\"ignore_above\":256}}}}}}";
 
     public static void recoverUserBalanceFromFile(JedisPool jedisPool) {
         try(Jedis jedis = jedisPool.getResource()) {
@@ -53,8 +55,8 @@ public class BalanceInfo {
         this.pending = pending;
     }
 
-    public static void deleteOldBalance(ElasticsearchClient esClient) {
-        String index = addSidBriefToName(BALANCE);
+    public static void deleteOldBalance(String sid,ElasticsearchClient esClient) {
+        String index = addSidBriefToName(sid,BALANCE);
         long BALANCE_BACKUP_KEEP_MINUTES=144000;
         long height = readLong(BEST_HEIGHT)-BALANCE_BACKUP_KEEP_MINUTES;
         try {
@@ -73,7 +75,7 @@ public class BalanceInfo {
 
     public static void recoverUserBalanceFromEs(ElasticsearchClient esClient, JedisPool jedisPool) {
         Gson gson = new Gson();
-        String index = addSidBriefToName(BALANCE);
+        String index = addSidBriefToName(BalanceManager.sid,BALANCE);
 
         String balancesStr = null;
         String viaTStr = null;
@@ -102,7 +104,7 @@ public class BalanceInfo {
                 Map<String, String> viaTMap = gson.fromJson(viaTStr, new TypeToken<HashMap<String, String>>() {
                 }.getType());
                 for (String id : viaTMap.keySet()) {
-                    jedis.hset(sidBrief + "_" + CONSUME_VIA, id, viaTMap.get(id));
+                    jedis.hset(BalanceManager.sidBrief + "_" + CONSUME_VIA, id, viaTMap.get(id));
                 }
                 log.debug("Consuming ViaT recovered from ES.");
             } else {
@@ -119,22 +121,22 @@ public class BalanceInfo {
         Map<String, String> viaTMap = gson.fromJson(balanceInfo.getOrderVia(), new TypeToken<HashMap<String, String>>() {
         }.getType());
         for (String id : balanceMap.keySet()) {
-            jedis.hset(sidBrief + "_" + Strings.FID_BALANCE, id, balanceMap.get(id));
+            jedis.hset(BalanceManager.sidBrief + "_" + Strings.FID_BALANCE, id, balanceMap.get(id));
         }
         for (String id : viaTMap.keySet()) {
 
 
-            jedis.hset(sidBrief + "_" + CONSUME_VIA, id, viaTMap.get(id));
+            jedis.hset(BalanceManager.sidBrief + "_" + CONSUME_VIA, id, viaTMap.get(id));
         }
         log.debug("Balances recovered from ES.");
     }
 
-    public static void backupBalance(ElasticsearchClient esClient,JedisPool jedisPool)  {
+    public static void backupBalance(String sid,ElasticsearchClient esClient,JedisPool jedisPool)  {
         try(Jedis jedis0Common = jedisPool.getResource()) {
-            Map<String, String> balanceMap = jedis0Common.hgetAll(Starter.addSidBriefToName(Strings.FID_BALANCE));
-            Map<String, String> consumeViaMap = jedis0Common.hgetAll(Starter.addSidBriefToName(CONSUME_VIA));
-            Map<String, String> orderViaMap = jedis0Common.hgetAll(Starter.addSidBriefToName(ORDER_VIA));
-            Map<String, String> pendingStrMap = jedis0Common.hgetAll(Starter.addSidBriefToName(REWARD_PENDING_MAP));
+            Map<String, String> balanceMap = jedis0Common.hgetAll(Settings.addSidBriefToName(sid,Strings.FID_BALANCE));
+            Map<String, String> consumeViaMap = jedis0Common.hgetAll(Settings.addSidBriefToName(sid,CONSUME_VIA));
+            Map<String, String> orderViaMap = jedis0Common.hgetAll(Settings.addSidBriefToName(sid,ORDER_VIA));
+            Map<String, String> pendingStrMap = jedis0Common.hgetAll(Settings.addSidBriefToName(sid,REWARD_PENDING_MAP));
             Gson gson = new Gson();
 
             String balanceStr = gson.toJson(balanceMap);
@@ -153,9 +155,10 @@ public class BalanceInfo {
 
             balanceInfo.setBestHeight(bestHeight);
 
-            backupBalanceToEx(esClient, balanceInfo, bestHeight);
+            backupBalanceToEx(sid,esClient, balanceInfo, bestHeight);
 
-            String fileName = addSidBriefToName(BALANCE);
+            String fileName = Settings.getLocalDataDir(sid)+BALANCE;
+
             backupBalanceToFile(balanceInfo, fileName);
 
         } catch (IOException e) {
@@ -163,8 +166,8 @@ public class BalanceInfo {
         }
     }
 
-    private static void backupBalanceToEx(ElasticsearchClient esClient, BalanceInfo balanceInfo, long bestHeight) throws IOException {
-        String index = addSidBriefToName(BALANCE).toLowerCase();
+    private static void backupBalanceToEx(String sid,ElasticsearchClient esClient, BalanceInfo balanceInfo, long bestHeight) throws IOException {
+        String index = addSidBriefToName(sid,BALANCE).toLowerCase();
         IndexResponse result = null;
         try {
             result = esClient.index(i -> i.index(index).id(String.valueOf(bestHeight)).document(balanceInfo));
@@ -172,35 +175,35 @@ public class BalanceInfo {
             log.error("Read ES wrong.", e);
         }
 
-        File file = new File(BALANCE_BACKUP_JSON);
-        if(!file.exists())file.createNewFile();
-        JsonTools.writeObjectToJsonFile(balanceInfo, BALANCE_BACKUP_JSON,false);
-        System.out.println("User balance backed up to file:"+BALANCE_BACKUP_JSON);
+//        File file = new File(BALANCE_BACKUP_JSON);
+//        if(!file.exists())file.createNewFile();
+//        JsonTools.writeObjectToJsonFile(balanceInfo, BALANCE_BACKUP_JSON,false);
+//        System.out.println("User balance backed up to file:"+BALANCE_BACKUP_JSON);
 
         if (result != null) {
-            System.out.println("User balance backup: " + result.result().toString());
+            log.debug("User balance backup: " + result.result().toString());
         }
         log.debug(result.result().jsonValue());
     }
 
-    private static void backupBalanceToFile(BalanceInfo balanceInfo, String index) {
+    private static void backupBalanceToFile(BalanceInfo balanceInfo, String filename) {
         for(int i=0;i<30;i++){
-            File file = new File(index +i+DOT_JSON);
+            File file = new File(filename +i+DOT_JSON);
             if(file.exists()) {
                 if (i == 0){
-                    if(new File(index +29+DOT_JSON).exists())
+                    if(new File(filename +29+DOT_JSON).exists())
                         file.delete();
                 } else {
-                    if(new File(index +29+DOT_JSON).exists()) {
-                        file.renameTo(new File(index + (i - 1) + DOT_JSON));
+                    if(new File(filename +29+DOT_JSON).exists()) {
+                        file.renameTo(new File(filename + (i - 1) + DOT_JSON));
                         if(i==29){
-                            JsonTools.writeObjectToJsonFile(balanceInfo, index +i+DOT_JSON,false);
+                            JsonTools.writeObjectToJsonFile(balanceInfo, filename +i+DOT_JSON,false);
                             break;
                         }
                     }
                 }
             }else {
-                JsonTools.writeObjectToJsonFile(balanceInfo, index +i+DOT_JSON,false);
+                JsonTools.writeObjectToJsonFile(balanceInfo, filename +i+DOT_JSON,false);
                 break;
             }
         }

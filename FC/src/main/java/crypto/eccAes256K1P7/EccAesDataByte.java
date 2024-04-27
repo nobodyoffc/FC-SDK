@@ -78,8 +78,9 @@ public class EccAesDataByte {
 //
 //    }
 
-    public String getJson() {
+    public String toNiceJson() {
         EccAesData eccAesData = EccAesData.fromEccAesDataByte(this);
+        eccAesData.clearAllSensitiveData();
         return JsonTools.getNiceString(eccAesData);
     }
 

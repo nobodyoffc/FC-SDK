@@ -1,13 +1,13 @@
 package FCH;
 
-import APIP.apipClient.ApipClientData;
+import clients.apipClient.ApipClientData;
 import config.ApiAccount;
 import FCH.fchData.SendTo;
 import NaSa.data.TxInput;
 import NaSa.data.TxOutput;
-import APIP.apipClient.ApipDataGetter;
-import APIP.apipClient.BlockchainAPIs;
-import APIP.apipClient.WalletAPIs;
+import clients.apipClient.ApipDataGetter;
+import clients.apipClient.BlockchainAPIs;
+import clients.apipClient.WalletAPIs;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import constants.Constants;

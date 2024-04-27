@@ -1,6 +1,6 @@
 package FEIP.feipClient;
 
-import APIP.apipClient.ApipClient;
+import clients.apipClient.ApipClient;
 import FCH.TxCreator;
 import constants.Constants;
 import constants.UpStrings;

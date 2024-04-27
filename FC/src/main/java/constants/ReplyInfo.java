@@ -34,17 +34,25 @@ public class ReplyInfo {
     public static final int Code1011DataNotFound = 1011;
     public static final String Msg1011DataNotFound = "No data meeting the conditions.";
     public static final int Code1012BadQuery = 1012;
-    public static final String Msg1012BadQuery = "Bad query. Check your request body referring related APIP document.";
+    public static final String Msg1012BadQuery = "Bad query. Check your request body referring the documents.";
     public static final int Code1013BadRequest = 1013;
     public static final String Msg1013BadRequest = "Bad request. Please check request body.";
-    public static final int Code1014ApiSuspended = 1014;//The API is suspended
+    public static final int Code1014ApiSuspended = 1014;
     public static final String Msg1014ApiSuspended  = "The API is suspended";
     public static final int Code1015FidMissed = 1015;
     public static final String Msg1015FidMissed  = "FID missed in request header.";
     public static final int Code1016IllegalUrl = 1016;
     public static final String Msg1016IllegalUrl  = "Illegal URL.";
+    public static final int Code1017MethodNotAvailable = 1017;
+    public static final String Msg1017MethodNotAvailable  = "The http method is not available for this API.";
+    public static final int Code1018NonceMissed = 1018;
+    public static final String Msg1018NonceMissed  = "Nonce missed.";
+    public static final int Code1019TimeMissed = 1018;
+    public static final String Msg1019TimeMissed  = "Time missed.";
     public static final int Code1020OtherError = 1020;
     public static final String Msg1020OtherError = "Other error.";
+    public static final int Code1021FidIsRequired = 1021;
+    public static final String Msg1021FidIsRequired = "FID is Required.";
 
     public static final int Code2001NoFreeGet = 2001;
     public static final String Msg2001NoFreeGet = "FreeGet API is not active now.";
@@ -72,5 +80,21 @@ public class ReplyInfo {
     public static final String Msg2009NoFreeSessionKey= "Can not get free sessionKey.";
     public static final int Code2010ErrorFromFchRpc= 2010;
     public static final String Msg2010ErrorFromFchRpc= "Error from freecash RPC.";
+    public static final int Code2020FailedToWriteData= 2020;
+    public static final String Msg2020FailedToWriteData= "Failed to write data";
+    public static int Code3001ResponseIsNull = 3001;
+    public static String Msg3001ResponseIsNull = "Http response is null.";
+    public static int Code3002GetRequestFailed = 3002;
+    public static String Msg3002GetRequestFailed = "The request of GET is failed.";
+    public static int Code3003CloseHttpClientFailed = 3003;
+    public static String Msg3003CloseHttpClientFailed = "Failed to close the http client.";
+    public static int Code3004RequestUrlIsAbsent = 3004;
+    public static String Msg3004RequestUrlIsAbsent = "The URL of requesting is absent.";
+    public static int Code3006ResponseStatusWrong = 3006;
+    public static String Msg3006ResponseStatusWrong = "The status of response is wrong.";
+    public static int Code3007ErrorWhenRequestingPost = 3007;
+    public static String Msg3007ErrorWhenRequestingPost = "Do post request wrong.";
+    public static int Code3005ResponseDataIsNull = 3005;
+    public static String Msg3005ResponseDataIsNull = "The data object in response body is null.";
 
 }

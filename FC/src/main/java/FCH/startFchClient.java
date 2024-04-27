@@ -1,24 +1,24 @@
 package FCH;
 
-import APIP.apipClient.*;
-import config.ApiAccount;
 import APIP.apipData.CidInfo;
-
-import FCH.fchData.SendTo;
-import constants.Constants;
-import constants.Strings;
-import crypto.cryptoTools.KeyTools;
-import crypto.cryptoTools.Hash;
-import crypto.eccAes256K1P7.EccAes256K1P7;
+import APIP.apipData.RequestBody;
 import FCH.fchData.Address;
 import FCH.fchData.Cash;
 import FCH.fchData.P2SH;
-import fcData.Signature;
-import javaTools.BytesTools;
-import javaTools.JsonTools;
+import FCH.fchData.SendTo;
 import appTools.Inputer;
 import appTools.Menu;
 import appTools.Shower;
+import clients.apipClient.*;
+import config.ApiAccount;
+import constants.Constants;
+import constants.Strings;
+import crypto.cryptoTools.Hash;
+import crypto.cryptoTools.KeyTools;
+import crypto.eccAes256K1P7.EccAes256K1P7;
+import fcData.Signature;
+import javaTools.BytesTools;
+import javaTools.JsonTools;
 import org.bitcoinj.core.ECKey;
 
 import java.io.BufferedReader;
@@ -27,17 +27,16 @@ import java.io.InputStreamReader;
 import java.security.SignatureException;
 import java.util.*;
 
-import static APIP.apipClient.StartApipClient.signInEccPost;
+import static FCH.Inputer.inputFidArray;
+import static FCH.Inputer.inputGoodFid;
+import static FCH.TxCreator.DEFAULT_FEE_RATE;
+import static clients.apipClient.StartApipClient.signInEccPost;
 import static constants.Constants.APIP_Account_JSON;
 import static constants.Constants.COIN_TO_SATOSHI;
 import static constants.Strings.newCashMapKey;
 import static constants.Strings.spendCashMapKey;
-import static FCH.Inputer.inputFidArray;
-import static FCH.Inputer.inputGoodFid;
 import static crypto.cryptoTools.KeyTools.priKeyToFid;
 import static crypto.cryptoTools.KeyTools.priKeyToPubKey;
-import static FCH.TxCreator.DEFAULT_FEE_RATE;
-import static FCH.TxCreator.createTransactionSignFch;
 
 
 public class startFchClient {
@@ -279,7 +278,7 @@ public class startFchClient {
         double feeDouble = fee / COIN_TO_SATOSHI;
         apipClientData = WalletAPIs.cashValidForPayPost(initApiAccount.getApiUrl(), fid, sum + feeDouble, initApiAccount.getVia(), sessionKey);
 
-        if (apipClientData.isBadResponse("get cash list")) return;
+        if(apipClientData.checkResponse()!=0) return;
 
         List<Cash> cashList = ApipDataGetter.getCashList(apipClientData.getResponseBody().getData());
 
@@ -308,7 +307,7 @@ public class startFchClient {
         int m = Inputer.inputInteger(br, "How many signatures is required? ", 16);
 
         ApipClientData apipClientData = BlockchainAPIs.fidByIdsPost(initApiAccount.getApiUrl(), fids, initApiAccount.getVia(), sessionKey);
-        if (apipClientData.isBadResponse("fidByIds")) return;
+        if(apipClientData.checkResponse()!=0) return;
 
         Map<String, Address> fidMap = ApipDataGetter.getAddressMap(apipClientData.getResponseBody().getData());
 
@@ -342,7 +341,7 @@ public class startFchClient {
         }
         System.out.println("Requesting APIP from " + initApiAccount.getApiUrl());
         ApipClientData apipClientData = BlockchainAPIs.p2shByIdsPost(initApiAccount.getApiUrl(), new String[]{fid}, initApiAccount.getVia(), sessionKey);
-        if (apipClientData.isBadResponse("get multiSign FID info")) return;
+        if(apipClientData.checkResponse()!=0) return;
         ;
         Map<String, P2SH> p2shMap = ApipDataGetter.getP2SHMap(apipClientData.getResponseBody().getData());
         P2SH p2sh = p2shMap.get(fid);
@@ -447,7 +446,7 @@ public class startFchClient {
         ApipClientData apipClientData;
 
         apipClientData = BlockchainAPIs.fidByIdsPost(initApiAccount.getApiUrl(), new String[]{sender}, initApiAccount.getVia(), sessionKey);
-        if (apipClientData.isBadResponse("get fid from APIP")) {
+        if(apipClientData.checkResponse()!=0) {
             System.out.println("The fid is no found in the APIP.");
         } else {
             Map<String, Address> fidMap = ApipDataGetter.getAddressMap(apipClientData.getResponseBody().getData());
@@ -667,7 +666,7 @@ public class startFchClient {
 
     public static byte[] refreshSessionKey(byte[] symKey) {
         System.out.println("Refreshing ...");
-        return signInEccPost(symKey, Strings.REFRESH);
+        return signInEccPost(symKey, RequestBody.SignInMode.REFRESH);
     }
 
     public static void checkApip(ApiAccount initApiAccount, byte[] sessionKey, BufferedReader br) {

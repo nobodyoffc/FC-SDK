@@ -1,6 +1,6 @@
 package config.old;
 
-import config.old.ConfigFEIP;
+import constants.FieldNames;
 import redis.clients.jedis.Jedis;
 
 import java.io.BufferedReader;
@@ -142,7 +142,7 @@ public class ConfigService extends ConfigFEIP {
             jedis.hset(CONFIG, OP_RETURN_FILE_PATH, this.getOpReturnFilePath());
             jedis.hset(CONFIG, LISTEN_PATH, this.getListenPath());
 //            jedis.hset(CONFIG, SERVICE_NAME, serviceName);
-            jedis.hset(CONFIG, FORBID_FREE_GET, String.valueOf(forbidFreeGet));
+            jedis.hset(CONFIG, FieldNames.FORBID_FREE_API, String.valueOf(forbidFreeGet));
             jedis.hset(CONFIG, CHECK_ORDER_OPRETURN, String.valueOf(checkOrderOpReturn));
             jedis.hset(CONFIG, SCAN_MEMPOOL, String.valueOf(scanMempool));
             jedis.hset(CONFIG, WINDOW_TIME, String.valueOf(this.windowTime));

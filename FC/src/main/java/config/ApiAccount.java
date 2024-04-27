@@ -1,27 +1,32 @@
 package config;
 
 import APIP.ApipTools;
-import APIP.apipClient.*;
+import APIP.apipData.RequestBody;
 import FEIP.feipData.serviceParams.ApipParams;
-import APIP.apipData.SignInData;
+import APIP.apipData.Session;
 import FCH.ParseTools;
 import FCH.TxCreator;
 import FCH.fchData.Cash;
 import FCH.fchData.SendTo;
 import FEIP.feipData.Service;
+import FEIP.feipData.serviceParams.DiskParams;
+import FEIP.feipData.serviceParams.Params;
 import NaSa.NaSaRpcClient;
 import NaSa.RPC.GetBlockchainInfo;
 import appTools.Inputer;
 import appTools.Menu;
+import clients.apipClient.ApipClient;
+import clients.apipClient.ApipClientData;
+import clients.apipClient.OpenAPIs;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
 import com.google.gson.Gson;
-import constants.CodeAndMsg;
 import crypto.cryptoTools.Hash;
 import crypto.cryptoTools.KeyTools;
 import crypto.eccAes256K1P7.EccAes256K1P7;
 import crypto.eccAes256K1P7.EccAesDataByte;
-import database.esTools.EsClientMaker;
+import clients.esClient.EsClientMaker;
+import clients.diskClient.DiskClient;
 import javaTools.BytesTools;
 import javaTools.JsonTools;
 import javaTools.NumberTools;
@@ -60,8 +65,8 @@ public class ApiAccount {
     private String sessionKeyCipher;
     private String sessionName;
     private long sessionExpire;
-    private Service service;
-    private ApipParams apipParams;
+    private transient Service service;
+    private transient Params serviceParams;
     private String apiUrl;
     private String via;
     private long bestHeight;
@@ -69,64 +74,95 @@ public class ApiAccount {
     private long balance;
     private transient Object client;
     private transient EsClientMaker esClientMaker;
+    private transient ApipClient apipClient;
 
-    public static void checkApipBalance(ApiAccount apipAccount, final ApipClientData apipClientData, byte[] initSymKey) {
-        if(apipClientData ==null|| apipClientData.getResponseBody()==null)return;
-
-        long price = ParseTools.fchStrToSatoshi(apipAccount.getApipParams().getPricePerKBytes());
-
-        long balance = apipClientData.getResponseBody().getBalance();
-        apipAccount.setBalance(balance);
-
-        if(balance < price * minRequestTimes){
-            byte[] priKey = EccAes256K1P7.decryptJsonBytes
-                    (
-                            apipAccount.getUserPriKeyCipher(),
-                            initSymKey
-                    );
-            double topUp = apipAccount.buyApip(apipAccount.getApiUrl(), priKey);
-            if(topUp==0){
-                log.debug("Failed to buy APIP service.");
-                return;
-            }
-            apipAccount.setBalance(balance + ParseTools.coinToSatoshi(topUp));
-        }
+    public static void updateSession(ApiAccount apipAccount, byte[] symKey, Session session, byte[] newSessionKey) {
+        String newSessionKeyCipher = EccAes256K1P7.encryptWithSymKey(newSessionKey, symKey);
+        if(newSessionKeyCipher.contains("Error"))return;
+        session.setSessionKeyCipher(newSessionKeyCipher);
+        apipAccount.setSessionKeyCipher(newSessionKeyCipher);
+        apipAccount.setSessionExpire(session.getExpireTime());
+        String newSessionName = ApipTools.getSessionName(newSessionKey);
+        apipAccount.setSessionName(newSessionName);
+        System.out.println("SessionName:" + newSessionName);
+        System.out.println("SessionKeyCipher: " + session.getSessionKeyCipher());
     }
 
     public boolean isApipBalanceSufficient(){
         long price;
-        if(apipParams.getPricePerKBytes()!=null){
-            price= (long) (NumberTools.roundDouble8(Double.parseDouble(apipParams.getPricePerKBytes()))*COIN_TO_SATOSHI);
-        }else price= (long) (NumberTools.roundDouble8(Double.parseDouble(apipParams.getPricePerRequest()))*COIN_TO_SATOSHI);
+        if(serviceParams.getPricePerKBytes()!=null){
+            price= (long) (NumberTools.roundDouble8(Double.parseDouble(serviceParams.getPricePerKBytes()))*COIN_TO_SATOSHI);
+        }else price= (long) (NumberTools.roundDouble8(Double.parseDouble(serviceParams.getPricePerRequest()))*COIN_TO_SATOSHI);
 
         return balance < price * minRequestTimes;
     }
 
-    public Object connectApi(ApiProvider apiProvider, byte[] symKey, BufferedReader br) {
+    public Object connectApi(ApiProvider apiProvider, byte[] symKey, BufferedReader br, @Nullable ApipClient apipClient) {
 
-        if (checkApiGeneralParams(apiProvider, br)) return null;
+        if (!checkApiGeneralParams(apiProvider, br)) return null;
 
         switch (apiProvider.getType()){
             case APIP -> {
                 return connectApip(apiProvider,symKey,br);
             }
             case NaSaRPC -> {
-                return connectNaSaRPC(symKey,br);
+                return connectNaSaRPC(symKey);
             }
             case ES -> {
-                return connectEs(symKey,br);
+                return connectEs(symKey);
             }
             case Redis -> {
                 return connectRedis();
             }
+            case DISK -> {
+                return connectDisk(apiProvider,symKey,br,apipClient);
+            }
             case Other -> {
-                return connectOtherApi(apiProvider, symKey,br);
+                return connectOtherApi(apiProvider, symKey);
             }
         }
         return null;
     }
 
-    private byte[] connectOtherApi(ApiProvider apiProvider, byte[] symKey, BufferedReader br) {
+
+    public Object connectApi(ApiProvider apiProvider, byte[] symKey) {
+
+        if (!checkApiGeneralParams(apiProvider)) return null;
+
+        switch (apiProvider.getType()){
+            case APIP -> {
+                return connectApip(apiProvider,symKey);
+            }
+            case NaSaRPC -> {
+                return connectNaSaRPC(symKey);
+            }
+            case ES -> {
+                return connectEs(symKey);
+            }
+            case Redis -> {
+                return connectRedis();
+            }
+            case Other -> {
+                return connectOtherApi(apiProvider, symKey);
+            }
+        }
+        return null;
+    }
+
+    public void closeEs(){
+        if(client==null){
+            System.out.println("No ES esClient running.");
+            return;
+        }
+        closeEsClient();
+    }
+
+    public void showApipBalance(){
+        System.out.println("APIP balance: "+(double) balance/ COIN_TO_SATOSHI + " F");
+        System.out.println("Rest request: "+balance/(Double.parseDouble(serviceParams.getPricePerKBytes()) * COIN_TO_SATOSHI)+" times");
+    }
+
+    private byte[] connectOtherApi(ApiProvider apiProvider, byte[] symKey) {
         System.out.println("Connect to some other APIs. Undeveloped.");
         return null;
     }
@@ -136,7 +172,7 @@ public class ApiAccount {
             System.out.println("The SID of apiProvider "+ apiProvider.getSid()+" is not the same as the SID "+sid+" in apiAccount.");
             if(Inputer.askIfYes(br,"Reset the SID of apiAccount to "+ apiProvider.getSid()+"? y/n")){
                 sid= apiProvider.getSid();
-            }else return true;
+            }else return false;
         }
 
         if (apiUrl==null && apiProvider.getApiUrl() == null) {
@@ -145,18 +181,34 @@ public class ApiAccount {
                 inputApiUrl(br);
                 apiProvider.setApiUrl(apiUrl);
             }
-            return true;
+            return false;
         }
 
         if(! apiProvider.getApiUrl().equals(this.apiUrl)){
-//            if(Inputer.askIfYes(br,"The apiUrl of apiProvider "+ apiProvider.getApiUrl() +" is not the same as the apiUrl "+ apiUrl+" of the apiAccount. \nReset the apiUrl of apiAccount? y/n")) {
-                this.apiUrl = apiProvider.getApiUrl();
-//            }
+            this.apiUrl = apiProvider.getApiUrl();
         }
-        return false;
+        return true;
     }
 
-    private NaSaRpcClient connectNaSaRPC(byte[] symKey, BufferedReader br) {
+
+    private boolean checkApiGeneralParams(ApiProvider apiProvider){
+        if(!sid.equals(apiProvider.getSid())){
+            log.error("The SID of apiProvider "+ apiProvider.getSid()+" is not the same as the SID "+sid+" in apiAccount.");
+            return false;
+        }
+
+        if (apiUrl==null && apiProvider.getApiUrl() == null) {
+            log.error("The apiUrl is required.");
+            return false;
+        }
+
+        if(! apiProvider.getApiUrl().equals(this.apiUrl)){
+            this.apiUrl = apiProvider.getApiUrl();
+        }
+        return true;
+    }
+
+    private NaSaRpcClient connectNaSaRPC(byte[] symKey) {
         if(apiUrl==null) {
             System.out.println("The URL of the API is necessary.");
             return null;
@@ -188,7 +240,7 @@ public class ApiAccount {
         return naSaRpcClient;
     }
 
-    private ElasticsearchClient connectEs(byte[] symKey, BufferedReader br) {
+    private ElasticsearchClient connectEs(byte[] symKey) {
         if(apiUrl==null) {
             System.out.println("The URL of the API is necessary.");
             return null;
@@ -205,6 +257,39 @@ public class ApiAccount {
         }
         this.client = esClientMaker.esClient;
         return esClientMaker.esClient;
+    }
+
+    private DiskClient connectDisk(ApiProvider apiProvider, byte[] symKey, BufferedReader br,ApipClient apipClient) {
+        if(client==null)client = new DiskClient(apiProvider,this,symKey,apipClient);
+        if(!apiProvider.getType().equals(ApiProvider.ApiType.DISK)){
+            System.out.println("It's not Disk provider.");
+            if(Inputer.askIfYes(br,"Reset the type of apiProvider to "+ApiProvider.ApiType.DISK +"? y/n")){
+                apiProvider.setType(ApiProvider.ApiType.DISK);
+            }else return null;
+            return null;
+        }
+
+        if(!checkDiskProvider(apiProvider,apiUrl,apipClient)){
+            log.debug("Failed to get service from {}", apiProvider.getApiUrl());
+            System.out.println("Failed to get APIP service.");
+            Menu.anyKeyToContinue(br);
+            return null;
+        }
+
+        if (userPriKeyCipher == null) {
+            System.out.println("Set APIP requester priKey...");
+            inputPriKeyCipher(symKey,br);
+        }
+//TODO
+        byte[] sessionKey1 =
+                checkSessionKey(symKey);
+
+        if(sessionKey1==null) return null;
+
+        sessionKey = sessionKey1;
+        log.debug("Connected to the Disk service: " + sid + " on " + apiUrl);
+//        DiskClient diskClient = new DiskClient(apiProvider,this,symKey,apipClient);
+        return  (DiskClient) client;
     }
     public void closeEsClient(){
         try {
@@ -280,7 +365,7 @@ public class ApiAccount {
         }
 
         if (apiAccount.getSessionKeyCipher() == null) {
-            sessionKey = apiAccount.freshApipSessionKey(symKey, null);
+            sessionKey = apiAccount.freshSessionKey(symKey, null);
             if (sessionKey == null) return null;
             revised = true;
         }
@@ -318,7 +403,7 @@ public class ApiAccount {
         System.out.println();
         System.out.println("Set the APIP service buyer(requester)...");
         apiAccount.inputPriKeyCipher(br, symKey);
-        sessionKey = apiAccount.freshApipSessionKey(symKey, null);
+        sessionKey = apiAccount.freshSessionKey(symKey, null);
         if (sessionKey == null) return null;
 
         writeApipParamsToFile(apiAccount, APIP_Account_JSON);
@@ -429,16 +514,14 @@ public class ApiAccount {
                     inputPasswordCipher(symKey, br);
                 }
                 case Redis -> {}
-                case APIP -> {
+                case APIP, DISK -> {
                     if(sid==null)inputSid(br);
                     inputPriKeyCipher(symKey, br);
                     while(userName==null) {
-                        inputUsername(br);
-                        if(userName!=null) {
-                            userId = userName;
-                            break;
-                        }
-                        System.out.println("UserName is necessary");
+                        byte[] userPriKey = EccAes256K1P7.decryptJsonBytes(userPriKeyCipher, symKey);
+                        userName = KeyTools.priKeyToFid(userPriKey);
+                        userId = userName;
+                        BytesTools.clearByteArray(userPriKey);
                     }
                     inputVia(br);
                 }
@@ -560,20 +643,74 @@ public class ApiAccount {
         return EccAes256K1P7.encryptWithSymKey(password,symKey);
     }
 
+    public double buyService(Params params,String sid, ApipClient apipClient, byte[] symKey) {
+
+        boolean done = updateService(sid, apipClient);
+        if (!done) return 0;
+
+        long minPay = ParseTools.fchStrToSatoshi(params.getMinPayment());
+
+        long price;
+        try {
+            price = (long) (Double.parseDouble(params.getPricePerKBytes()) * COIN_TO_SATOSHI);
+        } catch (Exception ignore) {
+            try {
+                price = (long) (Double.parseDouble(params.getPricePerKBytes()) * COIN_TO_SATOSHI);
+            } catch (Exception e) {
+                System.out.println("The price of APIP service is 0.");
+                price = 0;
+            }
+        }
+        double payValue;
+
+        payValue = (double) Math.max(price * ApiAccount.orderRequestTimes, minPay) / COIN_TO_SATOSHI;
+
+        List<Cash> cashList = apipClient.getCashesFree(apipClient.getApiAccount().getUserId(), payValue);
+        if(cashList==null)return 0;
+        List<SendTo> sendToList = new ArrayList<>();
+        SendTo sendTo = new SendTo();
+
+        sendTo.setFid(params.getAccount());
+        sendTo.setAmount(payValue);
+        sendToList.add(sendTo);
+
+        byte[] priKey = EccAes256K1P7.decryptJsonBytes(userPriKeyCipher, symKey);
+
+        String txHex = TxCreator.createTransactionSignFch(cashList, priKey, sendToList, null);
+
+        String result = apipClient.broadcastRawTx(txHex);
+
+        if(result!=null) {
+            log.debug("Paid for service: " + payValue + " f to " + params.getAccount() + ". \nWait for confirmation for a few minutes.");
+            log.debug("RawTx: " + txHex);
+            log.debug("TxId: " + result);
+        }
+        return payValue;
+    }
+    public boolean updateService(String sid, ApipClient apipClient) {
+        Service service = apipClient.serviceMapByIds(new String[]{sid}).get(sid);
+        if(service == null)return false;
+        Params params = Params.getParamsFromService(service,Params.class);
+        if(params==null)return false;
+        service.setParams(params);
+        this.service= service;
+        this.serviceParams=params;
+        return true;
+    }
+
     public double buyApip(String urlHead, byte[] priKey) {
 
         boolean done = updateApipService(urlHead);
         if (!done) return 0;
-        ApipClientData apipClientData;
 
-        long minPay = ParseTools.fchStrToSatoshi(apipParams.getMinPayment());
+        long minPay = ParseTools.fchStrToSatoshi(serviceParams.getMinPayment());
 
         long price;
         try {
-            price = (long) (Double.parseDouble(apipParams.getPricePerKBytes()) * COIN_TO_SATOSHI);
+            price = (long) (Double.parseDouble(serviceParams.getPricePerKBytes()) * COIN_TO_SATOSHI);
         } catch (Exception ignore) {
             try {
-                price = (long) (Double.parseDouble(apipParams.getPricePerRequest()) * COIN_TO_SATOSHI);
+                price = (long) (Double.parseDouble(serviceParams.getPricePerRequest()) * COIN_TO_SATOSHI);
             } catch (Exception e) {
                 System.out.println("The price of APIP service is 0.");
                 price = 0;
@@ -583,30 +720,28 @@ public class ApiAccount {
 
         payValue = (double) Math.max(price * orderRequestTimes, minPay) / COIN_TO_SATOSHI;
 
-        apipClientData = FreeGetAPIs.getCashes(urlHead, this.getUserId(), payValue);
-
-        if (apipClientData.checkResponse() != 0) {
-            log.error("Failed to buy APIP service. Code:{},Message:{}", apipClientData.getCode(), apipClientData.getMessage());
-            return payValue;
-        }
-        List<Cash> cashList = ApipDataGetter.getCashList(apipClientData.getResponseBody().getData());
+        String id = userId==null?userName:userId;
+        ApipClient apipClient = (ApipClient)client;
+        List<Cash> cashList = apipClient.getCashesFree(id,payValue);//ApipDataGetter.getCashList(apipClientData.getResponseBody().getData());
 
         List<SendTo> sendToList = new ArrayList<>();
         SendTo sendTo = new SendTo();
 
-        sendTo.setFid(apipParams.getAccount());
+        sendTo.setFid(serviceParams.getAccount());
         sendTo.setAmount(payValue);
         sendToList.add(sendTo);
 
         String txHex = TxCreator.createTransactionSignFch(cashList, priKey, sendToList, null);
 
-        apipClientData = FreeGetAPIs.broadcast(urlHead, txHex);
+        String result = apipClient.broadcastFree(txHex);
+        if(result==null){
+            log.error("Failed to buy APIP service. Failed to broadcast TX.");
+            return 0;
+        }
 
-        if (apipClientData.isBadResponse("buy APIP service")) return payValue;
-
-        log.debug("Paid for APIP service: " + payValue + " f to " + apipParams.getAccount() + ". \nWait for confirmation for a few minutes.");
+        log.debug("Paid for APIP service: " + payValue + " f to " + serviceParams.getAccount() + ". \nWait for confirmation for a few minutes.");
         log.debug("RawTx: " + txHex);
-        log.debug("TxId: " + apipClientData.getResponseBody().getData());
+        log.debug("TxId: " + result);
 
         return payValue;
     }
@@ -614,7 +749,7 @@ public class ApiAccount {
     public boolean updateApipService(String urlHead) {
         ApipClientData apipClientData = OpenAPIs.getService(urlHead);
 
-        if (apipClientData.isBadResponse("get service")) {
+        if (apipClientData.checkResponse()!=0) {
             log.error("Failed to buy APIP service. Code:{},Message:{}", apipClientData.getCode(), apipClientData.getMessage());
             return false;
         }
@@ -623,8 +758,9 @@ public class ApiAccount {
 
         try {
             service = gson1.fromJson(gson1.toJson(apipClientData.getResponseBody().getData()), Service.class);
-            apipParams = gson1.fromJson(gson1.toJson(service.getParams()), ApipParams.class);
+            serviceParams = gson1.fromJson(gson1.toJson(service.getParams()), ApipParams.class);
             sid = service.getSid();
+            ApipParams apipParams = (ApipParams)serviceParams;
             this.apiUrl = apipParams.getUrlHead();
         } catch (Exception e) {
             System.out.println(JsonTools.getNiceString(service));
@@ -636,6 +772,7 @@ public class ApiAccount {
 
     public ApipClient connectApip(ApiProvider apiProvider, byte[] symKey, BufferedReader br){
 
+        if(client==null)client = new ApipClient(apiProvider,this,symKey);
         if(!apiProvider.getType().equals(ApiProvider.ApiType.APIP)){
             System.out.println("It's not APIP provider.");
             if(Inputer.askIfYes(br,"Reset the type of apiProvider to "+ApiProvider.ApiType.APIP+"? y/n")){
@@ -657,14 +794,76 @@ public class ApiAccount {
         }
 
         byte[] sessionKey1 =
-                checkSessionKey(symKey, br);
+                checkSessionKey(symKey);
 
         if(sessionKey1==null) return null;
 
         sessionKey = sessionKey1;
-        System.out.println("Connected to the initial APIP service: " + sid + " on " + apiUrl);
-        ApipClient apipClient = new ApipClient(apiProvider,this,symKey);
-        client = apipClient;
+        log.debug("Connected to the initial APIP service: " + sid + " on " + apiUrl);
+//        ApipClient apipClient = new ApipClient(apiProvider,this,symKey);
+//        client = apipClient;
+//        return apipClient;
+        return (ApipClient) client;
+    }
+
+    public ApipClient connectApip(ApiProvider apiProvider, byte[] symKey){
+
+        if(!apiProvider.getType().equals(ApiProvider.ApiType.APIP)){
+            log.error("It's not APIP provider.");
+            return null;
+        }
+
+        if(!checkApipProvider(apiProvider,apiUrl)){
+            log.debug("Failed to get service from {}", apiProvider.getApiUrl());
+            return null;
+        }
+
+        if (userPriKeyCipher == null) {
+            log.error("Set APIP requester priKey...");
+            return null;
+        }
+        ApipClient apipClient = null;
+        if(client==null){
+            apipClient = new ApipClient(apiProvider,this,symKey);
+            client = apipClient;
+        }
+        byte[] sessionKey1 = checkSessionKey(symKey);
+
+        if(sessionKey1==null) return null;
+
+        sessionKey = sessionKey1;
+        log.debug("Connected to the initial APIP service: " + sid + " on " + apiUrl);
+        return apipClient;
+    }
+
+
+    public ApipClient connectDisk(ApiProvider apiProvider, byte[] symKey){
+
+        if(!apiProvider.getType().equals(ApiProvider.ApiType.DISK)){
+            log.error("It's not DISK provider.");
+            return null;
+        }
+
+        if(checkFcApiProvider(apiProvider,apipClient)==null){
+            log.debug("Failed to get service from {}", apiProvider.getApiUrl());
+            return null;
+        }
+
+        if (userPriKeyCipher == null) {
+            log.error("Set DISK requester priKey...");
+            return null;
+        }
+        ApipClient apipClient = null;
+        if(client==null){
+            apipClient = new ApipClient(apiProvider,this,symKey);
+            client = apipClient;
+        }
+        byte[] sessionKey1 = checkSessionKey(symKey);
+
+        if(sessionKey1==null) return null;
+
+        sessionKey = sessionKey1;
+        log.debug("Connected to the initial DISK service: " + sid + " on " + apiUrl);
         return apipClient;
     }
 
@@ -676,14 +875,14 @@ public class ApiAccount {
             return false;
         }
         service = apipService;
-        apipParams = (ApipParams) apipService.getParams();
+        serviceParams = (ApipParams) apipService.getParams();
 
         sid = apipService.getSid();
         if(apipService.getUrls()!=null && apipService.getUrls().length>0)
             apiProvider.setOrgUrl(apipService.getUrls()[0]);
         ApipParams apipParams = (ApipParams) apipService.getParams();
         if(apipParams!=null && apipParams.getUrlHead()!=null)
-            apiUrl = apipParams.getUrlHead();
+            this.apiUrl = apipParams.getUrlHead();
         apiProvider.setOwner(apipService.getOwner());
         apiProvider.setProtocols(apipService.getProtocols());
         apiProvider.setTicks(new String[]{"fch"});
@@ -691,9 +890,42 @@ public class ApiAccount {
         return true;
     }
 
-    private byte[] checkSessionKey(byte[] symKey, BufferedReader br) {
+    public ApiProvider checkFcApiProvider(ApiProvider apiProvider,ApipClient apipClient) {
+        String apiUrl =apiProvider.getApiUrl();
+        Service service = apipClient.serviceById(apiProvider.getSid());
+        if(service==null)return null;
+        this.service = service;
+        this.serviceParams = Params.getParamsFromService(service,Params.class);
+        this.sid = service.getSid();
+        return ApiProvider.fromFcService(service);
+    }
+
+    public boolean checkDiskProvider(ApiProvider apiProvider,String apiUrl,ApipClient apipClient) {
+        String sid = apiProvider.getSid();
+        Service diskService = apipClient.serviceMapByIds(new String[]{sid}).get(sid);
+        if(diskService==null) {
+            System.out.println("Failed to get disk service "+sid);
+            return false;
+        }
+        service = diskService;
+        serviceParams = (DiskParams) DiskParams.getParamsFromService(diskService);
+        sid = diskService.getSid();
+        if(diskService.getUrls()!=null && diskService.getUrls().length>0)
+            apiProvider.setOrgUrl(diskService.getUrls()[0]);
+        DiskParams diskParams = (DiskParams) serviceParams;
+        if(diskParams!=null && diskParams.getUrlHead()!=null)
+            apiUrl = diskParams.getUrlHead();
+        apiProvider.setOwner(diskService.getOwner());
+        apiProvider.setProtocols(diskService.getProtocols());
+        apiProvider.setTicks(new String[]{"fch"});
+
+        return true;
+    }
+
+    //TODO
+    private byte[] checkSessionKey(byte[] symKey) {
         if (sessionKeyCipher== null) {
-            this.sessionKey = freshApipSessionKey(symKey, null);
+            this.sessionKey = freshSessionKey(symKey, null);
             if (this.sessionKey==null) {
                 return null;
             }
@@ -702,47 +934,36 @@ public class ApiAccount {
             if(sessionKey==null)return null;
         }
 
-        ApipClientData apipClientData = ConstructAPIs.serviceByIdsPost(this.apiUrl, new String[]{sid}, via, this.sessionKey);
-        if(apipClientData == null)return null;
-        if(apipClientData.isBadResponse(" get APIP service")){
-            if(apipClientData.getCode() == CodeAndMsg.Code1004InsufficientBalance){
-                buyApip(symKey);
-                return null;
-            }
-            if(apipClientData.getCode()== CodeAndMsg.Code1002SessionNameMissed || apipClientData.getCode()== CodeAndMsg.Code1009SessionTimeExpired){
-                this.sessionKey = freshApipSessionKey(symKey, null);
-                if (this.sessionKey==null) {
-                    return null;
-                }
-                apipClientData = ConstructAPIs.serviceByIdsPost(this.apiUrl, new String[]{sid}, via, this.sessionKey);
-            }
-        }
-        freshApipService(apipClientData);
 
-        balance = apipClientData.getResponseBody().getBalance();
+        ApipClient apipClient = (ApipClient)client;
+
+        apipClient.setSessionKey(sessionKey);
+        Map<String, Service> serviceMap = apipClient.serviceMapByIds(new String[]{sid});
+        Service service1 = serviceMap.get(sid);
+        freshApipService(service1);
         if(isApipBalanceSufficient()) buyApip(symKey);
         return sessionKey;
     }
 
-    private void freshApipService(ApipClientData apipClientData) {
-        Map<String, Service> stringServiceMap = ApipTools.parseApipServiceMap(apipClientData);
-        if(stringServiceMap==null){
-            System.out.println("Failed to get service with the sessionKey.");
-            return;
-        }
-        Service newService = stringServiceMap.get(sid);
-        if(newService==null){
-            System.out.println("Failed to get service with the sessionKey.");
-            return;
-        }
+    private void freshApipService(Service service) {
+//        Map<String, Service> stringServiceMap = ApipTools.parseApipServiceMap(apipClientData);
+//        if(stringServiceMap==null){
+//            System.out.println("Failed to get service with the sessionKey.");
+//            return;
+//        }
+//        Service
+//        service = stringServiceMap.get(sid);
 
-        service = newService;
-        apipParams = ApipParams.fromObject(service.getParams());
-        service.setParams(apipParams);
+        if(service==null){
+            System.out.println("Failed to get service with the sessionKey.");
+            return;
+        }
+        this.service = service;
+        ApipParams apipParams = ApipParams.fromObject(this.service.getParams());
+        this.service.setParams(apipParams);
         if(!apiUrl.equals(apipParams.getUrlHead())){
            apiUrl = apipParams.getUrlHead();
         }
-
     }
 
     public void buyApip(byte[] symKey) {
@@ -784,34 +1005,19 @@ public class ApiAccount {
 //        BytesTools.clearByteArray(priKey);
 //        return sessionKey;
 //    }
-    public byte[] freshApipSessionKey(byte[] symKey, String mode) {
+    public byte[] freshSessionKey(byte[] symKey, RequestBody.SignInMode mode) {
         System.out.println("Fresh the sessionKey of the initial APIP...");
         byte[] apipSessionKey;
         String sessionKeyCipher;
         byte[] priKey = decryptUserPriKey(userPriKeyCipher,symKey);
         if(priKey==null)return null;
 
-        String fid = KeyTools.priKeyToFid(priKey);
+        ApipClient apipClient = (ApipClient) client;
+        Session session = apipClient.signInEcc(priKey,mode);
 
-        ApipClientData apipClientData = OpenAPIs.signInEccPost(apiUrl, via, priKey, null);
-        if (apipClientData.getResponseBody().getCode() != 0) {
-            System.out.println("Get sessionKey wrong. \nCode: " + apipClientData.getResponseBody().getCode() + " Message: " + apipClientData.getResponseBody().getMessage());
-            if(apipClientData.getCode()== CodeAndMsg.Code1004InsufficientBalance) {
-                buyApip(apiUrl,priKey);
-            }
-            if(apipClientData.getResponseBody().getData()!=null) {
-                System.out.println(JsonTools.getNiceString(apipClientData.getResponseBody().getData()));
-                return null;
-            }
-            return null;
-        }
+        if (session == null) return null;
 
-        Gson gson = new Gson();
-        SignInData signInData = gson.fromJson(gson.toJson(apipClientData.getResponseBody().getData()), SignInData.class);
-
-        if (signInData == null) return null;
-
-        sessionKeyCipher = priKeyCipherToSymKeyCipher(signInData.getSessionKeyCipher(), priKey, symKey);
+        sessionKeyCipher = priKeyCipherToSymKeyCipher(session.getSessionKeyCipher(), priKey, symKey);
         if (sessionKeyCipher == null) return null;
         this.sessionKeyCipher=sessionKeyCipher;
 
@@ -823,7 +1029,7 @@ public class ApiAccount {
 
         byte[] sessionNameBytes = Arrays.copyOf(apipSessionKey, 6);
         sessionName = HexFormat.of().formatHex(sessionNameBytes);
-        sessionExpire=signInData.getExpireTime();
+        sessionExpire= session.getExpireTime();
 
         return apipSessionKey;
     }
@@ -871,7 +1077,7 @@ public class ApiAccount {
             if ("n".equals(input)) break;
             if ("y".equals(input)) {
                 inputPriKeyCipher(br, symKey);
-                sessionKey = freshApipSessionKey(symKey, null);
+                sessionKey = freshSessionKey(symKey, null);
                 if (sessionKey == null) return;
                 break;
             }
@@ -886,7 +1092,7 @@ public class ApiAccount {
         }
         sid = service1.getSid();
         service = service1;
-        apipParams = ApipParams.fromObject(service1.getParams());
+        serviceParams = ApipParams.fromObject(service1.getParams());
 
         if(new File(APIP_Account_JSON).exists())writeApipParamsToFile(this, APIP_Account_JSON);
 
@@ -1072,12 +1278,12 @@ public class ApiAccount {
         this.service = service;
     }
 
-    public ApipParams getApipParams() {
-        return apipParams;
+    public Params getApipParams() {
+        return serviceParams;
     }
 
-    public void setApipParams(ApipParams apipParams) {
-        this.apipParams = apipParams;
+    public void setApipParams(ApipParams serviceParams) {
+        this.serviceParams = serviceParams;
     }
 
     public String getApiUrl() {
@@ -1118,5 +1324,13 @@ public class ApiAccount {
 
     public void setClient(Object client) {
         this.client = client;
+    }
+
+    public Params getServiceParams() {
+        return serviceParams;
+    }
+
+    public void setServiceParams(Params serviceParams) {
+        this.serviceParams = serviceParams;
     }
 }

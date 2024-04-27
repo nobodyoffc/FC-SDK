@@ -5,7 +5,6 @@ public class Payment {
     private Integer share;// A share of 1234 means 0.1234 or 12.34% of the total.
     private Long fixed;
     private Long amount;
-
     public Long getFixed() {
         return fixed;
     }

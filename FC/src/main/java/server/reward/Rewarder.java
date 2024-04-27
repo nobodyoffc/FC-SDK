@@ -1,6 +1,6 @@
 package server.reward;
 
-import APIP.apipClient.ApipClient;
+import clients.apipClient.ApipClient;
 import APIP.apipData.Fcdsl;
 import APIP.apipData.Sort;
 import APIP.apipData.TxInfo;
@@ -16,14 +16,13 @@ import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.JsonData;
 import com.google.gson.Gson;
-import database.esTools.EsTools;
+import clients.esClient.EsTools;
 import javaTools.JsonTools;
-import javaTools.http.HttpMethods;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import server.Starter;
+import server.Settings;
 import server.order.Order;
 
 import java.io.BufferedReader;
@@ -36,7 +35,7 @@ import static FEIP.FeipTools.parseFeip;
 import static constants.Constants.*;
 import static constants.IndicesNames.ORDER;
 import static constants.Strings.*;
-import static server.Starter.addSidBriefToName;
+import static server.Settings.addSidBriefToName;
 import static server.reward.RewardManager.getLastRewardInfo;
 
 public class Rewarder {
@@ -49,20 +48,21 @@ public class Rewarder {
     private long incomeT=0;
     private long paidSum;
     private Map<String, Long> pendingMap;
+    private final String sid;
 
     private final int recover4Decimal = 10000;
 
-    public Rewarder(ApipClient apipClient,ElasticsearchClient esClient,JedisPool jedisPool) {
+    public Rewarder(String sid,String account,ApipClient apipClient,ElasticsearchClient esClient,JedisPool jedisPool) {
         this.esClient = esClient;
         this.apipClient=apipClient;
         this.jedisPool = jedisPool;
+        this.sid =sid;
+        this.account = account;
     }
     public RewardReturn doReward(String account){
         long reservedFee = 100000;
         RewardReturn rewardReturn = new RewardReturn();
         lastOrderId = getLastOrderIdFromEs(esClient);
-//        else
-//        lastOrderId = getLastOrderIdFromRedis();
 
         if(account ==null){
             rewardReturn.setCode(2);
@@ -83,7 +83,7 @@ public class Rewarder {
                 System.out.println("Notice: New order sum is "+sum+", while you are paying "+incomeT+".");
             }
             if(lastOrderId==null){
-                lastOrderId = Objects.requireNonNull(getLastRewardInfo(esClient)).getRewardId();
+                lastOrderId = Objects.requireNonNull(getLastRewardInfo(sid,esClient)).getRewardId();
                 if(lastOrderId==null){
                     rewardReturn.setCode(2);
                     rewardReturn.setMsg("Get last order id failed.");
@@ -120,7 +120,7 @@ public class Rewarder {
 
         log.debug("Made a rewardInfo. The sum of payment is {}.",calcSumPay(rewardInfo));
 
-        AffairMaker affairMaker = new AffairMaker(account, rewardInfo,esClient,jedisPool);
+        AffairMaker affairMaker = new AffairMaker(sid,account, rewardInfo,esClient,jedisPool);
 
         String affairSignTxJson = affairMaker.makeAffair();
 
@@ -150,7 +150,7 @@ public class Rewarder {
             pendingStrMap.put(key,amountStr);
         }
         try(Jedis jedis = jedisPool.getResource()) {
-            jedis.hmset(addSidBriefToName(REWARD_PENDING_MAP),pendingStrMap);
+            jedis.hmset(addSidBriefToName(sid,REWARD_PENDING_MAP),pendingStrMap);
             return true;
         }catch (Exception e){
             log.error("Write pending map into redis wrong.");
@@ -166,39 +166,12 @@ public class Rewarder {
         fcdsl.addNewQuery().addNewTerms().addNewFields(SIGNER).addNewValues(account);
         fcdsl.addSize(200);
         fcdsl.addNewSort(HEIGHT,DESC);
-        List<OpReturn> opReturnList = apipClient.opReturnSearch(fcdsl, HttpMethods.POST);
-
-
-//        SearchResponse<OpReturn> result;
-//        try {
-//            result = apipClient.search(s -> s
-//                            .index(OPRETURN)
-//                            .query(q -> q.term(t -> t.field(SIGNER).value(account)))
-//                            .size(200)
-//                            .sort(so -> so
-//                                    .field(f -> f.field(HEIGHT)
-//                                            .order(SortOrder.Desc)))
-//                    , OpReturn.class);
-//        } catch (IOException e) {
-//            log.debug("Get OpReturn list wrong. Check ES.");
-//            return;
-//        }
-//
-//        if(result == null){
-//            log.debug("Get OpReturn list of " + account +" failed. Check ES.");
-//            return;
-//        }
-//        if(result.hits().hits().size() == 0) {
-//            log.debug("No OpReturn list of " + account +".");
-//            return;
-//        }
+        List<OpReturn> opReturnList = apipClient.opReturnSearch(fcdsl);
 
         FcInfo feip;
         RewardData rewardData;
         Gson gson = new Gson();
-//        List<Hit<OpReturn>> hitList = result.hits().hits();
-//        for(Hit<OpReturn> hit : hitList){
-//             opReturn = hit.source();
+
         for(OpReturn opReturn :opReturnList){
             if(opReturn==null)continue;
             String txId = opReturn.getTxId();
@@ -262,15 +235,9 @@ public class Rewarder {
     }
 
     private Map<String, SendTo> calcSentMap(ApipClient apipClient, String txId) {
-//        GetResponse<TxHas> result = null;
-//        try {
-//            result = apipClient.get(g -> g.index(TX_HAS).id(txId), TxHas.class);
-//        } catch (IOException e) {
-//            log.debug("Get reward sent txHas failed.");
-//        }
-//        if(result!=null) txHas=result.source();
+
         if(txId==null)return null;
-        Map<String, TxInfo> txHasMap = apipClient.txByIds(new String[]{txId}, HttpMethods.POST);
+        Map<String, TxInfo> txHasMap = apipClient.txByIds(new String[]{txId});
         TxInfo txInfo = null;
         if(txHasMap!=null)txInfo = txHasMap.get(txId);
         if(txInfo==null)return null;
@@ -300,7 +267,7 @@ public class Rewarder {
             paramMap.put("state",JsonData.of(rewardState.name()));
 
             esClient.update(u->u
-                            .index(addSidBriefToName(REWARD).toLowerCase())
+                            .index(addSidBriefToName(sid,REWARD).toLowerCase())
                             .id(rewardId)
                             .script(s->s
                                     .inline(in->in
@@ -318,7 +285,7 @@ public class Rewarder {
         RewardParams rewardParams = new RewardParams();
         try(Jedis jedis = jedisPool.getResource()) {
             try {
-                Map<String, String> shareMap = jedis.hgetAll(Starter.sidBrief + "_" + BUILDER_SHARE_MAP);
+                Map<String, String> shareMap = jedis.hgetAll(Settings.addSidBriefToName(sid,BUILDER_SHARE_MAP));
                 rewardParams.setBuilderShareMap(shareMap);
                 if (shareMap.isEmpty()) return null;
             } catch (Exception e) {
@@ -327,12 +294,12 @@ public class Rewarder {
             }
 
             try {
-                Map<String, String> costMap = jedis.hgetAll(Starter.sidBrief + "_" + COST_MAP);
+                Map<String, String> costMap = jedis.hgetAll(Settings.addSidBriefToName(sid,COST_MAP));
                 rewardParams.setCostMap(costMap);
 
-                rewardParams.setOrderViaShare(jedis.hget(Starter.sidBrief + "_" + PARAMS_ON_CHAIN, ORDER_VIA_SHARE));
+                rewardParams.setOrderViaShare(jedis.hget(Settings.addSidBriefToName(sid,PARAMS_ON_CHAIN), ORDER_VIA_SHARE));
 
-                rewardParams.setConsumeViaShare(jedis.hget(Starter.sidBrief + "_" + PARAMS_ON_CHAIN, CONSUME_VIA_SHARE));
+                rewardParams.setConsumeViaShare(jedis.hget(Settings.addSidBriefToName(sid,PARAMS_ON_CHAIN), CONSUME_VIA_SHARE));
 
             } catch (Exception ignore) {
             }
@@ -344,7 +311,7 @@ public class Rewarder {
         SearchResponse<RewardInfo> result;
         try {
             result = esClient.search(s -> s
-                            .index(addSidBriefToName(REWARD).toLowerCase())
+                            .index(addSidBriefToName(sid,REWARD).toLowerCase())
                             .size(1)
                             .sort(so -> so.field(f -> f
                                     .field(TIME)
@@ -365,7 +332,7 @@ public class Rewarder {
 
     public String getLastOrderIdFromRedis() {
         try(Jedis jedis = jedisPool.getResource()) {
-            String lastReward = jedis.get(addSidBriefToName(LAST_REWARD));
+            String lastReward = jedis.get(addSidBriefToName(sid,LAST_REWARD));
             if(lastReward==null)return null;
             Gson gson = new Gson();
             RewardInfo rewardInfo = gson.fromJson(lastReward,RewardInfo.class);
@@ -378,7 +345,7 @@ public class Rewarder {
         SearchResponse<RewardInfo> result;
         try {
             result = esClient.search(s -> s
-                            .index(addSidBriefToName(REWARD).toLowerCase())
+                            .index(addSidBriefToName(sid,REWARD).toLowerCase())
                             .query(q->q
                                     .term(t->t
                                             .field(STATE)
@@ -415,7 +382,7 @@ public class Rewarder {
         SearchResponse<Order> result;
         try {
             result = esClient.search(s -> s
-                            .index(addSidBriefToName(ORDER).toLowerCase())
+                            .index(addSidBriefToName(sid,ORDER).toLowerCase())
                             .sort(sortOptionsList)
                             .size(EsTools.READ_MAX)
                     , Order.class);
@@ -447,7 +414,7 @@ public class Rewarder {
             try {
                 List<String> finalLast = last;
                 result = esClient.search(s -> s
-                                .index(addSidBriefToName(ORDER).toLowerCase())
+                                .index(addSidBriefToName(sid,ORDER).toLowerCase())
                                 .sort(sortOptionsList)
                                 .size(EsTools.READ_MAX)
                                 .searchAfter(finalLast)
@@ -495,22 +462,22 @@ public class Rewarder {
         Map<String, String> costMap;
         try(Jedis jedis = jedisPool.getResource()) {
             try {
-                orderViaMap = jedis.hgetAll(Starter.sidBrief + "_" + ORDER_VIA);
-                consumeViaMap = jedis.hgetAll(Starter.sidBrief + "_" + CONSUME_VIA);
-                builderShareMap = jedis.hgetAll(Starter.sidBrief + "_" + BUILDER_SHARE_MAP);
-                costMap = jedis.hgetAll(Starter.sidBrief + "_" + COST_MAP);
+                orderViaMap = jedis.hgetAll(Settings.addSidBriefToName(sid,ORDER_VIA));
+                consumeViaMap = jedis.hgetAll(Settings.addSidBriefToName(sid,CONSUME_VIA));
+                builderShareMap = jedis.hgetAll(Settings.addSidBriefToName(sid,BUILDER_SHARE_MAP));
+                costMap = jedis.hgetAll(Settings.addSidBriefToName(sid,COST_MAP));
             } catch (Exception e) {
-                log.error("Get {},{},{} or {} from redis wrong.", Starter.sidBrief + "_" + ORDER_VIA, Starter.sidBrief + "_" + CONSUME_VIA, Starter.sidBrief + "_" + BUILDER_SHARE_MAP, Starter.sidBrief + "_" + COST_MAP, e);
+                log.error("Get {},{},{} or {} from redis wrong.", Settings.addSidBriefToName(sid,ORDER_VIA), Settings.addSidBriefToName(sid,CONSUME_VIA), Settings.addSidBriefToName(sid,BUILDER_SHARE_MAP), Settings.addSidBriefToName(sid,COST_MAP), e);
                 return null;
             }
 
-            Integer orderViaShare = parseViaShare(rewardParams, Starter.sidBrief + "_" + ORDER_VIA);
-            Integer consumeViaShare = parseViaShare(rewardParams, Starter.sidBrief + "_" + CONSUME_VIA);
+            Integer orderViaShare = parseViaShare(rewardParams, Settings.addSidBriefToName(sid,ORDER_VIA));
+            Integer consumeViaShare = parseViaShare(rewardParams, Settings.addSidBriefToName(sid,CONSUME_VIA));
             if (orderViaShare < 0) return null;
             if (consumeViaShare < 0) return null;
 
-            orderViaRewardList = makeViaPayList(orderViaMap, orderViaShare, Starter.sidBrief + "_" + ORDER_VIA);
-            consumeViaRewardList = makeViaPayList(consumeViaMap, consumeViaShare, Starter.sidBrief + "_" + CONSUME_VIA);
+            orderViaRewardList = makeViaPayList(orderViaMap, orderViaShare, Settings.addSidBriefToName(sid,ORDER_VIA));
+            consumeViaRewardList = makeViaPayList(consumeViaMap, consumeViaShare, Settings.addSidBriefToName(sid, CONSUME_VIA));
 
             costList = makeCostPayList(costMap, incomeT);
             builderRewardList = makeBuilderPayList(builderShareMap, incomeT);
@@ -713,7 +680,7 @@ public class Rewarder {
     private boolean backUpRewardInfo(RewardInfo rewardInfo, ElasticsearchClient esClient) {
 
         try {
-            esClient.index(i->i.index(addSidBriefToName(REWARD).toLowerCase()).id(rewardInfo.getRewardId()).document(rewardInfo));
+            esClient.index(i->i.index(addSidBriefToName(sid,REWARD).toLowerCase()).id(rewardInfo.getRewardId()).document(rewardInfo));
         } catch (IOException e) {
             log.error("Backup rewardInfo wrong. Check ES.",e);
             return false;
@@ -752,12 +719,12 @@ public class Rewarder {
             }
         }
 
-        Map<String,String> costMap = Inputer.inputGoodFidValueStrMap(br, Starter.sidBrief+"_"+COST_MAP,false);
+        Map<String,String> costMap = Inputer.inputGoodFidValueStrMap(br, Settings.addSidBriefToName(sid,COST_MAP),false);
         if(costMap!=null)rewardParams.setCostMap(costMap);
 
         Map<String, String> builderShareMap;
         while(true) {
-            builderShareMap = Inputer.inputGoodFidValueStrMap(br, Starter.sidBrief + "_" + BUILDER_SHARE_MAP,true);
+            builderShareMap = Inputer.inputGoodFidValueStrMap(br, Settings.addSidBriefToName(sid, BUILDER_SHARE_MAP),true);
 
             if(builderShareMap==null ||builderShareMap.isEmpty()){
                 System.out.println("BuilderShareMap can't be empty.");
@@ -780,10 +747,10 @@ public class Rewarder {
         JsonTools.gsonPrint(rewardParams);
 
         try(Jedis jedis = jedisPool.getResource()) {
-            if(rewardParams.getOrderViaShare()!=null)jedis.hset(Starter.sidBrief+"_"+ PARAMS_ON_CHAIN,ORDER_VIA_SHARE,rewardParams.getOrderViaShare());
-            if(rewardParams.getConsumeViaShare()!=null)jedis.hset(Starter.sidBrief+"_"+ PARAMS_ON_CHAIN,CONSUME_VIA_SHARE,rewardParams.getConsumeViaShare());
-            if(!rewardParams.getBuilderShareMap().isEmpty())jedis.hmset(Starter.sidBrief+"_"+BUILDER_SHARE_MAP,rewardParams.getBuilderShareMap());
-            if(rewardParams.getCostMap()!=null&&!rewardParams.getCostMap().isEmpty())jedis.hmset(Starter.sidBrief+"_"+COST_MAP, rewardParams.getCostMap());
+            if(rewardParams.getOrderViaShare()!=null)jedis.hset(Settings.addSidBriefToName(sid,PARAMS_ON_CHAIN),ORDER_VIA_SHARE,rewardParams.getOrderViaShare());
+            if(rewardParams.getConsumeViaShare()!=null)jedis.hset(Settings.addSidBriefToName(sid,PARAMS_ON_CHAIN),CONSUME_VIA_SHARE,rewardParams.getConsumeViaShare());
+            if(!rewardParams.getBuilderShareMap().isEmpty())jedis.hmset(Settings.addSidBriefToName(sid,BUILDER_SHARE_MAP),rewardParams.getBuilderShareMap());
+            if(rewardParams.getCostMap()!=null&&!rewardParams.getCostMap().isEmpty())jedis.hmset(Settings.addSidBriefToName(sid,COST_MAP), rewardParams.getCostMap());
         }catch (Exception e){
             log.error("Write rewardParams into redis wrong.",e);
         }

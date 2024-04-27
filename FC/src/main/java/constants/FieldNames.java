@@ -23,7 +23,14 @@ public class FieldNames {
     public static final String FROM_WEBHOOK = "fromWebhook";
     public static final String OPEN_DISK_SID_BRIEF = "openDiskSidBrief";
     public static final String SETTINGS = "settings";
-    public static final String IS_FREE_GET_FORBIDDEN = "isFreeGetForbidden";
+    public static final String FORBID_FREE_API = "forbidFreeApi";
+    public static final String DISK_INFO = "disk_info";
+    public static final String EXPIRE = "expire";
+    public static final String SORT = "sort";
+    public static final String SIZE = "size";
+    public static final String ORDER = "order";
+    public static final String LAST = "last";
+    public static final String DID = "did";
     public static String TXID = "txId";
     public static String INDEX = "index";
 }

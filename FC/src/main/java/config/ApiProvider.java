@@ -1,19 +1,19 @@
 package config;
 
 
-import APIP.apipClient.ApipClientData;
-import APIP.apipClient.OpenAPIs;
-import FEIP.feipData.serviceParams.ApipParams;
+import FEIP.feipData.serviceParams.Params;
+import clients.apipClient.ApipClientData;
+import clients.apipClient.OpenAPIs;
 import FEIP.feipData.Service;
 import appTools.Inputer;
 import com.google.gson.Gson;
 import javaTools.JsonTools;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.Arrays;
 
 import static appTools.Inputer.promptAndUpdate;
 
@@ -30,9 +30,31 @@ public class ApiProvider {
     private String[] protocols;
     private String[] ticks;
     private transient Service service;
-    private transient ApipParams apipParams;
+    private transient Params apiParams;
 
     public ApiProvider() {}
+
+    @Nullable
+    static ApiProvider fromFcService(Service service) {
+        if(service==null)return null;
+        ApiProvider apiProvider = new ApiProvider();
+        apiProvider.setSid(service.getSid());
+        Params params = Params.getParamsFromService(service, Params.class);
+        if(params==null) return null;
+        apiProvider.setApiUrl(params.getUrlHead());
+        apiProvider.setOwner(service.getOwner());
+        for(String type : service.getTypes()){
+            try{
+                apiProvider.setType(ApiType.valueOf(type));
+                break;
+            }catch (Exception ignore){};
+        }
+        if(service.getUrls().length>0)apiProvider.setOrgUrl(service.getUrls()[0]);
+        if(service.getProtocols().length>0)apiProvider.setProtocols(service.getProtocols());
+        apiProvider.setApiParams(Params.getParamsFromService(service,Params.class));
+        apiProvider.setService(service);
+        return apiProvider;
+    }
 
 //
 //    public void initiate(){
@@ -50,20 +72,20 @@ public class ApiProvider {
         this.owner = Inputer.promptAndSet(br, "API owner", this.owner);
     }
 
-    public ApiProvider setApipProvider(BufferedReader br) {
+    public ApiProvider setFcProvider(BufferedReader br) {
         apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service. Enter to set default as "+ DEFAULT_API_URL);
         if(apiUrl==null) return null;
         if("".equals(apiUrl))apiUrl = DEFAULT_API_URL;
         ApipClientData apipClientData = OpenAPIs.getService(apiUrl);
-        if(apipClientData.isBadResponse("get service from"+apiUrl)){
+        if(apipClientData.checkResponse()!=0){
             System.out.println("Failed to get the APIP service from "+apiUrl);
             return null;
         }
 
         Gson gson = new Gson();
         service = gson.fromJson(gson.toJson(apipClientData.getResponseBody().getData()),Service.class);
-        apipParams = ApipParams.fromObject(service.getParams());
-        service.setParams(apipParams);
+        apiParams = Params.getParamsFromService(service,Params.class);
+        service.setParams(apiParams);
         System.out.println("Got the service:");
         JsonTools.gsonPrint(service);
         sid = service.getSid();
@@ -84,6 +106,7 @@ public class ApiProvider {
         APIP,
         ES,
         Redis,
+        DISK,
         Other;
 
         @Override
@@ -100,7 +123,7 @@ public class ApiProvider {
             else type =apiType;
 
             if(type==ApiType.APIP){
-                setApipProvider(br);
+                setFcProvider(br);
                 return;
             }
             switch (type){
@@ -116,6 +139,9 @@ public class ApiProvider {
                 case Redis -> {
                     inputApiURL(br, "http://127.0.0.1:6379");
                     sid = "Redis@"+apiUrl;
+                }
+                case DISK -> {
+                    System.out.println("Code is not ready.");
                 }
                 default -> {
                     inputSid(br);
@@ -148,7 +174,6 @@ public class ApiProvider {
 
     private ApiType inputType(BufferedReader br) throws IOException {
         ApiType[] choices = ApiType.values();
-        System.out.println("Choose the type of the API:");
         type = Inputer.chooseOne(choices,"Choose the type of API provider:",br);
 //
 //        for(int i=0;i<choices.length;i++){
@@ -192,13 +217,13 @@ public class ApiProvider {
                     apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service:");
                     if(apiUrl==null)return;
                     ApipClientData apipClientData = OpenAPIs.getService(apiUrl);
-                    if(apipClientData.isBadResponse("get service from"+apiUrl)){
+                    if(apipClientData.checkResponse()!=0){
                         System.out.println("Failed to get the APIP service from "+apiUrl);
                         return;
                     }
                     Gson gson = new Gson();
                     service = gson.fromJson(gson.toJson(apipClientData.getResponseBody().getData()),Service.class);
-                    apipParams = ApipParams.fromObject(service.getParams());
+                    apiParams = Params.getParamsFromService(service,Params.class);
                     orgUrl = promptAndUpdate(br, "url of the organization", this.orgUrl);
                     docUrl = promptAndUpdate(br, "url of the API documents", this.docUrl);
                     inputDocUrl(br);
@@ -294,12 +319,12 @@ public class ApiProvider {
         this.service = service;
     }
 
-    public ApipParams getApipParams() {
-        return apipParams;
+    public Params getApiParams() {
+        return apiParams;
     }
 
-    public void setApipParams(ApipParams apipParams) {
-        this.apipParams = apipParams;
+    public void setApiParams(Params apiParams) {
+        this.apiParams = apiParams;
     }
 
     public String[] getProtocols() {

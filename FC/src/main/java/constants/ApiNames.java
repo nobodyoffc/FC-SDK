@@ -14,6 +14,7 @@ public class ApiNames {
     public static String[] PublishAPIs;
     public static String[] WalletAPIs;
     public static String[] CryptoToolsAPIs;
+    public static String[] FreeDiskAPIs;
     //APIP path
     public static final String APIP0V1Path = "/apip0/v1/";
     public static final String APIP1V1Path = "/apip1/v1/";
@@ -40,6 +41,7 @@ public class ApiNames {
     public static final String FreeGetPath = "/freeGet/v1/";
     public static final String SwapHallPath = "/swapHall/v1/";
     public static final String ToolsPath = "/tools/";
+    public static final String FreeDiskApiPath ="/";
     public static final String SignInAPI = "signIn";
     public static final String SignInEccAPI = "signInEcc";
     public static final String GeneralAPI = "general";
@@ -167,6 +169,9 @@ public class ApiNames {
     public static final String TokenHolderByIdsAPI = "tokenHolderByIds";
     public static final String TokenHoldersAPI = "tokenHolders";
     public static final String TokenSearchAPI = "tokenSearch";
+    public static final String putApi = "put";
+    public static final String getApi = "get";
+    public static final String checkApi = "check";
 
     public static ArrayList<String> freeApiList = new ArrayList<>();
 
@@ -177,7 +182,6 @@ public class ApiNames {
     public static final String DifficultyHistoryAPI ="difficultyHistory";
     public static final String HashRateHistoryAPI ="hashRateHistory";
     public static final String BlockTimeHistoryAPI ="blockTimeHistory";
-
 
 
     static {
@@ -241,6 +245,10 @@ public class ApiNames {
                 EncryptAPI,VerifyAPI,
                 Sha256API,Sha256x2API,Sha256BytesAPI,Sha256x2BytesAPI,
                 OffLineTxAPI,OffLineTxByCdAPI
+        };
+
+        FreeDiskAPIs = new String[]{
+                putApi,getApi,checkApi
         };
 
         FreeGetAPIs = new String[]{

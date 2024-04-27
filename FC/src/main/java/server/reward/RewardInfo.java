@@ -14,6 +14,8 @@ public class RewardInfo {
     private ArrayList<Payment> consumeViaList;
     private ArrayList<Payment> costList;
 
+    public static final String MAPPINGS = "{\"mappings\":{\"properties\":{\"rewardId\":{\"type\":\"keyword\"},\"rewardT\":{\"type\":\"long\"},\"txId\":{\"type\":\"keyword\"},\"state\":{\"type\":\"keyword\"},\"time\":{\"type\":\"long\"},\"bestHeight\":{\"type\":\"keyword\"},\"builderList\":{\"type\":\"nested\",\"properties\":{\"fid\":{\"type\":\"keyword\"},\"share\":{\"type\":\"integer\"},\"fixed\":{\"type\":\"long\"},\"amount\":{\"type\":\"long\"}}},\"orderViaList\":{\"type\":\"nested\",\"properties\":{\"fid\":{\"type\":\"keyword\"},\"share\":{\"type\":\"integer\"},\"fixed\":{\"type\":\"long\"},\"amount\":{\"type\":\"long\"}}},\"consumeViaList\":{\"type\":\"nested\",\"properties\":{\"fid\":{\"type\":\"keyword\"},\"share\":{\"type\":\"integer\"},\"fixed\":{\"type\":\"long\"},\"amount\":{\"type\":\"long\"}}},\"costList\":{\"type\":\"nested\",\"properties\":{\"fid\":{\"type\":\"keyword\"},\"share\":{\"type\":\"integer\"},\"fixed\":{\"type\":\"long\"},\"amount\":{\"type\":\"long\"}}}}}}";
+
     public Long getTime() {
         return time;
     }

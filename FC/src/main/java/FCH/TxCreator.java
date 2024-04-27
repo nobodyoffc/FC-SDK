@@ -1,8 +1,8 @@
 package FCH;
 
-import APIP.apipClient.ApipClientData;
-import APIP.apipClient.ApipDataGetter;
-import APIP.apipClient.WalletAPIs;
+import clients.apipClient.ApipClientData;
+import clients.apipClient.ApipDataGetter;
+import clients.apipClient.WalletAPIs;
 import FCH.fchData.SendTo;
 import NaSa.data.TxInput;
 import NaSa.data.TxOutput;
@@ -805,6 +805,7 @@ public class TxCreator {
         String urlHead = apiAccount.getApiUrl();
         System.out.println("Getting cashes from " + urlHead + " ...");
         ApipClientData apipClientData = WalletAPIs.cashValidForPayPost(urlHead, sender, sum + ((double) fee / COIN_TO_SATOSHI), apiAccount.getVia(), sessionKey);
+
         if (apipClientData.checkResponse() != 0) {
             System.out.println("Failed to get cashes." + apipClientData.getMessage() + apipClientData.getResponseBody().getData());
             JsonTools.gsonPrint(apipClientData);

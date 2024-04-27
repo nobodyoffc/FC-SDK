@@ -10,6 +10,7 @@ public class Menu {
     public static final String ANY_KEY = "Any key to continue...";
     private final Map<Integer, String> itemMap = new HashMap<>();
     private int itemNum = 0;
+    private String name;
 
     public static void anyKeyToContinue(BufferedReader br) {
         System.out.println(ANY_KEY);
@@ -47,6 +48,12 @@ public class Menu {
         return true;
     }
 
+    public static void welcome(String name) {
+        Shower.printUnderline(20);
+        System.out.println("\nWelcome to the Freeverse with "+ name +".");
+        Shower.printUnderline(20);
+    }
+
     public Menu add(String item) {
         itemMap.put(itemMap.size() + 1, item);
         return this;
@@ -65,6 +72,8 @@ public class Menu {
     }
 
     public void show() {
+        if(name!=null)
+            System.out.println(" <<"+name+">>");
         System.out.println(
                 "	-----------------------------\n"
                         + "	Menu\n"
@@ -104,4 +113,11 @@ public class Menu {
         return choice;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 }

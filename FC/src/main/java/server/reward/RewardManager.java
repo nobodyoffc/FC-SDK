@@ -1,6 +1,6 @@
 package server.reward;
 
-import APIP.apipClient.ApipClient;
+import clients.apipClient.ApipClient;
 import APIP.apipData.Sort;
 import FCH.ParseTools;
 import FCH.fchData.Address;
@@ -11,14 +11,13 @@ import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch.core.DeleteResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
-import database.esTools.EsTools;
+import clients.esClient.EsTools;
 import javaTools.JsonTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import server.Indices;
-import server.Starter;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -29,7 +28,7 @@ import static constants.Constants.REWARD_HISTORY_FILE;
 import static constants.IndicesNames.ADDRESS;
 import static constants.Strings.*;
 import static server.Indices.recreateApipIndex;
-import static server.Starter.addSidBriefToName;
+import static server.Settings.addSidBriefToName;
 
 public class RewardManager {
     private static final Logger log = LoggerFactory.getLogger(RewardManager.class);
@@ -38,19 +37,21 @@ public class RewardManager {
     private final ApipClient apipClient;
     private final JedisPool jedisPool;
     private final BufferedReader br;
+    private final String sid;
+    private final String account;
     Rewarder rewarder;
 
-    public RewardManager( ApipClient apipClient,ElasticsearchClient esClient,JedisPool jedisPool, BufferedReader br) {
+    public RewardManager(String sid, String account,ApipClient apipClient,ElasticsearchClient esClient,JedisPool jedisPool, BufferedReader br) {
         this.esClient = esClient;
         this.apipClient = apipClient;
         this.jedisPool = jedisPool;
         this.br = br;
-        this.rewarder = new Rewarder(apipClient,esClient,jedisPool);
+        this.rewarder = new Rewarder(sid,account,apipClient,esClient,jedisPool);
+        this.sid =sid;
+        this.account = account;
     }
 
-    public void menu(String account,String consumeViaShare,String orderViaShare) {
-
-
+    public void menu(String consumeViaShare,String orderViaShare) {
         Menu menu = new Menu();
 
         ArrayList<String> menuItemList = new ArrayList<>();
@@ -72,9 +73,9 @@ public class RewardManager {
                 case 3 -> getAllUnsignedTxCsToPay(esClient,br);
                 case 4 -> deleteRewards(br, esClient);
                 case 5 -> makeFixedIncomeTReward(br,account);
-                case 6 -> backupRewardHistorytoFile(br,esClient);
+                case 6 -> backupRewardHistoryToFile(br,esClient);
                 case 7 -> {
-                    new Rewarder(apipClient,esClient,jedisPool).setRewardParameters(br,consumeViaShare,orderViaShare);
+                    new Rewarder(sid,account,apipClient,esClient,jedisPool).setRewardParameters(br,consumeViaShare,orderViaShare);
                 }
                 case 0 -> {
                     return;
@@ -83,7 +84,7 @@ public class RewardManager {
         }
     }
 
-    private void backupRewardHistorytoFile(BufferedReader br, ElasticsearchClient esClient) {
+    private void backupRewardHistoryToFile(BufferedReader br, ElasticsearchClient esClient) {
 
         ArrayList<RewardInfo> rewardInfoList = getRewardInfoList(esClient);
         if(rewardInfoList==null)return;
@@ -102,7 +103,7 @@ public class RewardManager {
         int size;
         try {
             result = esClient.search(s -> s
-                            .index(addSidBriefToName(REWARD).toLowerCase())
+                            .index(addSidBriefToName(sid,REWARD).toLowerCase())
                             .size(EsTools.READ_MAX / 10)
                             .sort(sort)
                     , RewardInfo.class);
@@ -124,7 +125,7 @@ public class RewardManager {
             try {
                 List<String> finalLast = last;
                 result = esClient.search(s -> s
-                                .index(addSidBriefToName(REWARD).toLowerCase())
+                                .index(addSidBriefToName(sid,REWARD).toLowerCase())
                                 .size(EsTools.READ_MAX / 10)
                                 .sort(sort)
                                 .searchAfter(finalLast)
@@ -187,7 +188,7 @@ public class RewardManager {
         }
 
         for(RewardInfo rewardInfo: unpaidRewardList){
-            affairMaker = new AffairMaker(account, rewardInfo,esClient,jedisPool);
+            affairMaker = new AffairMaker(sid,account, rewardInfo,esClient,jedisPool);
             String affairSignTxJson = affairMaker.makeAffair();
             byte[] txBytes = (affairSignTxJson+"\n\n").getBytes();
             try {
@@ -244,7 +245,7 @@ public class RewardManager {
         SearchResponse<RewardInfo> result;
         try{
             result = esClient.search(s -> s
-                            .index(addSidBriefToName(REWARD).toLowerCase())
+                            .index(addSidBriefToName(sid,REWARD).toLowerCase())
                             .query(q->q.term(t->t.field(STATE).value(UNPAID)))
                             .size(200)
                             .sort(sortOptionsList)
@@ -264,7 +265,7 @@ public class RewardManager {
     }
 
     private void showLastReward(ElasticsearchClient esClient, BufferedReader br) {
-        RewardInfo reward = getLastRewardInfo(esClient);
+        RewardInfo reward = getLastRewardInfo(sid, esClient);
         System.out.println(JsonTools.getNiceString(reward));
         Menu.anyKeyToContinue(br);
     }
@@ -294,7 +295,7 @@ public class RewardManager {
     }
 
     private void deleteLastReward(ElasticsearchClient esClient) {
-        RewardInfo reward = getLastRewardInfo(esClient);
+        RewardInfo reward = getLastRewardInfo(sid, esClient);
         String lastId = null;
         if(reward!=null){
             lastId = reward.getRewardId();
@@ -302,13 +303,13 @@ public class RewardManager {
         deleteByRewardId(esClient,lastId);
     }
 
-    public static RewardInfo getLastRewardInfo(ElasticsearchClient esClient) {
+    public static RewardInfo getLastRewardInfo(String sid, ElasticsearchClient esClient) {
         ArrayList<Sort> sortList = Sort.makeSortList(TIME,false,REWARD_ID,true,null,false);
         List<SortOptions> sortOptionsList = Sort.getSortList(sortList);
         Jedis jedis1 = new Jedis();
         try{
             SearchResponse<RewardInfo> result = esClient.search(s -> s
-                            .index(addSidBriefToName(REWARD).toLowerCase())
+                            .index(addSidBriefToName(sid,REWARD).toLowerCase())
                             .size(1)
                             .sort(sortOptionsList)
                     , RewardInfo.class);
@@ -327,7 +328,7 @@ public class RewardManager {
 
     private void deleteAllReward(ElasticsearchClient esClient)  {
         try {
-            recreateApipIndex(br, esClient, REWARD, Indices.rewardMappingJsonStr);
+            recreateApipIndex(sid,br, esClient, REWARD, Indices.rewardMappingJsonStr);
         } catch (Exception e) {
             log.error("Delete all rewards by recreating reward index error.",e);
         }
@@ -336,7 +337,7 @@ public class RewardManager {
     private void deleteByRewardId(ElasticsearchClient esClient, String rewardId) {
         try{
             DeleteResponse result = esClient.delete(d -> d
-                    .index(addSidBriefToName(REWARD).toLowerCase())
+                    .index(addSidBriefToName(sid,REWARD).toLowerCase())
                     .id(rewardId)
             );
 

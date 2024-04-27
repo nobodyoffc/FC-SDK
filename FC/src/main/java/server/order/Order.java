@@ -11,6 +11,7 @@ public class Order {
     private long txIndex;
     private long height;
 
+    public static final String MAPPINGS = "{\"mappings\":{\"properties\":{\"orderId\":{\"type\":\"keyword\"},\"fromFid\":{\"type\":\"keyword\"},\"toFid\":{\"type\":\"keyword\"},\"via\":{\"type\":\"keyword\"},\"amount\":{\"type\":\"long\"},\"time\":{\"type\":\"long\"},\"txId\":{\"type\":\"keyword\"},\"txIndex\":{\"type\":\"long\"},\"height\":{\"type\":\"long\"}}}}";
     public static OrderOpReturn getJsonBuyOrder(String sid){
         OrderOpReturn orderOpReturn = new OrderOpReturn();
         OrderOpReturnData data = new OrderOpReturnData();

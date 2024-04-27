@@ -1,0 +1,114 @@
+package startClient;
+
+import appTools.Menu;
+import clients.apipClient.ApipClient;
+import config.ApiAccount;
+import config.ApiProvider;
+import redis.clients.jedis.JedisPool;
+import config.Configure;
+import server.Settings;
+
+import java.io.BufferedReader;
+
+public class DiskClientSettings extends Settings {
+    String diskAccountId;
+    private transient ApiAccount diskAccount;
+
+    public DiskClientSettings(Configure config, BufferedReader br) {
+        super(config, br);
+    }
+
+    @Override
+    public void initiate(byte[] symKey, Configure config) {
+        System.out.println("Initiating service settings...");
+        this.config=config;
+
+        apipAccountId=config.getInitApipAccountId();
+        apipAccount = config.getApiAccountMap().get(apipAccountId);
+
+        if(diskAccountId==null) {
+            diskAccount = config.initFcAccount((ApipClient) apipAccount.getClient(), ApiProvider.ApiType.DISK,symKey);
+            diskAccountId = diskAccount.getId();
+        }else {
+            diskAccount = config.getApiAccountMap().get(diskAccountId);
+            diskAccount.connectApi(config.getApiProviderMap().get(diskAccount.getSid()),symKey);
+        }
+        saveSettings();
+        System.out.println("Service settings initiated.");
+    }
+
+    @Override
+    public void inputAll(BufferedReader br) {
+
+    }
+
+    @Override
+    public void updateAll(BufferedReader br) {
+
+    }
+
+    @Override
+    public void saveSettings() {
+        writeToFile();
+    }
+
+    @Override
+    public void resetLocalSettings(byte[] symKey) {
+        Menu menu = new Menu();
+        menu.add("Reset listenPath");
+        menu.add("Reset account");
+        menu.add("minPayment");
+        int choice = menu.choose(br);
+        menu.show();
+        switch (choice){
+            case 1 -> updateAll(br);
+        }
+    }
+
+    @Override
+    public Object resetDefaultApi(byte[] symKey, ApiProvider.ApiType apiType) {
+        return null;
+    }
+
+    @Override
+    public void resetApis(byte[] symKey, JedisPool jedisPool) {
+
+    }
+
+    @Override
+    public void close() {
+
+    }
+
+    public String getDiskAccountId() {
+        return diskAccountId;
+    }
+
+    public void setDiskAccountId(String diskAccountId) {
+        this.diskAccountId = diskAccountId;
+    }
+
+    public String getApipAccountId() {
+        return apipAccountId;
+    }
+
+    public void setApipAccountId(String apipAccountId) {
+        this.apipAccountId = apipAccountId;
+    }
+
+    public ApiAccount getDiskAccount() {
+        return diskAccount;
+    }
+
+    public void setDiskAccount(ApiAccount diskAccount) {
+        this.diskAccount = diskAccount;
+    }
+
+    public ApiAccount getApipAccount() {
+        return apipAccount;
+    }
+
+    public void setApipAccount(ApiAccount apipAccount) {
+        this.apipAccount = apipAccount;
+    }
+}

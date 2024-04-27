@@ -8,7 +8,7 @@ import FCH.fchData.Tx;
 import javaTools.BytesTools;
 import crypto.cryptoTools.KeyTools;
 import org.junit.jupiter.api.Test;
-import database.esTools.EsTools;
+import clients.esClient.EsTools;
 
 
 import java.io.ByteArrayInputStream;

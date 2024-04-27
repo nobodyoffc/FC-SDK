@@ -1,14 +1,12 @@
 package server;
 
-import APIP.apipClient.ApipClient;
+import FEIP.feipData.serviceParams.Params;
+import clients.apipClient.ApipClient;
 import APIP.apipData.Fcdsl;
 import FCH.ParseTools;
-import FEIP.feipData.Service;
 import com.google.gson.reflect.TypeToken;
-import database.esTools.EsTools;
-import database.redisTools.ReadRedis;
-import javaTools.NumberTools;
-import javaTools.http.HttpMethods;
+import clients.esClient.EsTools;
+import clients.redisClient.RedisTools;
 import redis.clients.jedis.JedisPool;
 import server.balance.BalanceInfo;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
@@ -41,8 +39,8 @@ import static constants.FieldNames.NEW_CASHES;
 import static constants.FieldNames.OWNER;
 import static constants.IndicesNames.ORDER;
 import static constants.Strings.*;
-import static database.redisTools.ReadRedis.readHashLong;
-import static server.Starter.addSidBriefToName;
+import static clients.redisClient.RedisTools.readHashLong;
+import static server.Settings.addSidBriefToName;
 
     /*
     - 账户：fid
@@ -54,40 +52,42 @@ import static server.Starter.addSidBriefToName;
      */
 
 public class Counter implements Runnable {
-    private volatile AtomicBoolean running = new AtomicBoolean(true);
-    private static final Logger log = LoggerFactory.getLogger(Counter.class);
-//    public static  String serviceName;
-    private final ElasticsearchClient esClient; //for the data of this service
-    private final ApipClient apipClient; //for the data of the FCH and FEIP
-    private final JedisPool jedisPool; //for the running data of this service
-    private final Gson gson = new Gson();
-    private final Service myService;
-    private final String account;
-    private final String minPayment;
-    private final String listenDir;
-    private final boolean fromWebhook;
+    protected volatile AtomicBoolean running = new AtomicBoolean(true);
+    protected static final Logger log = LoggerFactory.getLogger(Counter.class);
+    protected final ElasticsearchClient esClient; //for the data of this service
+    protected final ApipClient apipClient; //for the data of the FCH and FEIP
+    protected final JedisPool jedisPool; //for the running data of this service
+    protected final Gson gson = new Gson();
+    protected final String account;
+    protected final String minPayment;
+    protected final String listenPath;
+    protected final boolean fromWebhook;
+    protected final String sid;
 
-    public Counter(Service myService, String listenPath, String account, String minPayment, boolean fromWebhook, ElasticsearchClient esClient, ApipClient apipClient, JedisPool jedisPool) {
-        this.myService = myService;
-        this.listenDir = listenPath;
-        this.esClient = esClient;
-        this.apipClient = apipClient;
-        this.jedisPool = jedisPool;
-        this.account= account;
-        this.minPayment  = minPayment;
-        this.fromWebhook = fromWebhook;
+    public Counter(Settings settings, Params params) {
+        this.sid = settings.getSid();
+        this.listenPath = settings.getListenPath();
+        this.fromWebhook = settings.isFromWebhook();
+
+        this.account= params.getAccount();
+        this.minPayment  = params.getMinPayment();
+
+        this.esClient = (ElasticsearchClient) settings.getEsAccount().getClient();
+        this.apipClient =(ApipClient)settings.getApipAccount().getClient();
+        this.jedisPool = (JedisPool) settings.getRedisAccount().getClient();
     }
+
     public AtomicBoolean isRunning(){
         return running;
     }
 
     public void run() {
-        log.debug("The counter is running...");
+        System.out.println("The counter is running...");
         int countBackUpBalance = 0;
         int countReward = 0;
         Rewarder rewarder;
 
-        rewarder = new Rewarder(this.apipClient,this.esClient,this.jedisPool);
+        rewarder = new Rewarder(sid,account,this.apipClient,this.esClient,this.jedisPool);
 
         while (running.get()) {
             checkIfNewStart();
@@ -97,13 +97,9 @@ public class Counter implements Runnable {
             countBackUpBalance++;
             countReward++;
             if (countBackUpBalance == BalanceBackupInterval) {
-                try {
-                    BalanceInfo.backupBalance(this.esClient,jedisPool);
-                    BalanceInfo.deleteOldBalance(esClient);
-                } catch (Exception e) {
-                    log.error("Failed to backup user balance, consumeVia, orderVia, or pending reward to ES.", e);
-                }
-                countBackUpBalance = 0;
+                countBackUpBalance = backupBalance();
+
+                localTask();
             }
 
             if (countReward == RewardInterval) {
@@ -121,29 +117,45 @@ public class Counter implements Runnable {
         }
     }
 
-    private void checkIfNewStart() {
-        try(Jedis jedis0Common = jedisPool.getResource()) {
-            String lastHeightStr = jedis0Common.get(Starter.addSidBriefToName(ORDER_LAST_HEIGHT));
+    protected void localTask() {}
+
+    protected int backupBalance() {
+        int countBackUpBalance;
+        try {
+            BalanceInfo.backupBalance(sid,this.esClient,jedisPool);
+            BalanceInfo.deleteOldBalance(sid,esClient);
+        } catch (Exception e) {
+            log.error("Failed to backup user balance, consumeVia, orderVia, or pending reward to ES.", e);
+        }
+        countBackUpBalance = 0;
+        return countBackUpBalance;
+    }
+
+    protected void checkIfNewStart() {
+        try(Jedis jedis = jedisPool.getResource()) {
+            String orderLastHeightKey = addSidBriefToName(sid, ORDER_LAST_HEIGHT);
+            String lastHeightStr = jedis.get(orderLastHeightKey);
             if (lastHeightStr == null) {
-                jedis0Common.set(Starter.addSidBriefToName(ORDER_LAST_HEIGHT), "0");
-                jedis0Common.set(Starter.addSidBriefToName(ORDER_LAST_BLOCK_ID), Constants.zeroBlockId);
+                jedis.set(orderLastHeightKey, "0");
+                String orderLastBlockIdKey = addSidBriefToName(sid, ORDER_LAST_BLOCK_ID);
+                jedis.set(orderLastBlockIdKey, Constants.zeroBlockId);
             }
         }
     }
 
-private void waitNewOrder() {
+protected void waitNewOrder() {
 //    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 //    log.debug(LocalDateTime.now().format(formatter) + "  Wait for new order...");
-    ParseTools.waitForChangeInDirectory(listenDir,running);
+    ParseTools.waitForChangeInDirectory(listenPath,running);
 }
 
-    private void checkRollback() {
-        try(Jedis jedis0Common = jedisPool.getResource()) {
-            long lastHeight = ReadRedis.readLong(Starter.addSidBriefToName(ORDER_LAST_HEIGHT));
-            String lastBlockId = jedis0Common.get(Starter.addSidBriefToName(Strings.ORDER_LAST_BLOCK_ID));
+    protected void checkRollback() {
+        try(Jedis jedis = jedisPool.getResource()) {
+            long lastHeight = RedisTools.readLong(Settings.addSidBriefToName(sid,ORDER_LAST_HEIGHT));
+            String lastBlockId = jedis.get(Settings.addSidBriefToName(sid,Strings.ORDER_LAST_BLOCK_ID));
             try {
                 if (Rollbacker.isRolledBack(lastHeight, lastBlockId,apipClient))
-                    Rollbacker.rollback(lastHeight - 30, esClient, jedisPool);
+                    Rollbacker.rollback(sid,lastHeight - 30, esClient, jedisPool);
             } catch (IOException e) {
                 log.debug("Order rollback wrong.");
                 e.printStackTrace();
@@ -154,8 +166,8 @@ private void waitNewOrder() {
         }
     }
 
-    private void getNewOrders() {
-        long lastHeight = ReadRedis.readLong( addSidBriefToName(ORDER_LAST_HEIGHT));
+    protected void getNewOrders() {
+        long lastHeight = RedisTools.readLong( addSidBriefToName(sid,ORDER_LAST_HEIGHT));
         List<Cash> cashList;
         if(fromWebhook){
             cashList=getNewCashList(lastHeight, jedisPool);
@@ -168,10 +180,10 @@ private void waitNewOrder() {
         }
     }
 
-    private List<Cash> getNewCashList(long lastHeight, JedisPool jedisPool) {
+    protected List<Cash> getNewCashList(long lastHeight, JedisPool jedisPool) {
 
         try(Jedis jedis = jedisPool.getResource()){
-            String newCashesKey = addSidBriefToName(NEW_CASHES);
+            String newCashesKey = addSidBriefToName(sid,NEW_CASHES);
             String cashListStr = jedis.get(newCashesKey);
             Type t = new TypeToken<ArrayList<Cash>>() {}.getType();
             List<Cash> cashList= new Gson().fromJson(cashListStr, t);
@@ -181,12 +193,12 @@ private void waitNewOrder() {
         }
     }
 
-    private void getValidOrderList(List<Cash> cashList) {
+    protected void getValidOrderList(List<Cash> cashList) {
         try(Jedis jedis0Common = jedisPool.getResource()) {
             ArrayList<Order> orderList = getNewOrderList(cashList);
             if (orderList.size() == 0) return;
 
-            String isCheckOrderOpReturn = jedis0Common.hget(CONFIG, Starter.addSidBriefToName(Strings.CHECK_ORDER_OPRETURN));
+            String isCheckOrderOpReturn = jedis0Common.hget(CONFIG, Settings.addSidBriefToName(sid,Strings.CHECK_ORDER_OPRETURN));
             Map<String, OrderInfo> validOpReturnOrderInfoMap;
 
             if ("true".equals(isCheckOrderOpReturn)) {
@@ -205,15 +217,15 @@ private void waitNewOrder() {
             for (Order order : orderList) {
                 String payer = order.getFromFid();
                 if (payer != null) {
-                    long balance = readHashLong(jedis0Common, Starter.addSidBriefToName(Strings.FID_BALANCE), payer);
-                    jedis0Common.hset(Starter.addSidBriefToName(Strings.FID_BALANCE), payer, String.valueOf(balance + order.getAmount()));
+                    long balance = readHashLong(jedis0Common, Settings.addSidBriefToName(sid,Strings.FID_BALANCE), payer);
+                    jedis0Common.hset(Settings.addSidBriefToName(sid,Strings.FID_BALANCE), payer, String.valueOf(balance + order.getAmount()));
                 } else continue;
 
                 String via = order.getVia();
                 if (via != null) {
                     order.setVia(via);
-                    long viaT = readHashLong(jedis0Common, Starter.addSidBriefToName(Strings.ORDER_VIA), via);
-                    jedis0Common.hset(Starter.addSidBriefToName(Strings.CONSUME_VIA), via, String.valueOf(viaT + order.getAmount()));
+                    long viaT = readHashLong(jedis0Common, Settings.addSidBriefToName(sid,Strings.ORDER_VIA), via);
+                    jedis0Common.hset(Settings.addSidBriefToName(sid,Strings.CONSUME_VIA), via, String.valueOf(viaT + order.getAmount()));
                 }
 
                 log.debug("New order from [" + order.getFromFid() + "]: " + order.getAmount() / 100000000 + " F");
@@ -221,7 +233,7 @@ private void waitNewOrder() {
                 orderIdList.add(order.getOrderId());
             }
             try {
-                String index = addSidBriefToName(ORDER).toLowerCase();
+                String index = addSidBriefToName(sid,ORDER).toLowerCase();
                 EsTools.bulkWriteList(esClient, index, orderList, orderIdList, Order.class);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -229,7 +241,7 @@ private void waitNewOrder() {
         }
     }
 
-    private ArrayList<String> getTxIdList(ArrayList<Order> orderList) {
+    protected ArrayList<String> getTxIdList(ArrayList<Order> orderList) {
         ArrayList<String> txIdList = new ArrayList<>();
         for(Order order :orderList){
             txIdList.add(order.getTxId());
@@ -237,7 +249,7 @@ private void waitNewOrder() {
         return txIdList;
     }
 
-    private ArrayList<Order> getNewOrderList(List<Cash> cashList) {
+    protected ArrayList<Order> getNewOrderList(List<Cash> cashList) {
         long minPayment = (long) Double.parseDouble(this.minPayment) * 100000000;
 
         ArrayList<Order> orderList = new ArrayList<>();
@@ -270,7 +282,7 @@ private void waitNewOrder() {
         return orderList;
     }
 
-    private Map<String, OrderInfo> getValidOpReturnOrderInfoMap(ArrayList<String> txidList) {
+    protected Map<String, OrderInfo> getValidOpReturnOrderInfoMap(ArrayList<String> txidList) {
 
         Map<String, OrderInfo> validOrderInfoMap = new HashMap<>();
         EsTools.MgetResult<OpReturn> result1 = new EsTools.MgetResult<>();
@@ -300,7 +312,7 @@ private void waitNewOrder() {
                         && orderOpreturn.getType().equals("APIP")
                         && orderOpreturn.getSn().equals("0")
                         && orderOpreturn.getData().getOp().equals(Values.BUY)
-                        && orderOpreturn.getData().getSid().equals(myService.getSid())
+                        && orderOpreturn.getData().getSid().equals(sid)
                 ) {
                     orderInfo.setVia(orderOpreturn.getData().getVia());
                 }
@@ -313,7 +325,7 @@ private void waitNewOrder() {
         return validOrderInfoMap;
     }
 
-    private void setLastOrderInfoToRedis(List<Cash> cashList) {
+    protected void setLastOrderInfoToRedis(List<Cash> cashList) {
         long lastHeight = 0;
         String lastBlockId = null;
         for (Cash cash : cashList) {
@@ -323,19 +335,19 @@ private void waitNewOrder() {
             }
         }
         try(Jedis jedis0Common = jedisPool.getResource()) {
-            jedis0Common.set(Starter.addSidBriefToName(ORDER_LAST_HEIGHT), String.valueOf(lastHeight));
-            jedis0Common.set(Starter.addSidBriefToName(Strings.ORDER_LAST_BLOCK_ID), lastBlockId);
+            jedis0Common.set(Settings.addSidBriefToName(sid,ORDER_LAST_HEIGHT), String.valueOf(lastHeight));
+            jedis0Common.set(Settings.addSidBriefToName(sid,Strings.ORDER_LAST_BLOCK_ID), lastBlockId);
         }
     }
 
-    private List<Cash> getNewCashList(long lastHeight, String account, ApipClient apipClient) {
+    protected List<Cash> getNewCashList(long lastHeight, String account, ApipClient apipClient) {
         List<Cash> cashList;
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.addNewQuery().addNewRange().addNewFields(BIRTH_HEIGHT).addGt(String.valueOf(lastHeight));
         fcdsl.addNewSort(BIRTH_HEIGHT,DESC).appendSort(CASH_ID,ASC);
         fcdsl.addNewFilter().addNewTerms().addNewFields(OWNER).addNewValues(account);
 
-        cashList =apipClient.cashSearch(fcdsl, HttpMethods.POST);
+        cashList =apipClient.cashSearch(fcdsl);
 
 //        try {
 //            cashList = EsTools.rangeGt(
@@ -357,8 +369,8 @@ private void waitNewOrder() {
     }
 
     static class OrderInfo {
-        private String id;
-        private String via;
+        protected String id;
+        protected String via;
 
         public String getId() {
             return id;
@@ -416,8 +428,8 @@ private void waitNewOrder() {
         return minPayment;
     }
 
-    public String getListenDir() {
-        return listenDir;
+    public String getListenPath() {
+        return listenPath;
     }
 
     public boolean isFromWebhook() {

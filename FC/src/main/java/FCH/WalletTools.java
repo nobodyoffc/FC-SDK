@@ -1,11 +1,11 @@
 package FCH;
 
-import APIP.apipClient.ApipClientData;
+import clients.apipClient.ApipClientData;
 import FCH.fchData.SendTo;
 import NaSa.RPC.SendRawTransaction;
 import NaSa.data.TxInput;
 import NaSa.data.TxOutput;
-import APIP.apipClient.FreeGetAPIs;
+import clients.apipClient.FreeGetAPIs;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOrder;
@@ -55,7 +55,7 @@ public class WalletTools {
 
         System.out.println("Broadcast with " + urlHead + " ...");
         ApipClientData apipClientData = FreeGetAPIs.broadcast(urlHead, txSigned);
-        if (apipClientData.isBadResponse("send to " + toAddr)) {
+        if(apipClientData.checkResponse()!=0) {
             String result = apipClientData.getCode() + ": " + apipClientData.getMessage();
             if (apipClientData.getResponseBody().getData() != null)
                 result = result + "\n" + apipClientData.getResponseBody().getData();

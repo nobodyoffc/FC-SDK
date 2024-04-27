@@ -108,6 +108,7 @@ public class JsonTools {
     }
 
     public static <T> void writeObjectToJsonFile(T obj, String fileName, boolean append) {
+        FileTools.createFileDirectories(fileName);
         GsonBuilder gsonBuilder = new GsonBuilder();
         gsonBuilder.setPrettyPrinting();
         Gson gson = gsonBuilder.create();
@@ -118,7 +119,12 @@ public class JsonTools {
         }
     }
 
+    public static <T> void writeObjectToJsonFile(T obj,String path, String fileName, boolean append) {
+        writeObjectToJsonFile(obj,path+fileName,append);
+    }
+
     public static <T> void writeObjectListToJsonFile(List<T> objList, String fileName, boolean append) {
+        FileTools.createFileDirectories(fileName);
         Gson gson = new Gson();
         try (Writer writer = new FileWriter(fileName, append)) {
             objList.forEach(t -> gson.toJson(t, writer));

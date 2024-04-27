@@ -11,8 +11,10 @@
     <modules>
         <module>FC</module>
         <module>Freeverse</module>
-        <module>OpenDriveManager</module>
-        <module>OpenDriveServer</module>
+        <module>DiskManager</module>
+        <module>DiskServer</module>
+        <module>DiskClient</module>
+        <module>ChatServer</module>
     </modules>
 
     <properties>

@@ -56,6 +56,7 @@ public class Constants {
     public static final String ECC_AES_256_K1_P7 = "EccAes256K1P7@No1_NrC7";
     public static final String ALG_SIGN_TX_BY_CRYPTO_SIGN = "SignTxByCryptoSign@No1_NrC7";
     public static final String CONFIG_JSON = "config.json";
+    public static final long DAY_TO_MIL_SEC = 24*60*60*1000;
     public static int RedisDb4Webhook = 4;
     public static int RedisDb3Mempool = 3;
     public static int RedisDb0Common = 0;

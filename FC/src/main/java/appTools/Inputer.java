@@ -288,10 +288,10 @@ public class Inputer {
 
     public static byte[] resetNewPassword(BufferedReader br) {
         while (true) {
-            String ask = "Input new password:";
+            String ask = "Input a new password:";
             char[] password = inputPassword(br, ask);
             if (password == null) return null;
-            ask = "Input new password again:";
+            ask = "Input the new password again:";
             char[] passwordAgain = inputPassword(br, ask);
             if (passwordAgain == null) return null;
             if (Arrays.equals(password, passwordAgain)) {
@@ -395,6 +395,12 @@ public class Inputer {
         return newValue.isEmpty() ? currentValue : newValue;
     }
 
+    public static long promptAndSet(BufferedReader reader, String fieldName, long currentValue) throws IOException {
+        System.out.print("Enter " + fieldName + " (Press Enter to skip): ");
+        String newValue = reader.readLine();
+        return newValue.isEmpty() ? currentValue : Long.parseLong(newValue);
+    }
+
     public static boolean promptAndSet(BufferedReader reader, String fieldName, boolean currentValue) throws IOException {
         System.out.print("Enter " + fieldName + ". It is "+currentValue+ " now. (Press Enter to keep it): ");
         return Boolean.parseBoolean(reader.readLine());
@@ -423,6 +429,17 @@ public class Inputer {
         if ("y".equalsIgnoreCase(reader.readLine())) {
             String ask = "Enter new values for the " + fieldName + ": ";
             return inputString(reader, ask);
+        }
+        return currentValue;
+    }
+
+    public static long promptAndUpdate(BufferedReader reader, String fieldName, long currentValue) throws IOException {
+        System.out.println("The " + fieldName + "is :" + currentValue);
+        System.out.print("Do you want to update it? (y/n): ");
+
+        if ("y".equalsIgnoreCase(reader.readLine())) {
+            String ask = "Enter new values for the " + fieldName + ": ";
+            return inputLong(reader, ask);
         }
         return currentValue;
     }
@@ -470,10 +487,10 @@ public class Inputer {
         return items;
     }
 
-    public static String inputPath(BufferedReader br) {
+    public static String inputPath(BufferedReader br,String ask) {
         String path;
         while(true) {
-            path = inputString(br, "Set the listen Path by listing it to check orders.");
+            path = inputString(br, ask);
             if(new File(path).exists())break;
             System.out.println("The path doesn't exist. Try again.");
         }

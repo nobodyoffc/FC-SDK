@@ -1,6 +1,6 @@
 package FCH;
 
-import APIP.apipClient.ApipDataGetter;
+import clients.apipClient.ApipDataGetter;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import crypto.cryptoTools.Hash;

@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import server.Starter;
+import server.Settings;
 import server.order.User;
 
 import java.io.BufferedReader;
@@ -19,8 +19,8 @@ import java.util.Date;
 import java.util.Set;
 
 import static constants.Strings.BALANCE;
-import static database.esTools.EsTools.recreateIndex;
-import static server.Starter.addSidBriefToName;
+import static clients.esClient.EsTools.recreateIndex;
+import static server.Settings.addSidBriefToName;
 
 public class BalanceManager {
     private static final Logger log = LoggerFactory.getLogger(BalanceManager.class);
@@ -28,12 +28,15 @@ public class BalanceManager {
     private final JedisPool jedisPool;
     private final BufferedReader br;
     public static  final  String  balanceMappingJsonStr = "{\"mappings\":{\"properties\":{\"user\":{\"type\":\"text\"},\"consumeVia\":{\"type\":\"text\"},\"orderVia\":{\"type\":\"text\"},\"bestHeight\":{\"type\":\"keyword\"}}}}";
+    public static String sid;
+    public static String sidBrief;
 
-
-    public BalanceManager(ElasticsearchClient esClient, JedisPool jedisPool, BufferedReader br) {
+    public BalanceManager(String sid,ElasticsearchClient esClient, JedisPool jedisPool, BufferedReader br) {
         this.esClient = esClient;
         this.jedisPool = jedisPool;
         this.br = br;
+        BalanceManager.sid = sid;
+        BalanceManager.sidBrief=sid.substring(0,6);
     }
 
     public void menu()  {
@@ -56,7 +59,7 @@ public class BalanceManager {
             switch (choice) {
 
                 case 1 -> findUsers(br);
-                case 2 -> BalanceInfo.backupBalance(esClient,jedisPool);
+                case 2 -> BalanceInfo.backupBalance(sid,esClient,jedisPool);
                 case 3 -> BalanceInfo.recoverUserBalanceFromEs(esClient,jedisPool);
                 case 4 -> BalanceInfo.recoverUserBalanceFromFile(jedisPool);
                 case 5 -> recreateBalanceIndex(br, esClient,  BALANCE, balanceMappingJsonStr);
@@ -68,9 +71,9 @@ public class BalanceManager {
     }
 
     public static void recreateBalanceIndex(BufferedReader br, ElasticsearchClient esClient, String indexName, String mappingJsonStr) {
-        String index = addSidBriefToName(indexName);
+        String index = addSidBriefToName(sid,indexName);
         try {
-            recreateIndex(index, esClient,mappingJsonStr);
+            recreateIndex(index, mappingJsonStr, esClient);
         } catch (InterruptedException e) {
             log.debug("Recreate index {} wrong.",index);
         }
@@ -93,13 +96,13 @@ public class BalanceManager {
         jedis1Session.select(1);
 
         if ("".equals(str)) {
-            Set<String> addrSet = jedis0Common.hkeys(Starter.sidBrief+"_"+Strings.FID_SESSION_NAME);
+            Set<String> addrSet = jedis0Common.hkeys(sidBrief+"_"+Strings.FID_SESSION_NAME);
             for (String addr : addrSet) {
                 User user = getUser(addr, jedis0Common, jedis1Session);
                 System.out.println(JsonTools.getNiceString(user));
             }
         } else {
-            if (jedis0Common.hget(Starter.sidBrief+"_"+Strings.FID_SESSION_NAME, str) != null) {
+            if (jedis0Common.hget(sidBrief+"_"+Strings.FID_SESSION_NAME, str) != null) {
                 User user = getUser(str, jedis0Common, jedis1Session);
                 System.out.println(JsonTools.getNiceString(user));
             } else if (jedis1Session.hgetAll(str) != null) {
@@ -113,8 +116,8 @@ public class BalanceManager {
     private static User getUser(String addr, Jedis jedis0Common, Jedis jedis1Session) {
         User user = new User();
         user.setFid(addr);
-        user.setBalance(jedis0Common.hget(Starter.sidBrief+"_"+Strings.FID_BALANCE, addr));
-        String sessionName = jedis0Common.hget(Starter.sidBrief+"_"+Strings.FID_SESSION_NAME, addr);
+        user.setBalance(jedis0Common.hget(sidBrief+"_"+Strings.FID_BALANCE, addr));
+        String sessionName = jedis0Common.hget(sidBrief+"_"+Strings.FID_SESSION_NAME, addr);
         user.setSessionName(sessionName);
         user.setSessionKey(jedis1Session.hget(sessionName, "sessionKey"));
 

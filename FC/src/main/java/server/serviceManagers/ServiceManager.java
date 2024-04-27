@@ -1,8 +1,8 @@
 package server.serviceManagers;
 
-import APIP.apipClient.ApipClient;
-import APIP.apipClient.ApipClientData;
-import APIP.apipClient.ConstructAPIs;
+import clients.apipClient.ApipClient;
+import clients.apipClient.ApipClientData;
+import clients.apipClient.ConstructAPIs;
 import FEIP.feipData.FcInfo;
 import FEIP.feipData.Service;
 import FEIP.feipData.ServiceData;
@@ -15,12 +15,12 @@ import com.google.gson.GsonBuilder;
 import config.ApiAccount;
 import constants.OpNames;
 import javaTools.JsonTools;
-import server.Starter;
+import config.Configure;
 
 import java.io.BufferedReader;
 import java.util.ArrayList;
 
-import static config.ApiAccount.checkApipBalance;
+import static clients.apipClient.ApipClient.checkApipBalance;
 
 //TODO The methods of inputParams and updateParams have to be override.
 public abstract class ServiceManager {
@@ -57,7 +57,7 @@ public abstract class ServiceManager {
             int choice = menu.choose(br);
             switch (choice) {
                 case 1 -> showService();
-                case 2 -> publishService(symKey,br);
+                case 2 -> publishService(symKey,br,(ApipClient) apipAccount.getClient());
                 case 3 -> updateService(symKey,br);
                 case 4 -> stopService(br);
                 case 5 -> recoverServices(br);
@@ -75,7 +75,7 @@ public abstract class ServiceManager {
 
         ApipClientData apipClientData = ConstructAPIs.serviceByIdsPost(apipAccount.getApiUrl(), new String[]{sid}, apipAccount.getVia(),symKey);
         if(apipClientData ==null)return;
-        if(apipClientData.isBadResponse("reload APIP service")){
+        if(apipClientData.checkResponse()!=0){
             Menu.anyKeyToContinue(br);
             return;
         }
@@ -87,7 +87,7 @@ public abstract class ServiceManager {
     }
 
 
-    public void publishService(byte[] symKey,BufferedReader br) {
+    public void publishService(byte[] symKey, BufferedReader br, ApipClient apipClient) {
         System.out.println("Publish service services...");
 
         if (Menu.askIfToDo("Get the OpReturn text to publish a new service service?", br)) return;
@@ -100,8 +100,8 @@ public abstract class ServiceManager {
 
         data.inputTypes(br);
 
-        if(symKey!=null && apipAccount.getClient()!=null)
-            data.inputServiceHead(br,symKey, (ApipClient) apipAccount.getClient());
+        if(symKey!=null && apipClient!=null)
+            data.inputServiceHead(br,symKey, apipClient);
         else data.inputServiceHead(br);
 
         System.out.println("Set the service parameters...");
@@ -123,7 +123,7 @@ public abstract class ServiceManager {
         Menu.anyKeyToContinue(br);
     }
 
-    private FcInfo setFcInfoForService() {
+    private static FcInfo setFcInfoForService() {
         FcInfo fcInfo = new FcInfo();
         fcInfo.setType("FEIP");
         fcInfo.setSn("5");
@@ -181,7 +181,7 @@ public abstract class ServiceManager {
         data.setDesc(service.getDesc());
         data.setWaiters(service.getWaiters());
 
-        data.setParams(Starter.parseMyServiceParams(service, paramsClass));
+        data.setParams(Configure.parseMyServiceParams(service, paramsClass));
     }
 
     private void stopService(BufferedReader br) {

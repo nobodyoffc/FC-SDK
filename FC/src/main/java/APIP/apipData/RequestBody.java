@@ -6,11 +6,14 @@ import javaTools.BytesTools;
 public class RequestBody {
 
     private String url;
-    private long time;
-    private long nonce;
+    private Long time;
+    private Long nonce;
     private String via;
     private Fcdsl fcdsl;
-    private String mode;
+    private SignInMode mode;
+    public static enum SignInMode{
+        REFRESH,NORMAL
+    }
 
     public RequestBody() {
     }
@@ -22,7 +25,7 @@ public class RequestBody {
         setUrl(url);
     }
 
-    public RequestBody(String url, String via, String mode) {
+    public RequestBody(String url, String via, SignInMode mode) {
         setTime(System.currentTimeMillis());
         setNonce((BytesTools.bytes4ToLongBE(BytesTools.getRandomBytes(4))));
         setVia(via);
@@ -42,7 +45,7 @@ public class RequestBody {
         setUrl(url);
     }
 
-    public void makeRequestBody(String url, String via, String mode) {
+    public void makeRequestBody(String url, String via, SignInMode mode) {
         setTime(System.currentTimeMillis());
         setNonce((BytesTools.bytes4ToLongBE(BytesTools.getRandomBytes(4))));
         setVia(via);
@@ -50,6 +53,29 @@ public class RequestBody {
         if (mode != null) setMode(mode);
     }
 
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    public Long getTime() {
+        return time;
+    }
+
+    public void setTime(Long time) {
+        this.time = time;
+    }
+
+    public Long getNonce() {
+        return nonce;
+    }
+
+    public void setNonce(Long nonce) {
+        this.nonce = nonce;
+    }
 
     public String getVia() {
         return via;
@@ -67,35 +93,11 @@ public class RequestBody {
         this.fcdsl = fcdsl;
     }
 
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public long getTime() {
-        return time;
-    }
-
-    public void setTime(long time) {
-        this.time = time;
-    }
-
-    public long getNonce() {
-        return nonce;
-    }
-
-    public void setNonce(long nonce) {
-        this.nonce = nonce;
-    }
-
-    public String getMode() {
+    public SignInMode getMode() {
         return mode;
     }
 
-    public void setMode(String mode) {
+    public void setMode(SignInMode mode) {
         this.mode = mode;
     }
 }

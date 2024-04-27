@@ -20,13 +20,14 @@ import java.util.concurrent.TimeUnit;
 import static constants.IndicesNames.*;
 import static constants.Strings.BALANCE;
 import static constants.Strings.REWARD;
-import static server.Starter.addSidBriefToName;
+import static server.Settings.addSidBriefToName;
 
 
 public class Indices {
     private static final Logger log = LoggerFactory.getLogger(Indices.class);
     private final ElasticsearchClient esClient;
     private final BufferedReader br;
+    private String sid;
     public static  final  String  orderMappingJsonStr = "{\"mappings\":{\"properties\":{\"amount\":{\"type\":\"long\"},\"orderId\":{\"type\":\"keyword\"},\"fromFid\":{\"type\":\"wildcard\"},\"height\":{\"type\":\"long\"},\"time\":{\"type\":\"long\"},\"toFid\":{\"type\":\"wildcard\"},\"txId\":{\"type\":\"keyword\"},\"txIndex\":{\"type\":\"long\"},\"txid\":{\"type\":\"keyword\"},\"via\":{\"type\":\"wildcard\"}}}}";
     public static  final  String  balanceMappingJsonStr = "{\"mappings\":{\"properties\":{\"user\":{\"type\":\"text\"},\"consumeVia\":{\"type\":\"text\"},\"orderVia\":{\"type\":\"text\"},\"bestHeight\":{\"type\":\"keyword\"}}}}";
     public static final String  rewardMappingJsonStr = "{\"mappings\":{\"properties\":{\"rewardId\":{\"type\":\"keyword\"},\"rewardT\":{\"type\":\"long\"},\"time\":{\"type\":\"long\"},\"txId\":{\"type\":\"keyword\"},\"state\":{\"type\":\"keyword\"},\"bestHeight\":{\"type\":\"keyword\"},\"builderList\":{\"type\":\"nested\",\"properties\":{\"fid\":{\"type\":\"keyword\"},\"share\":{\"type\":\"float\"},\"amount\":{\"type\":\"long\"},\"fixed\":{\"type\":\"long\"}}},\"orderViaList\":{\"type\":\"nested\",\"properties\":{\"fid\":{\"type\":\"keyword\"},\"share\":{\"type\":\"float\"},\"amount\":{\"type\":\"long\"},\"fixed\":{\"type\":\"long\"}}},\"consumeViaList\":{\"type\":\"nested\",\"properties\":{\"fid\":{\"type\":\"keyword\"},\"share\":{\"type\":\"float\"},\"amount\":{\"type\":\"long\"},\"fixed\":{\"type\":\"long\"}}},\"costList\":{\"type\":\"nested\",\"properties\":{\"fid\":{\"type\":\"keyword\"},\"share\":{\"type\":\"float\"},\"amount\":{\"type\":\"long\"},\"fixed\":{\"type\":\"long\"}}}}}}";
@@ -36,9 +37,10 @@ public class Indices {
     public static final String  swapLpMappingJsonStr = "{\"mappings\":{\"properties\":{\"sid\":{\"type\":\"keyword\"},\"gLpRawMap\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"keyword\"},\"value\":{\"type\":\"double\"}}},\"gLpNetMap\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"keyword\"},\"value\":{\"type\":\"double\"}}},\"gLpShareMap\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"keyword\"},\"value\":{\"type\":\"double\"}}},\"mLpRawMap\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"keyword\"},\"value\":{\"type\":\"double\"}}},\"mLpNetMap\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"keyword\"},\"value\":{\"type\":\"double\"}}},\"mLpShareMap\":{\"type\":\"object\",\"properties\":{\"key\":{\"type\":\"keyword\"},\"value\":{\"type\":\"double\"}}},\"gLpRawSum\":{\"type\":\"double\"},\"mLpRawSum\":{\"type\":\"double\"},\"gServiceFee\":{\"type\":\"double\"},\"mServiceFee\":{\"type\":\"double\"}}}}";
     public static final String  swapFinishedMappingJsonStr = "{\"mappings\":{\"properties\":{\"id\":{\"type\":\"keyword\"},\"sid\":{\"type\":\"keyword\"},\"sn\":{\"type\":\"long\"},\"act\":{\"type\":\"keyword\"},\"g\":{\"type\":\"object\",\"properties\":{\"txId\":{\"type\":\"keyword\"},\"refundTxId\":{\"type\":\"keyword\"},\"withdrawTxId\":{\"type\":\"keyword\"},\"refundAmt\":{\"type\":\"double\"},\"addr\":{\"type\":\"keyword\"},\"amt\":{\"type\":\"double\"},\"sum\":{\"type\":\"double\"},\"blockTime\":{\"type\":\"long\"},\"blockHeight\":{\"type\":\"long\"},\"blockIndex\":{\"type\":\"long\"},\"txFee\":{\"type\":\"double\"}}},\"m\":{\"type\":\"object\",\"properties\":{\"txId\":{\"type\":\"keyword\"},\"refundTxId\":{\"type\":\"keyword\"},\"withdrawTxId\":{\"type\":\"keyword\"},\"refundAmt\":{\"type\":\"double\"},\"addr\":{\"type\":\"keyword\"},\"amt\":{\"type\":\"double\"},\"sum\":{\"type\":\"double\"},\"blockTime\":{\"type\":\"long\"},\"blockHeight\":{\"type\":\"long\"},\"blockIndex\":{\"type\":\"long\"},\"txFee\":{\"type\":\"double\"}}},\"sendTime\":{\"type\":\"long\"},\"getTime\":{\"type\":\"long\"},\"state\":{\"type\":\"keyword\"},\"error\":{\"type\":\"text\"}}}}";
     public static final String  swapPriceMappingJsonStr = "{\"mappings\":{\"properties\":{\"id\":{\"type\":\"keyword\"},\"sid\":{\"type\":\"keyword\"},\"gTick\":{\"type\":\"keyword\"},\"mTick\":{\"type\":\"keyword\"},\"gAmt\":{\"type\":\"double\"},\"mAmt\":{\"type\":\"double\"},\"price\":{\"type\":\"double\"},\"time\":{\"type\":\"long\"}}}}";
-    public Indices(ElasticsearchClient esClient, BufferedReader br){
+    public Indices(String sid,ElasticsearchClient esClient, BufferedReader br){
         this.br = br;
         this.esClient = esClient;
+        this.sid = sid;
     }
 
     public void menu() throws IOException, InterruptedException {
@@ -60,10 +62,10 @@ public class Indices {
             int choice = menu.choose(br);
             switch (choice) {
                 case 1 -> listIndices(br);
-                case 2 -> recreateApipIndex(br, esClient, ORDER, orderMappingJsonStr);
-                case 3 -> recreateApipIndex(br, esClient, BALANCE, balanceMappingJsonStr);
-                case 4 -> recreateApipIndex(br, esClient, REWARD, rewardMappingJsonStr);
-                case 5 -> recreateApipIndex(br, esClient, WEBHOOK, webhookMappingJsonStr);
+                case 2 -> recreateApipIndex(sid,br, esClient, ORDER, orderMappingJsonStr);
+                case 3 -> recreateApipIndex(sid,br, esClient, BALANCE, balanceMappingJsonStr);
+                case 4 -> recreateApipIndex(sid,br, esClient, REWARD, rewardMappingJsonStr);
+                case 5 -> recreateApipIndex(sid,br, esClient, WEBHOOK, webhookMappingJsonStr);
                 case 6 -> recreateAllApipIndex(br, esClient);
                 case 7 -> recreateAllSwapIndex(br, esClient);
                 case 0 -> {
@@ -82,14 +84,14 @@ public class Indices {
     }
 
     private void recreateAllApipIndex(BufferedReader br, ElasticsearchClient esClient) throws IOException, InterruptedException {
-        recreateApipIndex(br, esClient, ORDER, orderMappingJsonStr);
-        recreateApipIndex(br, esClient, BALANCE, balanceMappingJsonStr);
-        recreateApipIndex(br, esClient,REWARD, rewardMappingJsonStr);
-        recreateApipIndex(br, esClient,WEBHOOK, webhookMappingJsonStr);
+        recreateApipIndex(sid,br, esClient, ORDER, orderMappingJsonStr);
+        recreateApipIndex(sid,br, esClient, BALANCE, balanceMappingJsonStr);
+        recreateApipIndex(sid,br, esClient,REWARD, rewardMappingJsonStr);
+        recreateApipIndex(sid,br, esClient,WEBHOOK, webhookMappingJsonStr);
     }
 
-    public static void recreateApipIndex(BufferedReader br, ElasticsearchClient esClient, String indexName, String mappingJsonStr) {
-        String index = addSidBriefToName(indexName);
+    public static void recreateApipIndex(String sid,BufferedReader br, ElasticsearchClient esClient, String indexName, String mappingJsonStr) {
+        String index = addSidBriefToName(sid,indexName);
         try {
             recreateIndex(index, esClient,mappingJsonStr);
         } catch (InterruptedException e) {
@@ -135,22 +137,22 @@ public class Indices {
 
     public void checkApipIndices() throws IOException {
 
-        String orderIndex = addSidBriefToName(ORDER);
+        String orderIndex = addSidBriefToName(sid,ORDER);
         if ( noSuchIndex(esClient, orderIndex)) {
             createIndex(orderIndex,esClient,orderMappingJsonStr);
         }
 
-        String balanceIndex = addSidBriefToName( BALANCE);
+        String balanceIndex = addSidBriefToName(sid, BALANCE);
         if (noSuchIndex(esClient, balanceIndex)) {
             createIndex(balanceIndex,esClient,balanceMappingJsonStr);
         }
 
-        String rewardIndex = addSidBriefToName(REWARD);
+        String rewardIndex = addSidBriefToName(sid,REWARD);
         if (noSuchIndex(esClient, rewardIndex)) {
             createIndex(rewardIndex,esClient,rewardMappingJsonStr);
         }
 
-        String webhookIndex = addSidBriefToName( WEBHOOK);
+        String webhookIndex = addSidBriefToName(sid, WEBHOOK);
         if (noSuchIndex(esClient, webhookIndex)) {
             createIndex(webhookIndex,esClient,webhookMappingJsonStr);
         }
