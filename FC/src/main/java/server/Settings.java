@@ -6,7 +6,7 @@ import appTools.Inputer;
 import appTools.Menu;
 import appTools.Shower;
 import config.ApiAccount;
-import config.ApiProvider;
+import config.ApiType;
 import config.Configure;
 import constants.FieldNames;
 import constants.Strings;
@@ -136,6 +136,10 @@ public abstract class Settings {
         }
     }
 
+    public static <T> T loadFromFile(Class<T> tClass){
+        return loadFromFile(null,tClass);
+    }
+
     public abstract void inputAll(BufferedReader br);
 
     public abstract void updateAll(BufferedReader br);
@@ -221,10 +225,10 @@ public abstract class Settings {
                     String newCipher = replaceCipher(cipher,oldSymKey,newSymKey);
                     apiAccount.setUserPriKeyCipher(newCipher);
                 }
-                if(apiAccount.getSessionKeyCipher()!=null){
-                    String cipher = apiAccount.getSessionKeyCipher();
+                if(apiAccount.getSession().getSessionKeyCipher()!=null){
+                    String cipher = apiAccount.getSession().getSessionKeyCipher();
                     String newCipher = replaceCipher(cipher,oldSymKey,newSymKey);
-                    apiAccount.setSessionKeyCipher(newCipher);
+                    apiAccount.getSession().setSessionKeyCipher(newCipher);
                 }
             }
 
@@ -254,7 +258,7 @@ public abstract class Settings {
 
     public abstract void resetLocalSettings(byte[] symKey);
 
-    public abstract Object resetDefaultApi(byte[] symKey, ApiProvider.ApiType apiType);
+    public abstract Object resetDefaultApi(byte[] symKey, ApiType apiType);
     public abstract void resetApis(byte[] symKey,JedisPool jedisPool);
 
     public abstract void close();

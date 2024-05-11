@@ -3,6 +3,7 @@ package server;
 import appTools.Menu;
 import config.ApiAccount;
 import config.ApiProvider;
+import config.ApiType;
 import config.Configure;
 import redis.clients.jedis.JedisPool;
 
@@ -40,7 +41,7 @@ public class SwapSettings extends Settings {
     }
 
     @Override
-    public Object resetDefaultApi(byte[] symKey, ApiProvider.ApiType apiType) {
+    public Object resetDefaultApi(byte[] symKey, ApiType apiType) {
         System.out.println("Reset API service...");
         ApiProvider apiProvider = config.chooseApiProviderOrAdd();
         ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, symKey);
@@ -50,9 +51,9 @@ public class SwapSettings extends Settings {
             if (client != null) {
                 switch (apiType) {
                     case APIP -> apipAccountId=apiAccount.getId();
-                    case NaSaRPC -> naSaNodeAccountId=apiAccount.getId();
+                    case NASARPC -> naSaNodeAccountId=apiAccount.getId();
                     case ES -> esAccountId=apiAccount.getId();
-                    case Redis -> redisAccountId=apiAccount.getId();
+                    case REDIS -> redisAccountId=apiAccount.getId();
                     default -> {
                         return client;
                     }

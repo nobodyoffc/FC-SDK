@@ -121,7 +121,7 @@ public class BalanceInfo {
         Map<String, String> viaTMap = gson.fromJson(balanceInfo.getOrderVia(), new TypeToken<HashMap<String, String>>() {
         }.getType());
         for (String id : balanceMap.keySet()) {
-            jedis.hset(BalanceManager.sidBrief + "_" + Strings.FID_BALANCE, id, balanceMap.get(id));
+            jedis.hset(BalanceManager.sidBrief + "_" + Strings.BALANCE, id, balanceMap.get(id));
         }
         for (String id : viaTMap.keySet()) {
 
@@ -133,7 +133,7 @@ public class BalanceInfo {
 
     public static void backupBalance(String sid,ElasticsearchClient esClient,JedisPool jedisPool)  {
         try(Jedis jedis0Common = jedisPool.getResource()) {
-            Map<String, String> balanceMap = jedis0Common.hgetAll(Settings.addSidBriefToName(sid,Strings.FID_BALANCE));
+            Map<String, String> balanceMap = jedis0Common.hgetAll(Settings.addSidBriefToName(sid,Strings.BALANCE));
             Map<String, String> consumeViaMap = jedis0Common.hgetAll(Settings.addSidBriefToName(sid,CONSUME_VIA));
             Map<String, String> orderViaMap = jedis0Common.hgetAll(Settings.addSidBriefToName(sid,ORDER_VIA));
             Map<String, String> pendingStrMap = jedis0Common.hgetAll(Settings.addSidBriefToName(sid,REWARD_PENDING_MAP));

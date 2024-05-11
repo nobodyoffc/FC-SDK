@@ -56,7 +56,7 @@ public class Inputer {
     }
 
     public static String inputString(BufferedReader br, String ask) {
-        System.out.println(ask);
+        System.out.println(ask+":");
         return inputString(br);
     }
 
@@ -299,7 +299,7 @@ public class Inputer {
                 BytesTools.clearCharArray(password);
                 return passwordBytes;
             }
-            if (!Inputer.askIfYes(br, "Different inputs. Try again? y/n")) return null;
+            if (!Inputer.askIfYes(br, "Different inputs. Try again?")) return null;
         }
     }
 
@@ -372,7 +372,7 @@ public class Inputer {
     }
 
     public static boolean askIfYes(BufferedReader br, String ask) {
-        System.out.println(ask);
+        System.out.println(ask+"'y' to confirm. Other to ignore:");
         String input;
         try {
             input = br.readLine();
@@ -490,7 +490,8 @@ public class Inputer {
     public static String inputPath(BufferedReader br,String ask) {
         String path;
         while(true) {
-            path = inputString(br, ask);
+            System.out.println(ask);
+            path = inputString(br);
             if(new File(path).exists())break;
             System.out.println("The path doesn't exist. Try again.");
         }

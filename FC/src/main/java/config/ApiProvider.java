@@ -1,7 +1,11 @@
 package config;
 
 
+import FEIP.feipData.serviceParams.ApipParams;
+import FEIP.feipData.serviceParams.DiskParams;
 import FEIP.feipData.serviceParams.Params;
+import FEIP.feipData.serviceParams.SwapParams;
+import clients.apipClient.ApipClient;
 import clients.apipClient.ApipClientData;
 import clients.apipClient.OpenAPIs;
 import FEIP.feipData.Service;
@@ -14,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.List;
 
 import static appTools.Inputer.promptAndUpdate;
 
@@ -33,27 +38,61 @@ public class ApiProvider {
     private transient Params apiParams;
 
     public ApiProvider() {}
-
-    @Nullable
-    static ApiProvider fromFcService(Service service) {
-        if(service==null)return null;
-        ApiProvider apiProvider = new ApiProvider();
-        apiProvider.setSid(service.getSid());
+    public boolean fromFcService(Service service) {
+        if(service==null)return false;
+        this.sid =service.getSid();
         Params params = Params.getParamsFromService(service, Params.class);
-        if(params==null) return null;
-        apiProvider.setApiUrl(params.getUrlHead());
-        apiProvider.setOwner(service.getOwner());
+        if(params==null) return false;
+        this.apiUrl=params.getUrlHead();
+        this.owner=service.getOwner();
         for(String type : service.getTypes()){
             try{
-                apiProvider.setType(ApiType.valueOf(type));
+                this.type=ApiType.valueOf(type);
                 break;
             }catch (Exception ignore){};
         }
-        if(service.getUrls().length>0)apiProvider.setOrgUrl(service.getUrls()[0]);
-        if(service.getProtocols().length>0)apiProvider.setProtocols(service.getProtocols());
-        apiProvider.setApiParams(Params.getParamsFromService(service,Params.class));
+        if(service.getUrls().length>0)this.orgUrl=service.getUrls()[0];
+        if(service.getProtocols().length>0)this.protocols=service.getProtocols();
+        this.apiParams=Params.getParamsFromService(service,Params.class);
+        this.service=service;
+        return true;
+    }
+
+    @Nullable
+    public static ApiProvider apiProviderFromFcService(Service service,ApiType type) {
+        if(service==null)return null;
+        ApiProvider apiProvider = new ApiProvider();
+        apiProvider.setSid(service.getSid());
+        Params params = null;
+        switch (type){
+            case APIP -> params = Params.getParamsFromService(service, ApipParams.class);
+            case DISK -> params = Params.getParamsFromService(service, DiskParams.class);
+            case SWAP -> params = Params.getParamsFromService(service, SwapParams.class);
+        }
+
+        if(params==null) return null;
+        apiProvider.setApiUrl(params.getUrlHead());
+        apiProvider.setOwner(service.getOwner());
+        for(String typeStr : service.getTypes()){
+            try{
+                apiProvider.setType(ApiType.valueOf(typeStr));
+                break;
+            }catch (Exception ignore){};
+        }
+        if(service.getUrls()!=null&&service.getUrls().length>0)apiProvider.setOrgUrl(service.getUrls()[0]);
+        if(service.getProtocols()!=null&&service.getProtocols().length>0)apiProvider.setProtocols(service.getProtocols());
+        apiProvider.setApiParams((Params) service.getParams());
         apiProvider.setService(service);
+        apiProvider.setType(type);
+
         return apiProvider;
+    }
+
+    public static ApiProvider searchFcApiProvider(ApipClient initApipClient, ApiType apiType) {
+        List<Service> serviceList = initApipClient.getServiceListByType(apiType.toString().toLowerCase());
+        Service service = Configure.selectService(serviceList);
+        if(service==null)return null;
+        return apiProviderFromFcService(service,apiType);
     }
 
 //
@@ -71,8 +110,14 @@ public class ApiProvider {
     private void inputOwner(BufferedReader br) throws IOException {
         this.owner = Inputer.promptAndSet(br, "API owner", this.owner);
     }
+    public ApiProvider makeFcProvider(ApiType apiType,ApipClient apipClient){
+        List<Service> serviceList = apipClient.getServiceListByType(apiType.toString());
+        Service service = Configure.selectService(serviceList);
+        if(service==null)return null;
+        return apiProviderFromFcService(service,type);
+    }
 
-    public ApiProvider setFcProvider(BufferedReader br) {
+    public ApiProvider makeApipProvider(BufferedReader br) {
         apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service. Enter to set default as "+ DEFAULT_API_URL);
         if(apiUrl==null) return null;
         if("".equals(apiUrl))apiUrl = DEFAULT_API_URL;
@@ -101,33 +146,18 @@ public class ApiProvider {
         return this;
     }
 
-    public enum ApiType {
-        NaSaRPC,
-        APIP,
-        ES,
-        Redis,
-        DISK,
-        Other;
 
-        @Override
-        public String toString() {
-            return this.name();
-        }
-    }
-
-
-    public void inputAll(BufferedReader br, ApiType apiType) {
+    public void makeApiProvider(BufferedReader br, ApiType apiType,@Nullable ApipClient apipClient) {
         try  {
-
             if(apiType==null)inputType(br);
             else type =apiType;
 
             if(type==ApiType.APIP){
-                setFcProvider(br);
+                makeApipProvider(br);
                 return;
             }
             switch (type){
-                case NaSaRPC ->{
+                case NASARPC ->{
                     inputApiURL(br, "http://127.0.0.1:8332");
                     inputTicks(br);
                     sid = ticks[0]+"@"+apiUrl;
@@ -136,12 +166,16 @@ public class ApiProvider {
                     inputApiURL(br,"http://127.0.0.1:9200");
                     sid = "ES@"+apiUrl;
                 }
-                case Redis -> {
+                case REDIS -> {
                     inputApiURL(br, "http://127.0.0.1:6379");
                     sid = "Redis@"+apiUrl;
                 }
                 case DISK -> {
-                    System.out.println("Code is not ready.");
+                    if(apipClient==null)throw new RuntimeException("The initial APIP client is null.");
+                    List<Service> serviceList = apipClient.getServiceListByType(apiType.toString());
+                    Service service = Configure.selectService(serviceList);
+                    boolean done = fromFcService(service);
+                    if(!done) System.out.println("Failed to make provider from on-chain service information.");
                 }
                 default -> {
                     inputSid(br);
@@ -185,11 +219,9 @@ public class ApiProvider {
     }
 
     private void inputApiURL(BufferedReader br, String defaultUrl) throws IOException {
-        this.apiUrl = Inputer.promptAndSet(br, "the url of API request", this.apiUrl);
-        if(apiUrl==null){
-            if(Inputer.askIfYes(br,"Set to the default: "+defaultUrl+" ?y/n"))
+        this.apiUrl = Inputer.promptAndSet(br, "the url of API request. The default is "+defaultUrl, this.apiUrl);
+        if(apiUrl==null)
                 apiUrl=defaultUrl;
-        }
     }
 
     private void inputDocUrl(BufferedReader br) throws IOException {
@@ -213,7 +245,7 @@ public class ApiProvider {
         try {
             this.type = Inputer.chooseOne(ApiType.values(),"Choose the type:",br);//ApiType.valueOf(promptAndUpdate(br, "type ("+ Arrays.toString(ApiType.values())+")", String.valueOf(this.type)));
             if(type==ApiType.APIP){
-                if(Inputer.askIfYes(br,"The apiUrl is "+apiUrl+". Update it? y/n:")){
+                if(Inputer.askIfYes(br,"The apiUrl is "+apiUrl+". Update it?")){
                     apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service:");
                     if(apiUrl==null)return;
                     ApipClientData apipClientData = OpenAPIs.getService(apiUrl);

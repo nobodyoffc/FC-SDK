@@ -7,10 +7,9 @@
         <groupId>fc</groupId>
         <artifactId>FC-SDK</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>DiskClient</artifactId>
+    <artifactId>World</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -21,12 +20,6 @@
         <dependency>
             <groupId>fc</groupId>
             <artifactId>FC</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>fc</groupId>
-            <artifactId>DiskManager</artifactId>
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

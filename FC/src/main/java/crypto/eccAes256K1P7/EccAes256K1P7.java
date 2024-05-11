@@ -1,5 +1,6 @@
 package crypto.eccAes256K1P7;
 
+import clients.ClientData;
 import fcData.Affair;
 import fcData.Op;
 import constants.Constants;
@@ -27,6 +28,8 @@ import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.math.ec.ECCurve;
 import org.bouncycastle.math.ec.ECPoint;
 import org.bouncycastle.util.encoders.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -47,6 +50,7 @@ import java.util.HexFormat;
  */
 
 public class EccAes256K1P7 {
+    private static final Logger log = LoggerFactory.getLogger(EccAes256K1P7.class);
     static {
         Security.addProvider(new BouncyCastleProvider());
     }
@@ -58,6 +62,19 @@ public class EccAes256K1P7 {
         eccAesDataByte.setType(EccAesType.SymKey);
         eccAesDataByte.setMsg(msgBytes);
         eccAesDataByte.setSymKey(symKey);
+        ecc.encrypt(eccAesDataByte);
+        if (eccAesDataByte.getError() == null)
+            return EccAesData.fromEccAesDataByte(eccAesDataByte).toJson();
+        return "Error:" + eccAesDataByte.getError();
+    }
+
+    public static String encryptWithPubKey(byte[] msgBytes, byte[] pubKey) {
+        EccAes256K1P7 ecc = new EccAes256K1P7();
+
+        EccAesDataByte eccAesDataByte = new EccAesDataByte();
+        eccAesDataByte.setType(EccAesType.AsyOneWay);
+        eccAesDataByte.setMsg(msgBytes);
+        eccAesDataByte.setPubKeyB(pubKey);
         ecc.encrypt(eccAesDataByte);
         if (eccAesDataByte.getError() == null)
             return EccAesData.fromEccAesDataByte(eccAesDataByte).toJson();
@@ -83,7 +100,7 @@ public class EccAes256K1P7 {
 
         EccAesDataByte result = ecc.decrypt(keyCipherJson, keyOrPassword);
         if (result.getError() != null) {
-            System.out.println("Decrypting wrong: " + result.getError());
+            log.debug("Decrypting wrong: " + result.getError());
             return null;
         }
         return result.getMsg();
@@ -166,8 +183,7 @@ public class EccAes256K1P7 {
             BytesTools.clearByteArray(priKey);
             return null;
         }
-        String sessionKeyHex = new String(eccAesDataBytes.getMsg(), StandardCharsets.UTF_8);
-        return HexFormat.of().parseHex(sessionKeyHex);
+        return eccAesDataBytes.getMsg();
     }
 
     public void encrypt(EccAesDataByte eccAesDataByte) {

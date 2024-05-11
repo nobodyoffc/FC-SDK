@@ -29,6 +29,7 @@ import org.bitcoinj.core.Coin;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.junit.jupiter.api.Test;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -659,6 +660,15 @@ public class TxCreator {
         return scriptLen + amountLen;
     }
 
+    @Test
+    public void test(){
+        int opReturnBytesLen = "hi".getBytes().length;
+        System.out.println(calcSizeMultiSign(1,1, opReturnBytesLen,2,3));
+        String txHex= "020000000185231da3cc3a00496258f633d7e48442e51ffa51c9b0efe92d80a84eb61b43c103000000f0004151e694db47016366908a43f9900a00ab537e5fba8da4892e1db3ba4f00b893792d920c13d7fc3dafa88ec6bbc3027cfb308ef2264f470fdb819e90d16d956fec4141447743a23a589ecef0e30d05dc2957c8213127e66efeb6738142df035e5d1f21d2ed933a9e7eb00bef22af016b248ee34b9877f52bf0fcfd98714d4ecf4b218f414c695221030be1d7e633feb2338a74a860e76d893bac525f35a5813cb7b21e27ba1bc8312a2102536e4f3a6871831fa91089a5d5a950b96a31c861956f01459c0cd4f4374b2f672103f0145ddf5debc7169952b17b5c6a8a566b38742b6aa7b33b667c0a7fa73762e253aeffffffff03809698000000000017a914d86ffd4d1ade6ca5f19e8205bb4ddb0a05c92a72870000000000000000046a026869fe457f0f0000000017a914d86ffd4d1ade6ca5f19e8205bb4ddb0a05c92a728700000000";
+        String txHex1 = "020000000c62fcf9481f0184c7a3407069f9df5269f0b1cddd04bb777d73759fce5325f17a00000000f00041ad21b4a7d279d003f16f8ece4ea4b602306595400eed1b29a87b87b45020c81dfb9002eb74b795bf643b1a04a1209c5756c7d3c8aa07f16e650b7027aa2febaf41413a74c8ae2313ae963ba0c5e716fc003d41c8500aaf3e10714607362056646feda4867695b7dc1609f020ddb9efbf7521a3ad1088d611c03920e2b24045ca2db4414c69522103b77df3d540817d20d3414f920ccec61b3395e1dc1ef298194e5ff696e038edd921024173f84acb3de56b3ef99894fa3b9a1fe4c48c1bdc39163c37c274cd0334ba752102c0a82ba398612daa4133a891b3f52832114e0d3d6210348543f1872020556ded53aeffffffff848d0005ad4359873be4af70538ff84acf269c348b4af60e7c20f9860363a86c00000000f000410e1464bf47b04f561bca305ba4ed05899c14517642e392311b139a42080bf95b028dcb6f5baebc6db79ef1605f6ee237abd4927e838727e7814b36c5da19ff6341410ae8c3b49711992a0a2cbd58662b5eff802a1d7f8370805eb28a7656843a0c91e32d1add8ad4d7da6e9cd18b4f8e6942df367549fd0ac6233f50d07b7154bf88414c69522103b77df3d540817d20d3414f920ccec61b3395e1dc1ef298194e5ff696e038edd921024173f84acb3de56b3ef99894fa3b9a1fe4c48c1bdc39163c37c274cd0334ba752102c0a82ba398612daa4133a891b3f52832114e0d3d6210348543f1872020556ded53aeffffffff6776b172ad4f9c14bbf6e66f80f540037b8f3bb6f9c9f5023e90ccaec75ae4ba00000000f00041c0ba35934a9199722d3625d04d0aba2e720dbc3753140b5772ad228ffeb09a248015264801d53014d025d92962aac147ada6a2fa70aee5690d2c5740658932ac41413fc0f8d56dafaec63c0cddc146b85d4ff2fe9960d62d3187150bf0cb03a51e184eddd75fefb2f81431a4f1f9981187b1691ec8f2a7f233096146056144c7a52c414c69522103b77df3d540817d20d3414f920ccec61b3395e1dc1ef298194e5ff696e038edd921024173f84acb3de56b3ef99894fa3b9a1fe4c48c1bdc39163c37c274cd0334ba752102c0a82ba398612daa4133a891b3f52832114e0d3d6210348543f1872020556ded53aeffffffff29bedc118ce8c7ef7e21a4f3d5d20478b7334cb5c373a4bd1474895b3a4959c300000000f000416cab3c3e4e0811b32828e4e35a3e8d5bfb320399db3ac6d224e0eb128ee40d06873e890fd5c91f25020cea5512649448483eb01da51620c29c414cebf0334ddb4141c63608acdebcd5a31053ba138c8d7571ba29b5b92b3824b4ff57dae622b7ac202d5a0960893df45fde871c6515cb087133ecc64920c13d085441b373a45a0dd6414c69522103b77df3d540817d20d3414f920ccec61b3395e1dc1ef298194e5ff696e038edd921024173f84acb3de56b3ef99894fa3b9a1fe4c48c1bdc39163c37c274cd0334ba752102c0a82ba398612daa4133a891b3f52832114e0d3d6210348543f1872020556ded53aeffffffff7554425de93c5a602226848926d8d25e728b62fd4874f5caa7fe1bb9bb68164a00000000f00041c94c6009a50c402ceff7b856a1da81d952c3e92907d5d87714b10cec0a4cbe50cd934a409d929b6827e403a9a532eeffae126cae872db1d3345000f619ea940441418e6e09a3df459e6c291468dc979d16a508e27d3fdfa3d8fec10b43c883e326291a4e851fd19d9692e880d90598fe4a3b50b87943e2f78079361c1f61fd721a7c414c69522103b77df3d540817d20d3414f920ccec61b3395e1dc1ef298194e5ff696e038edd921024173f84acb3de56b3ef99894fa3b9a1fe4c48c1bdc39163c37c274cd0334ba752102c0a82ba398612daa4133a891b3f52832114e0d3d6210348543f1872020556ded53aeffffffff1cd8ee79fde87fbac4471102a578dac01447403b04550c0d3d8d0bd1c4fb2c4000000000f000418fff73aca75ca0697c4f1a86b497836b6691e4b2fa45f3e914318bda672395b849bd91d6a75b1eecfcfab2a59b2c61986e9f8fd17a5d841e01a78128a2561d024141cb8a2a1907f0bbcc589a173814ea98cd41c50c7f18dbfd1c1b15618611f19e16bc75dd0bec4f1428b8ada2f486aa97af10797f6fdd4953ac5bdd678ca73e8744414c69522103b77df3d540817d20d3414f920ccec61b3395e1dc1ef298194e5ff696e038edd921024173f84acb3de56b3ef99894fa3b9a1fe4c48c1bdc39163c37c274cd0334ba752102c0a82ba398612daa4133a891b3f52832114e0d3d6210348543f1872020556ded53aeffffffffe40c52f0a1d263fb41ff6d686ab7fe8fba3ad399860494aaa5420ed38b43bdba00000000f00041efa7c036202de9bb056275b88b8dfd8a6e489d16c664e5e2d2cd247aff920fe60bdf5f17eddb6599a111722cd1cef7a86b40f11649c068e9d581d9c8933cacdd41412bd86362b76da8bfaa32ab2889bfbfdadd4f23bfce7468de7426645a61f31c238c88142c7b545c8cae8b751512652e1bb3157458463a6162c841daffbeb4502e414c69522103b77df3d540817d20d3414f920ccec61b3395e1dc1ef298194e5ff696e038edd921024173f84acb3de56b3ef99894fa3b9a1fe4c48c1bdc39163c37c274cd0334ba752102c0a82ba398612daa4133a891b3f52832114e0d3d6210348543f1872020556ded53aeffffffffed6ad21ac2b88cdafae2b63d40bbdb5b7732066fc542f1b6681c8acfc00bec7200000000f000412dc852879b140d812e1f413241b3c55ce6cec6dd6acd083c913ec7e9ba90c7fb0aa1aecb379c3c414a527a08ae087c0698af563715d8635884cfcfc01bc5ed3a414172407736e34d8f9d3aacc67ebf6c123c89b7aa67205d91e9c1eb9e50200def21fa8efcf8917960d51f95c94e7515d6c7bd37405dedbf0e3d3b9652bea59f9158414c69522103b77df3d540817d20d3414f920ccec61b3395e1dc1ef298194e5ff696e038edd921024173f84acb3de56b3ef99894fa3b9a1fe4c48c1bdc39163c37c274cd0334ba752102c0a82ba398612daa4133a891b3f52832114e0d3d6210348543f1872020556ded53aeffffffff8bc812263d2af74c7bae97ce07e0f4cd3ee6f965968013bbd277217673455de700000000f00041c3401c0656ff304c6cb5f233b51d04f8d344bb127cf859ddef92e93717319d3a01348973afb12db689c1f62351ead0912c0d5bd0d0d993550b1f85e60534a87641411f36feebdc6766eb302428c9a6e428bae940777c14526454d8967321c8fe32356fbc44a23c20baa89fe81b9c1e13e03c64b3e1e8d39090c5a776a7013a0ae294414c69522103b77df3d540817d20d3414f920ccec61b3395e1dc1ef298194e5ff696e038edd921024173f84acb3de56b3ef99894fa3b9a1fe4c48c1bdc39163c37c274cd0334ba752102c0a82ba398612daa4133a891b3f52832114e0d3d6210348543f1872020556ded53aeffffffff83c1143190f8e791ed4721fc0c37eeb10a6fe1f28d64735d488cce4431eb89dd00000000f0004107aca154af37c325be9fd9708d28392b40477c80fba1658763922bd1def219c7ae6f0f8d40942b99c5844e77a162f8b439324e7fd4f2b86c8c66b27f9a5c24e241418fdf5b38aa4d769d6268ef063aba49d288babe9a6e038ea75f329de43872060558871872f7886f4572f7b43339cc65c14b34fcd4fa3cb14a0cacf6e0084d7c4c414c69522103b77df3d540817d20d3414f920ccec61b3395e1dc1ef298194e5ff696e038edd921024173f84acb3de56b3ef99894fa3b9a1fe4c48c1bdc39163c37c274cd0334ba752102c0a82ba398612daa4133a891b3f52832114e0d3d6210348543f1872020556ded53aeffffffff0052413adef6ab4075cbb918506c6e2c2a536b3cb8c7cb72d16cd7e70803091a00000000f00041db821df040923aa6c372224ed7feeec7d7bce621f9c889f8a4da20fc023cd3071fc15603bc8c4ea8a79029ee49333f032ccb8b0c23a0c7758e4ab85146f823e34141864e2592c9d728ed3a4a996a506ffd04233d9d99562db30e8065fc2a3957571888873291f46a206d180706e844c01c8a82f36dea15a68a7db181d141da76020e414c69522103b77df3d540817d20d3414f920ccec61b3395e1dc1ef298194e5ff696e038edd921024173f84acb3de56b3ef99894fa3b9a1fe4c48c1bdc39163c37c274cd0334ba752102c0a82ba398612daa4133a891b3f52832114e0d3d6210348543f1872020556ded53aeffffffff850df62f493f53c00cf233c71f07a86f74bdd92bfd2aa78920854bb58c2fa9c901000000f000417dcdce786b38e4d41c8b50b385a18fa4977c5e2edfea12c4d371630e8a6387179cc5a90572f1513dc5664be8b2a4cc4a9b4c1b4f4bc9c987cb1c1fdf0b7267bd41411a1c2ed97ea72068d2941f4e0e18ec4b69ee3d8c931b6291814a8e1eae478defa2e42b90d48a701c0a900a63ca59c2b95d8eb10c71f583c99f660252f5a6acf2414c69522103b77df3d540817d20d3414f920ccec61b3395e1dc1ef298194e5ff696e038edd921024173f84acb3de56b3ef99894fa3b9a1fe4c48c1bdc39163c37c274cd0334ba752102c0a82ba398612daa4133a891b3f52832114e0d3d6210348543f1872020556ded53aeffffffff01e680d502000000001976a9143fda920e686292be324b438d6509123ecd8e1e9f88ac00000000";
+        System.out.println(txHex1.length()/2);
+    }
+
     public static long calcSizeMultiSign(int inputNum, int outputNum, int opReturnBytesLen, int m, int n) {
 
         /*多签单个Input长度：
@@ -675,22 +685,51 @@ public class TxCreator {
                     OP_CHECKMULTISIG    1
          */
 
-        long redeemScriptLength = 1 + (n * 33L) + 1 + 1;
-        long redeemScriptVarInt = VarInt.sizeOf(redeemScriptLength);
-        long scriptLength = 1 + (m * 66L) + redeemScriptVarInt + redeemScriptLength;
-        long scriptVarInt = VarInt.sizeOf(scriptLength);
-        long inputLength = 40 + scriptVarInt + scriptLength;
+        long op_mLen =1;
+        long op_nLen =1;
+        long pubKeyLen = 33;
+        long pubKeyLenLen = 1;
+        long op_checkmultisigLen = 1;
 
-        int opReturnLen = 0;
+        long redeemScriptLength = op_mLen + (n * (pubKeyLenLen + pubKeyLen)) + op_nLen + op_checkmultisigLen; //105 n=3
+        long redeemScriptVarInt = VarInt.sizeOf(redeemScriptLength);//1 n=3
+
+        long op_pushDataLen = 1;
+        long sigHashLen = 1;
+        long signLen=64;
+        long signLenLen = 1;
+        long zeroByteLen = 1;
+
+        long mSignLen = m * (signLenLen + signLen + sigHashLen); //132 m=2
+
+        long scriptLength = zeroByteLen + mSignLen + op_pushDataLen + redeemScriptVarInt + redeemScriptLength;//236 m=2
+        long scriptVarInt = VarInt.sizeOf(scriptLength);
+
+        long preTxIdLen = 32;
+        long preIndexLen = 4;
+        long sequenceLen = 4;
+
+        long inputLength = preTxIdLen + preIndexLen + sequenceLen + scriptVarInt + scriptLength;//240 n=3,m=2
+
+
+        long opReturnLen = 0;
         if (opReturnBytesLen != 0)
             opReturnLen = calcOpReturnLen(opReturnBytesLen);
 
+        long outputValueLen=8;
+        long unlockScriptLen = 25; //If sending to multiSignAddr, it will be 23.
+        long unlockScriptLenLen =1;
+        long outPutLen = outputValueLen + unlockScriptLenLen + unlockScriptLen;
+
+        long inputCountLen=1;
+        long outputCountLen=1;
+        long txVerLen = 4;
+        long nLockTimeLen = 4;
+        long txFixedLen = inputCountLen + outputCountLen + txVerLen + nLockTimeLen;
+
         long length;
-        if (opReturnBytesLen == 0) {
-            length = 10 + inputLength * inputNum + (long) 34 * (outputNum + 1);
-        } else {
-            length = 10 + inputLength * inputNum + (long) 34 * (outputNum + 1) + opReturnLen;
-        }
+        length = txFixedLen + inputLength * inputNum + outPutLen * (outputNum + 1) + opReturnLen;
+
         return length;
     }
 
@@ -789,7 +828,7 @@ public class TxCreator {
 
     public static String sendTxForMsgByAPIP(config.ApiAccount apiAccount, byte[] symKey, byte[] priKey, List<SendTo> sendToList, String msg) {
 
-        byte[] sessionKey = ApiAccount.decryptSessionKey(apiAccount.getSessionKeyCipher(),symKey);
+        byte[] sessionKey = ApiAccount.decryptSessionKey(apiAccount.getSession().getSessionKeyCipher(),symKey);
 
         String sender = priKeyToFid(priKey);
 

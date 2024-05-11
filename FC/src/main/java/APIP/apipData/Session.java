@@ -147,4 +147,5 @@ public class Session {
     public void setSessionKeyCipher(String sessionKeyCipher) {
         this.sessionKeyCipher = sessionKeyCipher;
     }
+
 }

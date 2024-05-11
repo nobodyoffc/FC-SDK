@@ -11,10 +11,12 @@
     <modules>
         <module>FC</module>
         <module>Freeverse</module>
-        <module>DiskManager</module>
-        <module>DiskServer</module>
-        <module>DiskClient</module>
         <module>ChatServer</module>
+        <module>Post</module>
+        <module>Home</module>
+        <module>Team</module>
+        <module>Disk</module>
+        <module>World</module>
     </modules>
 
     <properties>

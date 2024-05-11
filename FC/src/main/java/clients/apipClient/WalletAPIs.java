@@ -12,7 +12,7 @@ public class WalletAPIs {
 
     public static ApipClientData broadcastTxPost(String urlHead, String txHex, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("18");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setOther(txHex);
 
@@ -25,7 +25,7 @@ public class WalletAPIs {
 
     public static ApipClientData decodeRawTxPost(String urlHead, String rawTx, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("18");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setOther(rawTx);
 
@@ -38,7 +38,7 @@ public class WalletAPIs {
 
     public static ApipClientData cashValidForPayPost(String urlHead, String fid, double amount, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("18");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.addNewQuery().addNewTerms().addNewFields(FieldNames.OWNER).addNewValues(fid);
         amount = NumberTools.roundDouble8(amount);
@@ -52,7 +52,7 @@ public class WalletAPIs {
 
     public static ApipClientData cashValidForCdPost(String urlHead, String fid, int cd, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("18");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.addNewQuery().addNewTerms().addNewFields(FieldNames.OWNER).addNewValues(fid);
         fcdsl.setOther(String.valueOf(cd));
@@ -65,7 +65,7 @@ public class WalletAPIs {
 
     public static ApipClientData unconfirmedPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("18");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
 

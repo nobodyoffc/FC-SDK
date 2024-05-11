@@ -60,8 +60,8 @@ public class Rollbacker {
         try(Jedis jedis = jedisPool.getResource()) {
             for (Order order : orderList) {
                 String addr = order.getFromFid();
-                long balance = RedisTools.readHashLong(jedis, addSidBriefToName(sid,Strings.FID_BALANCE), addr);
-                jedis.hset(addSidBriefToName(sid,Strings.FID_BALANCE), addr, String.valueOf(balance - order.getAmount()));
+                long balance = RedisTools.readHashLong(jedis, addSidBriefToName(sid,Strings.BALANCE), addr);
+                jedis.hset(addSidBriefToName(sid,Strings.BALANCE), addr, String.valueOf(balance - order.getAmount()));
 
                 idList.add(order.getOrderId());
             }

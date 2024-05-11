@@ -21,6 +21,7 @@ public class FcReplier {
         this.code = code;
         this.message =message;
         this.data=data;
+        if(code!=0)response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         try {
             response.getWriter().write(toNiceJson());
         } catch (IOException e) {

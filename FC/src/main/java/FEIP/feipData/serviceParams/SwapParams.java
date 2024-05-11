@@ -68,7 +68,7 @@ public class SwapParams extends Params {
         priKeyCipher = null;
         System.out.println("The goods address is " + gAddr);
         System.out.println("The money address is " + mAddr);
-        if(Inputer.askIfYes(br,"Update dealer addresses? y/n:")){
+        if(Inputer.askIfYes(br,"Update dealer addresses?")){
             priKeyCipher = setAddrs(br, symKey.clone());
         }
         updateGoods(br);
@@ -114,7 +114,7 @@ public class SwapParams extends Params {
     @Nullable
     private String setAddrs(BufferedReader br, byte[] initSymKey) {
         String priKeyCipher =null;
-        if(askIfYes(br,"Generate a new dealer? y/n:")){
+        if(askIfYes(br,"Generate a new dealer?")){
 
             ECKey ecKey = KeyTools.generateNewPriKey(br);
             if(ecKey==null){
@@ -182,55 +182,55 @@ public class SwapParams extends Params {
 
     private void updateGAddr(BufferedReader br) {
         System.out.println("The goods address is " + gAddr);
-        if(Inputer.askIfYes(br,"Change it? y/n")) gAddr = Inputer.inputString(br, "Input the address of the goods:");
+        if(Inputer.askIfYes(br,"Change it?")) gAddr = Inputer.inputString(br, "Input the address of the goods:");
     }
     private void updateMAddr(BufferedReader br) {
         System.out.println("The money address is " + mAddr);
-        if(Inputer.askIfYes(br,"Change it? y/n")) mAddr = inputGoodFid(br, "Input the address of the money:");
+        if(Inputer.askIfYes(br,"Change it?")) mAddr = inputGoodFid(br, "Input the address of the money:");
     }
     private void updateGoods(BufferedReader br) {
         System.out.println("The goods is " +goods);
-        if(Inputer.askIfYes(br,"Change it? y/n")) goods= Inputer.inputString(br, "Input the goods:");
+        if(Inputer.askIfYes(br,"Change it?")) goods= Inputer.inputString(br, "Input the goods:");
     }
     private void updateMoney(BufferedReader br) {
         System.out.println("The mTick is " +money);
-        if(Inputer.askIfYes(br,"Change it? y/n")) money= Inputer.inputString(br, "Input the money:");
+        if(Inputer.askIfYes(br,"Change it?")) money= Inputer.inputString(br, "Input the money:");
     }
     private void updateGTick(BufferedReader br) {
         System.out.println("The gTick is " +gTick);
-        if(Inputer.askIfYes(br,"Change it? y/n")) gTick= Inputer.inputString(br, "Input the gTick:");
+        if(Inputer.askIfYes(br,"Change it?")) gTick= Inputer.inputString(br, "Input the gTick:");
     }
     private void updateMTick(BufferedReader br) {
         System.out.println("The mTick is " +mTick);
-        if(Inputer.askIfYes(br,"Change it? y/n")) mTick= Inputer.inputString(br, "Input the mTick:");
+        if(Inputer.askIfYes(br,"Change it?")) mTick= Inputer.inputString(br, "Input the mTick:");
     }
     private void updateCurve(BufferedReader br) {
         System.out.println("The curve is " +curve);
-        if(Inputer.askIfYes(br,"Change it? y/n")) curve= Inputer.inputString(br, "Input the curve formula of AMM:");
+        if(Inputer.askIfYes(br,"Change it?")) curve= Inputer.inputString(br, "Input the curve formula of AMM:");
     }
     private void updateGConfirm(BufferedReader br) {
         System.out.println("The gConfirm is " +gConfirm);
-        if(Inputer.askIfYes(br,"Change it? y/n")) gConfirm= Inputer.inputIntegerStr(br, "Input the gConfirm:");
+        if(Inputer.askIfYes(br,"Change it?")) gConfirm= Inputer.inputIntegerStr(br, "Input the gConfirm:");
     }
     private void updateMConfirm(BufferedReader br) {
         System.out.println("The mConfirm is " +mConfirm);
-        if(Inputer.askIfYes(br,"Change it? y/n")) mConfirm= Inputer.inputIntegerStr(br, "Input the mConfirm:");
+        if(Inputer.askIfYes(br,"Change it?")) mConfirm= Inputer.inputIntegerStr(br, "Input the mConfirm:");
     }
     private void updateGWithdrawFee(BufferedReader br) {
         System.out.println("The gWithdrawFee is " +gWithdrawFee);
-        if(Inputer.askIfYes(br,"Change it? y/n")) gWithdrawFee= Inputer.inputDoubleAsString(br, "Input the " + gWithdrawFee + ":");
+        if(Inputer.askIfYes(br,"Change it?")) gWithdrawFee= Inputer.inputDoubleAsString(br, "Input the " + gWithdrawFee + ":");
     }
     private void updateMWithdrawFee(BufferedReader br) {
         System.out.println("The mWithdrawFee is " +mWithdrawFee);
-        if(Inputer.askIfYes(br,"Change it? y/n")) mWithdrawFee= Inputer.inputDoubleAsString(br, "Input the mWithdrawFee:");
+        if(Inputer.askIfYes(br,"Change it?")) mWithdrawFee= Inputer.inputDoubleAsString(br, "Input the mWithdrawFee:");
     }
     private void updateSwapFee(BufferedReader br) {
         System.out.println("The gWithdrawFee is " +swapFee);
-        if(Inputer.askIfYes(br,"Change it? y/n")) swapFee= Inputer.inputDoubleAsString(br, "Input the " + swapFee + ":");
+        if(Inputer.askIfYes(br,"Change it?")) swapFee= Inputer.inputDoubleAsString(br, "Input the " + swapFee + ":");
     }
     private void updateServiceFee(BufferedReader br) {
         System.out.println("The serviceFee is " +serviceFee);
-        if(Inputer.askIfYes(br,"Change it? y/n"))serviceFee= Inputer.inputDoubleAsString(br, "Input the serviceFee:");
+        if(Inputer.askIfYes(br,"Change it?"))serviceFee= Inputer.inputDoubleAsString(br, "Input the serviceFee:");
     }
 
     public String getGoods() {

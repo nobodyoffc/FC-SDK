@@ -64,7 +64,7 @@ public class Inputer extends appTools.Inputer {
         List<String> fidList = new ArrayList<>();
         do {
             fidList.add(inputOrCreateFid("Set FIDs...", br, symKey, apipClient));
-        }while(askIfYes(br,"Add more? y/n"));
+        }while(askIfYes(br,"Add more?"));
         return fidList.toArray(new String[0]);
     }
     public static Map<String,String> inputGoodFidValueStrMap(BufferedReader br, String mapName, boolean checkFullShare)  {
@@ -170,10 +170,8 @@ public class Inputer extends appTools.Inputer {
     @Nullable
     public static ECKey inputPriKey(BufferedReader br) {
         byte[] priKey32;
-        String input = inputString(br, "Generate a new private key? y/n");
-        if ("y".equals(input)) {
-            return KeyTools.genNewFid(br);
-        } else {
+        if(askIfYes(br,"Generate a new private key?"))return KeyTools.genNewFid(br);
+        else {
             priKey32 = KeyTools.inputCipherGetPriKey(br);
             if (priKey32 != null) return ECKey.fromPrivate(priKey32);
         }

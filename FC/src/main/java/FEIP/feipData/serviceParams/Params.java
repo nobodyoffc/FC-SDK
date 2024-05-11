@@ -19,7 +19,7 @@ public abstract class Params {
 
     public Params() {}
 
-    public static <T> T getParamsFromService(Service service,Class<T> tClass) {
+    public static <T> T getParamsFromService(Service service, Class<T> tClass) {
         T params;
         Gson gson = new Gson();
         try {

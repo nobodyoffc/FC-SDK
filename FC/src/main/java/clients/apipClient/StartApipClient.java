@@ -53,7 +53,7 @@ public class StartApipClient {
             try {
                 initApiAccount = ApiAccount.checkApipAccount(br, symKey);
                 if (initApiAccount == null) return;
-                sessionKey = decryptSessionKey(initApiAccount.getSessionKeyCipher(), symKey);
+                sessionKey = decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), symKey);
 
                 if (sessionKey == null) continue;
 
@@ -1601,7 +1601,7 @@ public class StartApipClient {
             System.out.print("Check password. ");
 
             passwordBytesOld = Inputer.getPasswordBytes(br);
-            byte[] sessionKey = decryptSessionKey(initApiAccount.getSessionKeyCipher(), Hash.Sha256x2(passwordBytesOld));
+            byte[] sessionKey = decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), Hash.Sha256x2(passwordBytesOld));
             if (sessionKey != null) break;
             System.out.println("Wrong password. Try again.");
         }
@@ -1611,7 +1611,7 @@ public class StartApipClient {
 
         byte[] symKeyOld = Hash.Sha256x2(passwordBytesOld);
 
-        byte[] sessionKey = decryptSessionKey(initApiAccount.getSessionKeyCipher(), symKeyOld);
+        byte[] sessionKey = decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), symKeyOld);
         byte[] priKey = EccAes256K1P7.decryptJsonBytes(initApiAccount.getUserPriKeyCipher(), symKeyOld);
 
         byte[] symKeyNew = Hash.Sha256x2(passwordBytesNew);
@@ -1622,7 +1622,7 @@ public class StartApipClient {
         if (sessionKeyCipherNew.contains("Error")) {
             System.out.println("Get sessionKey wrong:" + sessionKeyCipherNew);
         }
-        initApiAccount.setSessionKeyCipher(sessionKeyCipherNew);
+        initApiAccount.getSession().setSessionKeyCipher(sessionKeyCipherNew);
         initApiAccount.setUserPriKeyCipher(buyerPriKeyCipherNew);
 
         ApiAccount.writeApipParamsToFile(initApiAccount, APIP_Account_JSON);

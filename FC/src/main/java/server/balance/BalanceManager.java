@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import server.Settings;
 import server.order.User;
 
 import java.io.BufferedReader;
@@ -116,7 +115,7 @@ public class BalanceManager {
     private static User getUser(String addr, Jedis jedis0Common, Jedis jedis1Session) {
         User user = new User();
         user.setFid(addr);
-        user.setBalance(jedis0Common.hget(sidBrief+"_"+Strings.FID_BALANCE, addr));
+        user.setBalance(jedis0Common.hget(sidBrief+"_"+Strings.BALANCE, addr));
         String sessionName = jedis0Common.hget(sidBrief+"_"+Strings.FID_SESSION_NAME, addr);
         user.setSessionName(sessionName);
         user.setSessionKey(jedis1Session.hget(sessionName, "sessionKey"));

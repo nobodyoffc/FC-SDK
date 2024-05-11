@@ -3,7 +3,7 @@ package startClient;
 import appTools.Menu;
 import clients.apipClient.ApipClient;
 import config.ApiAccount;
-import config.ApiProvider;
+import config.ApiType;
 import redis.clients.jedis.JedisPool;
 import config.Configure;
 import server.Settings;
@@ -20,17 +20,20 @@ public class DiskClientSettings extends Settings {
 
     @Override
     public void initiate(byte[] symKey, Configure config) {
-        System.out.println("Initiating service settings...");
+        System.out.println("Initiating APP settings...");
         this.config=config;
 
         apipAccountId=config.getInitApipAccountId();
         apipAccount = config.getApiAccountMap().get(apipAccountId);
+        if(apipAccount.getClient()==null)
+            apipAccount.connectApip(config.getApiProviderMap().get(apipAccount.getSid()),symKey);
 
         if(diskAccountId==null) {
-            diskAccount = config.initFcAccount((ApipClient) apipAccount.getClient(), ApiProvider.ApiType.DISK,symKey);
+            diskAccount = config.initFcAccount((ApipClient) apipAccount.getClient(), ApiType.DISK,symKey);
             diskAccountId = diskAccount.getId();
         }else {
             diskAccount = config.getApiAccountMap().get(diskAccountId);
+            diskAccount.setApipClient((ApipClient) apipAccount.getClient());
             diskAccount.connectApi(config.getApiProviderMap().get(diskAccount.getSid()),symKey);
         }
         saveSettings();
@@ -39,7 +42,6 @@ public class DiskClientSettings extends Settings {
 
     @Override
     public void inputAll(BufferedReader br) {
-
     }
 
     @Override
@@ -66,7 +68,7 @@ public class DiskClientSettings extends Settings {
     }
 
     @Override
-    public Object resetDefaultApi(byte[] symKey, ApiProvider.ApiType apiType) {
+    public Object resetDefaultApi(byte[] symKey, ApiType apiType) {
         return null;
     }
 
@@ -104,11 +106,4 @@ public class DiskClientSettings extends Settings {
         this.diskAccount = diskAccount;
     }
 
-    public ApiAccount getApipAccount() {
-        return apipAccount;
-    }
-
-    public void setApipAccount(ApiAccount apipAccount) {
-        this.apipAccount = apipAccount;
-    }
 }

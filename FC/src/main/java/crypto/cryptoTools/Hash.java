@@ -1,5 +1,8 @@
 package crypto.cryptoTools;
 
+import com.google.common.hash.HashCode;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import javaTools.Hex;
 import org.bouncycastle.crypto.digests.RIPEMD160Digest;
@@ -27,6 +30,34 @@ public class Hash {
     private Hash() {
     }
 
+    public static HashCode Sha256HashCode(File file) throws IOException {
+        HashFunction hashFunction = Hashing.sha256();
+        try (FileInputStream fis = new FileInputStream(file)) {
+            Hasher hasher = hashFunction.newHasher();
+            byte[] buffer = new byte[8192]; // 8KB buffer size
+            int bytesRead;
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                hasher.putBytes(buffer, 0, bytesRead);
+            }
+            return hasher.hash();
+        }
+    }
+    public static String Sha256(File file) throws IOException {
+        return Sha256HashCode(file).toString();
+    }
+    public static byte[] Sha256Bytes(File file) throws IOException {
+        return Sha256HashCode(file).asBytes();
+    }
+
+    public static String Sha256x2(File file) throws IOException {
+        byte[] hashBytes = sha256x2Bytes(file);
+        return Hex.toHex(sha256(hashBytes));
+    }
+
+    private static byte[] sha256x2Bytes(File file) throws IOException {
+        return Sha256HashCode(file).asBytes();
+    }
+
     public static byte[] Sha256(byte[] b) {
         return Hashing.sha256().hashBytes(b).asBytes();
     }
@@ -35,27 +66,27 @@ public class Hash {
         return Hashing.sha256().hashBytes(Hashing.sha256().hashBytes(b).asBytes()).asBytes();
     }
 
-    public static String Sha256x2(File file) throws IOException {
-        String str;
-        try (FileInputStream fis = new FileInputStream(file)) {
-            byte[] bytes = fis.readAllBytes();
-            str = Hashing.sha256().hashBytes(Hashing.sha256().hashBytes(bytes).asBytes()).toString();
-        }
-        return str;
-    }
+//    public static String Sha256x2(File file) throws IOException {
+//        String str;
+//        try (FileInputStream fis = new FileInputStream(file)) {
+//            byte[] bytes = fis.readAllBytes();
+//            str = Hashing.sha256().hashBytes(Hashing.sha256().hashBytes(bytes).asBytes()).toString();
+//        }
+//        return str;
+//    }
 
     public static byte[] Sha512x2(byte[] b) {
         return Hashing.sha512().hashBytes(Hashing.sha512().hashBytes(b).asBytes()).asBytes();
     }
 
-    public static String Sha256(File file) throws IOException {
-        String str;
-        try (FileInputStream fis = new FileInputStream(file)) {
-            byte[] bytes = fis.readAllBytes();
-            str = Hashing.sha256().hashBytes(bytes).toString();
-        }
-        return str;
-    }
+//    public static String Sha256(File file) throws IOException {
+//        String str;
+//        try (FileInputStream fis = new FileInputStream(file)) {
+//            byte[] bytes = fis.readAllBytes();
+//            str = Hashing.sha256().hashBytes(bytes).toString();
+//        }
+//        return str;
+//    }
 
     public static String Sha256(String s) {
         return Hashing.sha256().hashBytes(s.getBytes()).toString();

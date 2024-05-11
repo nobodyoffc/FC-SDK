@@ -1,22 +1,22 @@
 package APIP.apipData;
 
 public class ResponseBody {
-    private int code;
+    private Integer code;
     private String message;
-    private long nonce;
-    private long balance;
-    private int got;
-    private long total;
-    private long bestHeight;
+    private Long nonce;
+    private Long balance;
+    private Integer got;
+    private Long total;
+    private Long bestHeight;
     private Object data;
     private String via;
     private String[] last;
 
-    public int getCode() {
+    public Integer getCode() {
         return code;
     }
 
-    public void setCode(int code) {
+    public void setCode(Integer code) {
         this.code = code;
     }
 
@@ -28,43 +28,43 @@ public class ResponseBody {
         this.message = message;
     }
 
-    public long getNonce() {
+    public Long getNonce() {
         return nonce;
     }
 
-    public void setNonce(long nonce) {
+    public void setNonce(Long nonce) {
         this.nonce = nonce;
     }
 
-    public long getBalance() {
+    public Long getBalance() {
         return balance;
     }
 
-    public void setBalance(long balance) {
+    public void setBalance(Long balance) {
         this.balance = balance;
     }
 
-    public int getGot() {
+    public Integer getGot() {
         return got;
     }
 
-    public void setGot(int got) {
+    public void setGot(Integer got) {
         this.got = got;
     }
 
-    public long getTotal() {
+    public Long getTotal() {
         return total;
     }
 
-    public void setTotal(long total) {
+    public void setTotal(Long total) {
         this.total = total;
     }
 
-    public long getBestHeight() {
+    public Long getBestHeight() {
         return bestHeight;
     }
 
-    public void setBestHeight(long bestHeight) {
+    public void setBestHeight(Long bestHeight) {
         this.bestHeight = bestHeight;
     }
 

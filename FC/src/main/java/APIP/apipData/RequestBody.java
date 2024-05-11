@@ -9,6 +9,7 @@ public class RequestBody {
     private Long time;
     private Long nonce;
     private String via;
+    private Object data;
     private Fcdsl fcdsl;
     private SignInMode mode;
     public static enum SignInMode{
@@ -99,5 +100,13 @@ public class RequestBody {
 
     public void setMode(SignInMode mode) {
         this.mode = mode;
+    }
+
+    public Object getData() {
+        return data;
+    }
+
+    public void setData(Object data) {
+        this.data = data;
     }
 }

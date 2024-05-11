@@ -9,7 +9,7 @@ public class PublishAPIs {
 
     public static ApipClientData tokenByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("16");
+       
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
 
@@ -22,7 +22,7 @@ public class PublishAPIs {
 
     public static ApipClientData tokenSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("16");
+       
 
         String urlTail = ApiNames.APIP16V1Path + ApiNames.TokenSearchAPI;
 
@@ -33,7 +33,7 @@ public class PublishAPIs {
 
     public static ApipClientData tokenHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("16");
+       
 
         String urlTail = ApiNames.APIP16V1Path + ApiNames.TokenHistoryAPI;
 
@@ -44,7 +44,7 @@ public class PublishAPIs {
 
     public static ApipClientData tokenHolderByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("16");
+       
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
 
@@ -57,7 +57,7 @@ public class PublishAPIs {
 
     public static ApipClientData myTokensPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("16");
+       
 
         String urlTail = ApiNames.APIP16V1Path + ApiNames.MyTokensAPI;
 
@@ -68,7 +68,7 @@ public class PublishAPIs {
 
     public static ApipClientData tokenHoldersPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("16");
+       
 
         String urlTail = ApiNames.APIP16V1Path + ApiNames.TokenHoldersAPI;
 
@@ -78,7 +78,7 @@ public class PublishAPIs {
     }
     public static ApipClientData proofByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("14");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
 
@@ -91,7 +91,6 @@ public class PublishAPIs {
 
     public static ApipClientData proofSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("14");
 
         String urlTail = ApiNames.APIP14V1Path + ApiNames.ProofSearchAPI;
 
@@ -102,7 +101,7 @@ public class PublishAPIs {
 
     public static ApipClientData proofHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("14");
+        
 
         String urlTail = ApiNames.APIP14V1Path + ApiNames.ProofHistoryAPI;
 
@@ -113,7 +112,7 @@ public class PublishAPIs {
 
     public static ApipClientData statementByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("15");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
 
@@ -126,7 +125,7 @@ public class PublishAPIs {
 
     public static ApipClientData statementSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("15");
+        
 
         String urlTail = ApiNames.APIP15V1Path + ApiNames.StatementSearchAPI;
 
@@ -137,7 +136,6 @@ public class PublishAPIs {
 
     public static ApipClientData nidSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("19");
         apipClientData.setRawFcdsl(fcdsl);
 
         String urlTail = ApiNames.APIP19V1Path + ApiNames.NidSearchAPI;

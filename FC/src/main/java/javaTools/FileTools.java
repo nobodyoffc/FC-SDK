@@ -82,7 +82,7 @@ public class FileTools {
         }
     }
 
-    public static boolean writeBytesToFreeDisk(byte[] bytes, String storageDir) {
+    public static String writeBytesToDisk(byte[] bytes, String storageDir) {
         String did = Hex.toHex(Hash.Sha256x2(bytes));
         String subDir = getSubPathForFreeDisk(did);
         String path = storageDir+subDir;
@@ -91,15 +91,16 @@ public class FileTools {
         if(!file.exists()) {
             try {
                 boolean done = createFileWithDirectories(path+"/"+did);
-                if(!done)return false;
+                if(!done)return null;
                 try (OutputStream outputStream = new FileOutputStream(file)) {
                     outputStream.write(bytes);
-                    return true;
+                    return did;
                 }
             } catch (IOException e) {
-                return false;
+                return null;
             }
-        }else return checkFileOfFreeDisk(bytes, storageDir, did);
+        }else if(checkFileOfFreeDisk(path, did))return did;
+        else return null;
     }
 
     public static boolean createFileWithDirectories(String filePathString) {
@@ -141,24 +142,8 @@ public class FileTools {
         return "/"+did.substring(0,2)+"/"+did.substring(2,4)+"/"+did.substring(4,6)+"/"+did.substring(6,8);
     }
 
-    public static boolean checkFileOfFreeDisk(byte[] bytes, String storageDir, String did) {
-        if (bytes==null)return false;
-        File file = new File(storageDir,did);
-        if(!file.exists())return false;
-        String inputDid = Hex.toHex(Hash.Sha256x2(bytes));
-        byte[] existBytes;
-        try(FileInputStream fileInputStream = new FileInputStream(file)) {
-            existBytes = fileInputStream.readAllBytes();
-        } catch (IOException e) {
-            return false;
-        }
-        String existDid = Hex.toHex(Hash.Sha256x2(existBytes));
-        return inputDid.equals(existDid);
-    }
-
-    public static boolean checkFileOfFreeDisk(String storageDir, String did) {
-        String path = FileTools.getSubPathForFreeDisk(did);
-        File file = new File(storageDir+path, did);
+    public static boolean checkFileOfFreeDisk(String path, String did) {
+        File file = new File(path,did);
         if(!file.exists())return false;
         byte[] existBytes;
         try(FileInputStream fileInputStream = new FileInputStream(file)) {
@@ -169,6 +154,20 @@ public class FileTools {
         String existDid = Hex.toHex(Hash.Sha256x2(existBytes));
         return did.equals(existDid);
     }
+
+//    public static boolean checkFileOfFreeDisk(String storageDir, String did) {
+//        String path = FileTools.getSubPathForFreeDisk(did);
+//        File file = new File(storageDir+path, did);
+//        if(!file.exists())return false;
+//        byte[] existBytes;
+//        try(FileInputStream fileInputStream = new FileInputStream(file)) {
+//            existBytes = fileInputStream.readAllBytes();
+//        } catch (IOException e) {
+//            return false;
+//        }
+//        String existDid = Hex.toHex(Hash.Sha256x2(existBytes));
+//        return did.equals(existDid);
+//    }
     public static enum Mode{
         REWRITE,ADD_1,RETURN_NULL,THROW_EXCEPTION
     }

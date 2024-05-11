@@ -20,7 +20,7 @@ import config.Configure;
 import java.io.BufferedReader;
 import java.util.ArrayList;
 
-import static clients.apipClient.ApipClient.checkApipBalance;
+import static clients.apipClient.ApipClient.checkBalance;
 
 //TODO The methods of inputParams and updateParams have to be override.
 public abstract class ServiceManager {
@@ -79,7 +79,7 @@ public abstract class ServiceManager {
             Menu.anyKeyToContinue(br);
             return;
         }
-        checkApipBalance(apipAccount, apipClientData, symKey);
+        checkBalance(apipAccount, apipClientData, symKey);
     }
 
     private void showService() {

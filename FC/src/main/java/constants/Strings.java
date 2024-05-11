@@ -1,7 +1,5 @@
 package constants;
 
-import APIP.apipData.RequestBody;
-
 public class Strings {
 
     //Redis keys
@@ -11,13 +9,13 @@ public class Strings {
     public static final String CONFIG = "config";
     public static final String TOMCAT_BASE_PATH = "tomcatBasePath";
     public static final String ES_IP = "esIp";
+    public static final String SIGN = "sign";
     public static final String ES_PORT = "esPort";
 
     public static final String SCAN_MEMPOOL = "scanMempool";
     public static final String SIGNER = "signer";
 
     public static final String ES_PASSWORD_CIPHER = "esPasswordCipher";
-    public static final String FID_BALANCE = "fidBalance";
     public static final String ORDER_LAST_HEIGHT = "orderLastHeight";
     public static final String FID_SESSION_NAME = "fidSessionName";
     public static final String ACCOUNT = "account";
@@ -86,6 +84,7 @@ public class Strings {
     public static final String HOOK_INFO_ = "hookInfo_";
 
     public static final String FCH = "fch";
+    public static final String AGAIN = "again";
     public static final String WEBHOOK_ENDPOINT_SESSION_KEY = "webhookEndpointSessionKey";
     public static final String DOT_JSON = ".json";
     public static final String CASH_ID = "cashId";

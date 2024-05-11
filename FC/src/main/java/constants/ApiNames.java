@@ -3,6 +3,7 @@ package constants;
 import java.util.ArrayList;
 
 public class ApiNames {
+    public static final String SN_0 = "0";
     public static String[] OpenAPIs;
     public static String[] FreeGetAPIs;
     public static String[] SwapHallAPIs;
@@ -41,8 +42,10 @@ public class ApiNames {
     public static final String FreeGetPath = "/freeGet/v1/";
     public static final String SwapHallPath = "/swapHall/v1/";
     public static final String ToolsPath = "/tools/";
-    public static final String FreeDiskApiPath ="/";
+    public static final String VersionV1 ="v1";
+    public static final String DiskApiType ="disk";
     public static final String SignInAPI = "signIn";
+    public static final String PingAPI = "ping";
     public static final String SignInEccAPI = "signInEcc";
     public static final String GeneralAPI = "general";
     public static final String TotalsAPI = "totals";
@@ -169,12 +172,14 @@ public class ApiNames {
     public static final String TokenHolderByIdsAPI = "tokenHolderByIds";
     public static final String TokenHoldersAPI = "tokenHolders";
     public static final String TokenSearchAPI = "tokenSearch";
-    public static final String putApi = "put";
-    public static final String getApi = "get";
-    public static final String checkApi = "check";
+    public static final String PutApi = "put";
+    public static final String GetApi = "get";
+    public static final String CheckApi = "check";
+    public static final String ListApi = "list";
+
 
     public static ArrayList<String> freeApiList = new ArrayList<>();
-
+    public static ArrayList<String> diskApiList = new ArrayList<>();
 
     public static final String GetFreeKeyAPI="getFreeKey";
     public static final String GetCirculatingAPI="getCirculating";
@@ -248,7 +253,7 @@ public class ApiNames {
         };
 
         FreeDiskAPIs = new String[]{
-                putApi,getApi,checkApi
+                PutApi, GetApi, CheckApi
         };
 
         FreeGetAPIs = new String[]{
@@ -266,6 +271,13 @@ public class ApiNames {
         freeApiList.add(ApiNames.GetCashesAPI);
         freeApiList.add(ApiNames.GetFidCidAPI);
         freeApiList.add(ApiNames.GetServicesAPI);
+
+        diskApiList.add(SignInAPI);
+        diskApiList.add(SignInEccAPI);
+        diskApiList.add(PutApi);
+        diskApiList.add(GetApi);
+        diskApiList.add(CheckApi);
+        diskApiList.add(ListApi);
 
         SwapHallAPIs = new String[]{
                 SwapRegisterAPI,SwapUpdateAPI,SwapStateAPI,

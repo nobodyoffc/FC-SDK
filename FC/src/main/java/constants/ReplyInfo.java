@@ -54,8 +54,8 @@ public class ReplyInfo {
     public static final int Code1021FidIsRequired = 1021;
     public static final String Msg1021FidIsRequired = "FID is Required.";
 
-    public static final int Code2001NoFreeGet = 2001;
-    public static final String Msg2001NoFreeGet = "FreeGet API is not active now.";
+    public static final int Code2001FreeGetIsForbidden = 2001;
+    public static final String Msg2001FreeGetIsForbidden = "Free API is not active now.";
     public static final int Code2002CidNoFound = 2002;
     public static final String Msg2002CidNoFound = "Cid no found.";
 

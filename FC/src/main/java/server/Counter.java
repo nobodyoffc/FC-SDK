@@ -217,8 +217,8 @@ protected void waitNewOrder() {
             for (Order order : orderList) {
                 String payer = order.getFromFid();
                 if (payer != null) {
-                    long balance = readHashLong(jedis0Common, Settings.addSidBriefToName(sid,Strings.FID_BALANCE), payer);
-                    jedis0Common.hset(Settings.addSidBriefToName(sid,Strings.FID_BALANCE), payer, String.valueOf(balance + order.getAmount()));
+                    long balance = readHashLong(jedis0Common, Settings.addSidBriefToName(sid,Strings.BALANCE), payer);
+                    jedis0Common.hset(Settings.addSidBriefToName(sid,Strings.BALANCE), payer, String.valueOf(balance + order.getAmount()));
                 } else continue;
 
                 String via = order.getVia();

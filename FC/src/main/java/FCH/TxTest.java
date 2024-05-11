@@ -170,9 +170,9 @@ public class TxTest {
         byte[] symKey = Hash.Sha256x2(passwordBytes);
         byte[] sessionKey = new byte[0];
         try {
-            ApiAccount initApipParamsForClient = ApiAccount.checkApipAccount(br, passwordBytes.clone());
-            if (initApipParamsForClient == null) return null;
-            sessionKey = initApipParamsForClient.decryptSessionKey(initApipParamsForClient.getSessionKeyCipher(), Hash.Sha256x2(passwordBytes));
+            ApiAccount apiAccount = ApiAccount.checkApipAccount(br, passwordBytes.clone());
+            if (apiAccount == null) return null;
+            sessionKey = apiAccount.decryptSessionKey(apiAccount.getSession().getSessionKeyCipher(), Hash.Sha256x2(passwordBytes));
             if (sessionKey == null) return null;
             BytesTools.clearByteArray(passwordBytes);
         } catch (Exception e) {

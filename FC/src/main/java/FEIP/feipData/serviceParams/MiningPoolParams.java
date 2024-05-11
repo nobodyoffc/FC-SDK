@@ -44,23 +44,23 @@ public class MiningPoolParams {
 
     private void updateCashier(BufferedReader br) {
         System.out.println("The cashier is " +cashier);
-        if(Inputer.askIfYes(br,"Change it? y/n")) cashier= Inputer.inputString(br, "Input the cashier:");
+        if(Inputer.askIfYes(br,"Change it?")) cashier= Inputer.inputString(br, "Input the cashier:");
     }
     private void updateFeeRate(BufferedReader br) {
         System.out.println("The feeRate is " + feeRate);
-        if(Inputer.askIfYes(br,"Change it? y/n")) feeRate = Inputer.inputString(br, "Input the feeRate:");
+        if(Inputer.askIfYes(br,"Change it?")) feeRate = Inputer.inputString(br, "Input the feeRate:");
     }
     private void updateFeeMode(BufferedReader br) {
         System.out.println("The feeMode is " + feeMode);
-        if(Inputer.askIfYes(br,"Change it? y/n")) feeMode = Inputer.inputString(br, "Input the feeMode:");
+        if(Inputer.askIfYes(br,"Change it?")) feeMode = Inputer.inputString(br, "Input the feeMode:");
     }
     private void updateTicks(BufferedReader br) {
         System.out.println("The ticks is " + Arrays.toString(ticks));
-        if(Inputer.askIfYes(br,"Change it? y/n")) ticks = Inputer.inputStringArray(br, "Input the ticks:",0);
+        if(Inputer.askIfYes(br,"Change it?")) ticks = Inputer.inputStringArray(br, "Input the ticks:",0);
     }
     private void updatePayDays(BufferedReader br) {
         System.out.println("The payDays is " +payDays);
-        if(Inputer.askIfYes(br,"Change it? y/n")) payDays= Inputer.inputString(br, "Input the payDays:");
+        if(Inputer.askIfYes(br,"Change it?")) payDays= Inputer.inputString(br, "Input the payDays:");
     }
 
     public String getCashier() {

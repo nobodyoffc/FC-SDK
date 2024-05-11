@@ -3,6 +3,7 @@ package startManager;
 import appTools.Menu;
 import config.ApiAccount;
 import config.ApiProvider;
+import config.ApiType;
 import constants.FieldNames;
 import clients.redisClient.RedisTools;
 import constants.Strings;
@@ -41,6 +42,7 @@ public class DiskManagerSettings extends Settings {
             apipAccount = config.getApiAccountMap().get(apipAccountId);
             apipAccount.connectApi(config.getApiProviderMap().get(apipAccount.getSid()),symKey);
         }
+
         if(redisAccountId==null) {
             redisAccount = config.checkAPI(redisAccountId, "redis", symKey);
             redisAccountId = redisAccount.getId();
@@ -112,31 +114,7 @@ public class DiskManagerSettings extends Settings {
         jedisPool.close();
         esAccount.closeEs();
     }
-
-    //    private static void checkApis(Starter starter) {
-//        FreeDiskSetter freeDiskSetter = (FreeDiskSetter) starter.getSetter();
-//        do {
-//            if (apipClient == null) {
-//                if (Inputer.askIfYes(br, "ApipClient is null, but its necessary. Set it now? y/n")) {
-//                    apipClient = (ApipClient) freeDiskSetter.resetDefaultApi(symKey, ApiProvider.ApiType.APIP);
-//                } else System.exit(0);
-//            }
-//
-//            if (jedisPool == null) {
-//                if (Inputer.askIfYes(br, "JedisPool is null, but its necessary. Set it them? y/n")) {
-//                    jedisPool = (JedisPool) freeDiskSetter.resetDefaultApi(symKey, ApiProvider.ApiType.Redis);
-//                } else System.exit(0);
-//            }
-//
-//            if (esClient == null) {
-//                if (Inputer.askIfYes(br, "EsClient is null, but its necessary. Set it them? y/n")) {
-//                    esClient = (ElasticsearchClient) freeDiskSetter.resetDefaultApi(symKey, ApiProvider.ApiType.ES);
-//                } else System.exit(0);
-//            }
-//        } while (apipClient == null || jedisPool == null || esClient == null);
-//        starter.config.saveConfig(jedisPool);
-//    }
-    public Object resetDefaultApi(byte[] symKey, ApiProvider.ApiType apiType) {
+    public Object resetDefaultApi(byte[] symKey, ApiType apiType) {
         System.out.println("Reset API service...");
         ApiProvider apiProvider = config.chooseApiProviderOrAdd();
         ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, symKey);
@@ -147,7 +125,7 @@ public class DiskManagerSettings extends Settings {
                 switch (apiType) {
                     case APIP -> apipAccountId=apiAccount.getId();
                     case ES -> esAccountId=apiAccount.getId();
-                    case Redis -> redisAccountId=apiAccount.getId();
+                    case REDIS -> redisAccountId=apiAccount.getId();
                     default -> {
                         return client;
                     }
@@ -163,6 +141,7 @@ public class DiskManagerSettings extends Settings {
 
         if(diskManagerSettings ==null){
             diskManagerSettings = new DiskManagerSettings();
+            diskManagerSettings.setSid(sid);
             diskManagerSettings.br = br;
             diskManagerSettings.inputAll(br);
             if(jedisPool!=null)diskManagerSettings.saveSettings();
@@ -256,23 +235,6 @@ public class DiskManagerSettings extends Settings {
         }
     }
 
-
-    public String getListenPath() {
-        return listenPath;
-    }
-
-    public void setListenPath(String listenPath) {
-        this.listenPath = listenPath;
-    }
-
-    public boolean isFromWebhook() {
-        return fromWebhook;
-    }
-
-    public void setFromWebhook(boolean fromWebhook) {
-        this.fromWebhook = fromWebhook;
-    }
-
     public boolean isForbidFreeApi() {
         return forbidFreeApi;
     }
@@ -303,30 +265,6 @@ public class DiskManagerSettings extends Settings {
 
     public void setApipAccountId(String apipAccountId) {
         this.apipAccountId = apipAccountId;
-    }
-
-    public ApiAccount getApipAccount() {
-        return apipAccount;
-    }
-
-    public void setApipAccount(ApiAccount apipAccount) {
-        this.apipAccount = apipAccount;
-    }
-
-    public ApiAccount getEsAccount() {
-        return esAccount;
-    }
-
-    public void setEsAccount(ApiAccount esAccount) {
-        this.esAccount = esAccount;
-    }
-
-    public ApiAccount getRedisAccount() {
-        return redisAccount;
-    }
-
-    public void setRedisAccount(ApiAccount redisAccount) {
-        this.redisAccount = redisAccount;
     }
 
     public long getWindowTime() {

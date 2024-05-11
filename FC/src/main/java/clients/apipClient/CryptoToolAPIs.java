@@ -19,7 +19,7 @@ public class CryptoToolAPIs {
 
     public static ApipClientData addressesPost(String urlHead, String addrOrPubKey, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("21");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setOther(addrOrPubKey);
 
@@ -32,7 +32,7 @@ public class CryptoToolAPIs {
 
     public static ApipClientData encryptPost(String urlHead, String key, String message, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("21");
+        
         Fcdsl fcdsl = new Fcdsl();
         EncryptIn encryptIn = new EncryptIn();
         encryptIn.setMsg(message);
@@ -53,7 +53,7 @@ public class CryptoToolAPIs {
 
     public static ApipClientData verifyPost(String urlHead, String signature, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("21");
+        
         Fcdsl fcdsl = new Fcdsl();
         Map<String, String> signMap = new HashMap<>();
 
@@ -74,7 +74,7 @@ public class CryptoToolAPIs {
 
     public static ApipClientData sha256Post(String urlHead, String text, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("21");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setOther(text);
 
@@ -87,7 +87,7 @@ public class CryptoToolAPIs {
 
     public static ApipClientData sha256x2Post(String urlHead, String text, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("21");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setOther(text);
 
@@ -105,7 +105,7 @@ public class CryptoToolAPIs {
         }
 
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("21");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setOther(hex);
 
@@ -122,7 +122,7 @@ public class CryptoToolAPIs {
             return null;
         }
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("21");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setOther(hex);
 
@@ -135,7 +135,7 @@ public class CryptoToolAPIs {
 
     public static ApipClientData offLineTxPost(String urlHead, String fromFid, List<SendTo> sendToList, String msg, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("21");
+        
         Fcdsl fcdsl = new Fcdsl();
         DataForOffLineTx dataForOffLineTx = new DataForOffLineTx();
         dataForOffLineTx.setFromFid(fromFid);
@@ -152,7 +152,7 @@ public class CryptoToolAPIs {
 
     public static ApipClientData offLineTxByCdPost(String urlHead, String fromFid, List<SendTo> sendToList, String msg, int cd, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("21");
+        
         Fcdsl fcdsl = new Fcdsl();
         DataForOffLineTx dataForOffLineTx = new DataForOffLineTx();
         dataForOffLineTx.setCd(cd);

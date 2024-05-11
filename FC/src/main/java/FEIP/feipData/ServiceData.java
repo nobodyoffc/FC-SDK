@@ -109,7 +109,7 @@ public class ServiceData {
 	}
 
 	private void inputWaiters(BufferedReader br, byte[] symKey, ApipClient apipClient) {
-		if(Inputer.askIfYes(br,"Input the FCH address of the waiter for your service? y/n:")) {
+		if(Inputer.askIfYes(br,"Input the FCH address of the waiter for your service?")) {
 			String[] waiters = FCH.Inputer.inputOrCreateFidArray(br,symKey,apipClient);
 			if(waiters.length!=0) setWaiters(waiters);
 		}

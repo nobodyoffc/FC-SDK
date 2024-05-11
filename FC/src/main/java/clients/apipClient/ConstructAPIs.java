@@ -9,7 +9,7 @@ public class ConstructAPIs {
 
     public static ApipClientData protocolByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("4");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
 
@@ -22,7 +22,7 @@ public class ConstructAPIs {
 
     public static ApipClientData protocolSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("4");
+        
 
         String urlTail = ApiNames.APIP4V1Path + ApiNames.ProtocolSearchAPI;
 
@@ -33,7 +33,7 @@ public class ConstructAPIs {
 
     public static ApipClientData protocolOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("4");
+        
 
         String urlTail = ApiNames.APIP4V1Path + ApiNames.ProtocolOpHistoryAPI;
 
@@ -44,7 +44,7 @@ public class ConstructAPIs {
 
     public static ApipClientData protocolRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("4");
+        
         String urlTail = ApiNames.APIP4V1Path + ApiNames.ProtocolRateHistoryAPI;
 
         boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
@@ -54,7 +54,7 @@ public class ConstructAPIs {
 
     public static ApipClientData codeByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("5");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
 
@@ -67,7 +67,7 @@ public class ConstructAPIs {
 
     public static ApipClientData codeSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("5");
+        
 
         String urlTail = ApiNames.APIP5V1Path + ApiNames.CodeSearchAPI;
 
@@ -78,7 +78,7 @@ public class ConstructAPIs {
 
     public static ApipClientData codeOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("5");
+        
 
         String urlTail = ApiNames.APIP5V1Path + ApiNames.CodeOpHistoryAPI;
 
@@ -89,7 +89,7 @@ public class ConstructAPIs {
 
     public static ApipClientData codeRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("5");
+        
         String urlTail = ApiNames.APIP5V1Path + ApiNames.CodeRateHistoryAPI;
 
         boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
@@ -100,7 +100,7 @@ public class ConstructAPIs {
 
     public static ApipClientData serviceByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("6");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
 
@@ -113,7 +113,6 @@ public class ConstructAPIs {
 
     public static ApipClientData serviceSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("6");
 
         String urlTail = ApiNames.APIP6V1Path + ApiNames.ServiceSearchAPI;
 
@@ -124,7 +123,7 @@ public class ConstructAPIs {
 
     public static ApipClientData serviceOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("6");
+        
 
         String urlTail = ApiNames.APIP6V1Path + ApiNames.ServiceOpHistoryAPI;
 
@@ -135,7 +134,7 @@ public class ConstructAPIs {
 
     public static ApipClientData serviceRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("6");
+        
         String urlTail = ApiNames.APIP6V1Path + ApiNames.ServiceRateHistoryAPI;
 
         boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
@@ -146,7 +145,7 @@ public class ConstructAPIs {
 
     public static ApipClientData appByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("7");
+        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
 
@@ -159,7 +158,7 @@ public class ConstructAPIs {
 
     public static ApipClientData appSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("7");
+        
 
         String urlTail = ApiNames.APIP7V1Path + ApiNames.AppSearchAPI;
 
@@ -170,7 +169,7 @@ public class ConstructAPIs {
 
     public static ApipClientData appOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("7");
+        
 
         String urlTail = ApiNames.APIP7V1Path + ApiNames.AppOpHistoryAPI;
 
@@ -181,7 +180,7 @@ public class ConstructAPIs {
 
     public static ApipClientData appRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("7");
+        
         String urlTail = ApiNames.APIP7V1Path + ApiNames.AppRateHistoryAPI;
 
         boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);

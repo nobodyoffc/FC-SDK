@@ -17,7 +17,7 @@ public class OpenAPIs {
 
     public static ApipClientData signInPost(String urlHead, String via, byte[] priKey, RequestBody.SignInMode mode) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("0");
+        
         String urlTail = ApiNames.APIP0V1Path + ApiNames.SignInAPI;
         doSignIn(apipClientData, urlHead, via, priKey, urlTail, mode);
 
@@ -26,7 +26,7 @@ public class OpenAPIs {
 
     public static ApipClientData signInEccPost(String urlHead, @Nullable String via, byte[] priKey, @Nullable RequestBody.SignInMode modeNullOrRefresh) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("0");
+        
         String urlTail = ApiNames.APIP0V1Path + ApiNames.SignInEccAPI;
         doSignIn(apipClientData, urlHead, via, priKey, urlTail, modeNullOrRefresh);
 
@@ -55,7 +55,7 @@ public class OpenAPIs {
 
     public static ApipClientData totalsPost(String urlHead, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("0");
+        
         String urlTail = ApiNames.APIP0V1Path + ApiNames.TotalsAPI;
 
         boolean isGood = apipClientData.post(urlHead, urlTail, apipClientData.getRawFcdsl(), via, sessionKey);
@@ -65,7 +65,6 @@ public class OpenAPIs {
 
     public static ApipClientData generalPost(String index, String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
         ApipClientData apipClientData = new ApipClientData();
-        apipClientData.setSn("1");
         if (index == null) {
             System.out.println("The index name is required.");
             return null;

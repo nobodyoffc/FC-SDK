@@ -58,7 +58,7 @@ public class startFchClient {
             try {
                 initApiAccount = ApiAccount.checkApipAccount(br, passwordBytes);
                 if (initApiAccount == null) return;
-                sessionKey = initApiAccount.decryptSessionKey(initApiAccount.getSessionKeyCipher(), Hash.Sha256x2(passwordBytes));
+                sessionKey = ApiAccount.decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), Hash.Sha256x2(passwordBytes));
                 if (sessionKey == null) continue;
                 BytesTools.clearByteArray(passwordBytes);
                 break;
@@ -442,7 +442,7 @@ public class startFchClient {
 
         String sender = priKeyToFid(priKey);
         System.out.println("The sender is :" + sender);
-        byte[] sessionKey = initApiAccount.decryptSessionKey(initApiAccount.getSessionKeyCipher(), symKey);
+        byte[] sessionKey = initApiAccount.decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), symKey);
         ApipClientData apipClientData;
 
         apipClientData = BlockchainAPIs.fidByIdsPost(initApiAccount.getApiUrl(), new String[]{sender}, initApiAccount.getVia(), sessionKey);
@@ -634,7 +634,7 @@ public class startFchClient {
             System.out.print("Check password. ");
 
             passwordBytesOld = Inputer.getPasswordBytes(br);
-            byte[] sessionKey = initApiAccount.decryptSessionKey(initApiAccount.getSessionKeyCipher(), Hash.Sha256x2(passwordBytesOld));
+            byte[] sessionKey = ApiAccount.decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), Hash.Sha256x2(passwordBytesOld));
             if (sessionKey != null) break;
             System.out.println("Wrong password. Try again.");
         }
@@ -644,7 +644,7 @@ public class startFchClient {
 
         byte[] symKeyOld = Hash.Sha256x2(passwordBytesOld);
 
-        byte[] sessionKey = initApiAccount.decryptSessionKey(initApiAccount.getSessionKeyCipher(), symKeyOld);
+        byte[] sessionKey = ApiAccount.decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), symKeyOld);
         byte[] priKey = EccAes256K1P7.decryptJsonBytes(initApiAccount.getUserPriKeyCipher(), symKeyOld);
 
         byte[] symKeyNew = Hash.Sha256x2(passwordBytesNew);
@@ -657,7 +657,7 @@ public class startFchClient {
         if (sessionKeyCipherNew.contains("Error")) {
             System.out.println("Get sessionKey wrong:" + sessionKeyCipherNew);
         }
-        initApiAccount.setSessionKeyCipher(sessionKeyCipherNew);
+        initApiAccount.getSession().setSessionKeyCipher(sessionKeyCipherNew);
         initApiAccount.setUserPriKeyCipher(buyerPriKeyCipherNew);
 
         ApiAccount.writeApipParamsToFile(initApiAccount, APIP_Account_JSON);
