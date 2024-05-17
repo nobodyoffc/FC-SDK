@@ -431,6 +431,11 @@ public class BytesTools {
         return result;
     }
 
+    public static byte[] getPartOfBytes(byte[] original, int offset, int length) {
+        byte[] part = new byte[length];
+        System.arraycopy(original, offset, part, 0, part.length);
+        return part;
+    }
 }
 
 

@@ -31,6 +31,7 @@ public class FieldNames {
     public static final String ORDER = "order";
     public static final String LAST = "last";
     public static final String DID = "did";
-    public static String TXID = "txId";
-    public static String INDEX = "index";
+    public static final String TXID = "txId";
+    public static final String INDEX = "index";
+    public static final String SINCE = "since";
 }

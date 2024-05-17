@@ -5,7 +5,7 @@ import config.ApiAccount;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
-import crypto.eccAes256K1P7.EccAes256K1P7;
+import crypto.eccAes256K1.EccAes256K1P7;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;

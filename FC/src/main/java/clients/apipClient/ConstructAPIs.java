@@ -7,8 +7,8 @@ import javax.annotation.Nullable;
 
 public class ConstructAPIs {
 
-    public static ApipClientData protocolByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask protocolByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -20,8 +20,8 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData protocolSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask protocolSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP4V1Path + ApiNames.ProtocolSearchAPI;
@@ -31,8 +31,8 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData protocolOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask protocolOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP4V1Path + ApiNames.ProtocolOpHistoryAPI;
@@ -42,8 +42,8 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData protocolRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask protocolRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         String urlTail = ApiNames.APIP4V1Path + ApiNames.ProtocolRateHistoryAPI;
 
@@ -52,8 +52,8 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData codeByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask codeByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -65,8 +65,8 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData codeSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask codeSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP5V1Path + ApiNames.CodeSearchAPI;
@@ -76,8 +76,8 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData codeOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask codeOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP5V1Path + ApiNames.CodeOpHistoryAPI;
@@ -87,8 +87,8 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData codeRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask codeRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         String urlTail = ApiNames.APIP5V1Path + ApiNames.CodeRateHistoryAPI;
 
@@ -98,8 +98,8 @@ public class ConstructAPIs {
     }
 
 
-    public static ApipClientData serviceByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask serviceByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -111,8 +111,8 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData serviceSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask serviceSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         String urlTail = ApiNames.APIP6V1Path + ApiNames.ServiceSearchAPI;
 
@@ -121,8 +121,8 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData serviceOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask serviceOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP6V1Path + ApiNames.ServiceOpHistoryAPI;
@@ -132,8 +132,8 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData serviceRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask serviceRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         String urlTail = ApiNames.APIP6V1Path + ApiNames.ServiceRateHistoryAPI;
 
@@ -143,8 +143,8 @@ public class ConstructAPIs {
     }
 
 
-    public static ApipClientData appByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask appByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -156,8 +156,8 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData appSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask appSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP7V1Path + ApiNames.AppSearchAPI;
@@ -167,8 +167,8 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData appOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask appOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP7V1Path + ApiNames.AppOpHistoryAPI;
@@ -178,8 +178,8 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData appRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask appRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         String urlTail = ApiNames.APIP7V1Path + ApiNames.AppRateHistoryAPI;
 
@@ -188,16 +188,16 @@ public class ConstructAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData getApps(String urlHead, String id) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask getApps(String urlHead, String id) {
+        ApipClientTask apipClientData = new ApipClientTask();
         if (id == null) apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.GetAppsAPI);
         else apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.GetAppsAPI + "?id=" + id);
         apipClientData.get();
         return apipClientData;
     }
 
-    public static ApipClientData getServices(String urlHead, String id) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask getServices(String urlHead, String id) {
+        ApipClientTask apipClientData = new ApipClientTask();
         if (id == null) apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.GetServicesAPI);
         else apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.GetServicesAPI + "?id=" + id);
         apipClientData.get();

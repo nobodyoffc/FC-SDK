@@ -5,13 +5,14 @@ import FEIP.feipData.Service;
 import FEIP.feipData.serviceParams.DiskParams;
 import appTools.Inputer;
 import appTools.Menu;
+import clients.diskClient.DiskDataInfo;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import config.ApiAccount;
 import config.ApiType;
 import config.Configure;
 import constants.*;
-import crypto.eccAes256K1P7.EccAes256K1P7;
-import crypto.eccAes256K1P7.EccAesDataByte;
+import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.CryptoDataByte;
 import clients.esClient.EsTools;
 import javaTools.Hex;
 import org.slf4j.Logger;
@@ -103,17 +104,22 @@ public class StartDiskManager {
         menu.add("Manage the rewards");
         menu.add("Settings");
 
-        menu.show();
-        int choice = menu.choose(br);
-        switch (choice){
-            case 1 -> counter.run();
-            case 2 -> diskManager.manageService(br, symKey);
-            case 3 -> resetNPrices(br);
-            case 4 -> recreateAllIndices(esClient,br);
-            case 5 -> rewardManager.menu(params.getConsumeViaShare(),params.getOrderViaShare());
+        while(true) {
+            menu.show();
+            int choice = menu.choose(br);
+            switch (choice) {
+                case 1 -> counter.run();
+                case 2 -> diskManager.manageService(br, symKey);
+                case 3 -> resetNPrices(br);
+                case 4 -> recreateAllIndices(esClient, br);
+                case 5 -> rewardManager.menu(params.getConsumeViaShare(), params.getOrderViaShare());
 
-            case 6 -> setter.setting(symKey,br);
-            case 0 -> setter.close();
+                case 6 -> setter.setting(symKey, br);
+                case 0 -> {
+                    setter.close();
+                    return;
+                }
+            }
         }
     }
 
@@ -131,7 +137,7 @@ public class StartDiskManager {
             jedis.hset(Settings.addSidBriefToName(sid,SETTINGS),ES_ACCOUNT_ID, setter.getEsAccountId());
             jedis.hset(Settings.addSidBriefToName(sid,SETTINGS),WINDOW_TIME, String.valueOf(setter.getWindowTime()));
 
-            EccAesDataByte eccDateBytes = EccAes256K1P7.encryptWithPassword(symKey, Hex.fromHex(configure.getNonce()));
+            CryptoDataByte eccDateBytes = EccAes256K1P7.encryptWithPassword(symKey, Hex.fromHex(configure.getNonce()));
             if(eccDateBytes==null)
                 throw new RuntimeException("Failed to encrypt symKey.");
             String symKeyCipher = eccDateBytes.toNiceJson();

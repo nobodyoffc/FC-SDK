@@ -18,7 +18,7 @@ import appTools.Menu;
 import clients.ApiUrl;
 import clients.Client;
 import clients.apipClient.ApipClient;
-import clients.apipClient.ApipClientData;
+import clients.apipClient.ApipClientTask;
 import clients.apipClient.OpenAPIs;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
@@ -26,8 +26,8 @@ import com.google.gson.Gson;
 import constants.ApiNames;
 import crypto.cryptoTools.Hash;
 import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1P7.EccAes256K1P7;
-import crypto.eccAes256K1P7.EccAesDataByte;
+import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.CryptoDataByte;
 import clients.esClient.EsClientMaker;
 import clients.diskClient.DiskClient;
 import javaTools.BytesTools;
@@ -459,7 +459,7 @@ public class ApiAccount {
     }
 
     static Service getService(String urlHead) {
-        ApipClientData apipClientData = new OpenAPIs().getService(urlHead);
+        ApipClientTask apipClientData = new OpenAPIs().getService(urlHead);
 
         Service service;
         try {
@@ -494,13 +494,13 @@ public class ApiAccount {
 
     public static byte[] decryptHexWithPriKey(String cipher, byte[] priKey) {
         EccAes256K1P7 ecc = new EccAes256K1P7();
-        EccAesDataByte eccAesDataBytes = ecc.decrypt(cipher, priKey);
-        if (eccAesDataBytes.getError() != null) {
-            System.out.println("Failed to decrypt: " + eccAesDataBytes.getError());
+        CryptoDataByte cryptoDataBytes = ecc.decrypt(cipher, priKey);
+        if (cryptoDataBytes.getMessage() != null) {
+            System.out.println("Failed to decrypt: " + cryptoDataBytes.getMessage());
             BytesTools.clearByteArray(priKey);
             return null;
         }
-        String sessionKeyHex = new String(eccAesDataBytes.getMsg(), StandardCharsets.UTF_8);
+        String sessionKeyHex = new String(cryptoDataBytes.getData(), StandardCharsets.UTF_8);
         return HexFormat.of().parseHex(sessionKeyHex);
     }
 
@@ -797,7 +797,7 @@ public class ApiAccount {
     }
 
     public boolean updateApipService(String urlHead) {
-        ApipClientData apipClientData = OpenAPIs.getService(urlHead);
+        ApipClientTask apipClientData = OpenAPIs.getService(urlHead);
 
         if (apipClientData.checkResponse()!=0) {
             log.error("Failed to buy APIP service. Code:{},Message:{}", apipClientData.getCode(), apipClientData.getMessage());
@@ -958,7 +958,7 @@ public class ApiAccount {
         client1.setSessionKey(sessionKey);
 
 
-        boolean done = client1.ping(type);
+        boolean done = client1.pingFree(type);
 //        Service service1 = serviceMap.get(sid);
 //        freshApipService(service1);
         if(isBalanceSufficient()) buyApi(symKey);
@@ -1186,13 +1186,13 @@ public class ApiAccount {
     public byte[] decryptUserPriKey(String cipher, byte[] symKey) {
         System.out.println("Decrypt APIP buyer private key...");
         EccAes256K1P7 ecc = new EccAes256K1P7();
-        EccAesDataByte eccAesDataByte = ecc.decrypt(cipher, symKey);
+        CryptoDataByte cryptoDataByte = ecc.decrypt(cipher, symKey);
 
-        if (eccAesDataByte.getError() != null) {
-            System.out.println("Error: " + eccAesDataByte.getError());
+        if (cryptoDataByte.getMessage() != null) {
+            System.out.println("Error: " + cryptoDataByte.getMessage());
             return null;
         }
-        return eccAesDataByte.getMsg();
+        return cryptoDataByte.getData();
     }
 
 //    public void inputSessionKeyCipher(BufferedReader br, final byte[] initSymKey) {

@@ -1,6 +1,6 @@
 package FCH;
 
-import clients.apipClient.ApipDataGetter;
+import clients.apipClient.DataGetter;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import crypto.cryptoTools.Hash;
@@ -33,7 +33,7 @@ public final class MultiSigData {
         this.nonce = BytesTools.bytes4ToLongBE(BytesTools.getRandomBytes(4));
         this.rawTx = HexFormat.of().parseHex(rawTxHex);
         this.p2SH = new Gson().fromJson(p2SHStr, P2SH.class);
-        this.cashList = ApipDataGetter.getCashList(cashList);
+        this.cashList = DataGetter.getCashList(cashList);
     }
 
     public MultiSigData() {
@@ -57,7 +57,7 @@ public final class MultiSigData {
         if (dataMap.get("p2SH") != null)
             multiSignData.setP2SH(gson.fromJson(gson.toJson(dataMap.get("p2SH")), P2SH.class));
         if (dataMap.get("cashList") != null)
-            multiSignData.setCashList(ApipDataGetter.getCashList(dataMap.get("cashList")));
+            multiSignData.setCashList(DataGetter.getCashList(dataMap.get("cashList")));
         if (dataMap.get("fidSigMap") != null) {
             Map<String, List<byte[]>> fidSigMap = makeStringListMapToBytesListMap(dataMap.get("fidSigMap"));
             multiSignData.setFidSigMap(fidSigMap);

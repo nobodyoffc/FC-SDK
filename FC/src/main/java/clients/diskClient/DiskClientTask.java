@@ -1,8 +1,8 @@
 package clients.diskClient;
 
-import clients.ClientData;
+import clients.ClientTask;
 
-public class DiskClientData extends ClientData {
+public class DiskClientTask extends ClientTask {
 
 
 

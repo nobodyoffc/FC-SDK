@@ -7,6 +7,7 @@ import FCH.ParseTools;
 import com.google.gson.reflect.TypeToken;
 import clients.esClient.EsTools;
 import clients.redisClient.RedisTools;
+import javaTools.http.FcReplier;
 import redis.clients.jedis.JedisPool;
 import server.balance.BalanceInfo;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
@@ -75,6 +76,45 @@ public class Counter implements Runnable {
         this.esClient = (ElasticsearchClient) settings.getEsAccount().getClient();
         this.apipClient =(ApipClient)settings.getApipAccount().getClient();
         this.jedisPool = (JedisPool) settings.getRedisAccount().getClient();
+    }
+
+    public static void updateBalance(String sid, String apiName, long bytesLength, FcReplier replier, RequestCheckResult result, Jedis jedis) {
+        if(Boolean.TRUE.equals(result.getFreeRequest()))return;
+        long balance = updateBalance(sid, apiName, result.getFid(), bytesLength, result.getSessionName(), result.getVia(), jedis );
+        replier.setBalance(String.valueOf(balance));
+    }
+
+    public static long updateBalance(String sid, String api, String fid, long length, String sessionName, String via, Jedis jedis) {
+        long newBalance;
+
+        double price = RedisTools.readHashDouble(jedis, addSidBriefToName(sid,PARAMS),PRICE_PER_K_BYTES);
+        long priceSatoshi = ParseTools.coinToSatoshi(price);
+        long amount = length/1000;
+        long nPrice = readHashLong(jedis, addSidBriefToName(sid,N_PRICE),api);
+        if(nPrice==0)nPrice=1;
+        long cost = amount*priceSatoshi*nPrice;
+
+        //update user balance
+        long oldBalance = readHashLong(jedis, addSidBriefToName(sid, Strings.BALANCE),fid);
+        newBalance = oldBalance-cost;
+        if(newBalance<0){
+            cost = oldBalance;
+            jedis.hdel(addSidBriefToName(sid, Strings.BALANCE),fid);
+            jedis.select(1);
+            jedis.hdel(addSidBriefToName(sid,sessionName));
+            jedis.select(0);
+            newBalance=0;
+        }else
+            jedis.hset(addSidBriefToName(sid, Strings.BALANCE),fid,String.valueOf(newBalance));
+
+        //Update consume via balance
+        if(via!=null){
+            long oldViaBalance = readHashLong(jedis, addSidBriefToName(sid,CONSUME_VIA), via);
+            long newViaBalance = oldViaBalance+cost;
+            jedis.hset(addSidBriefToName(sid,CONSUME_VIA),via, String.valueOf(newViaBalance));
+        }
+
+        return newBalance;
     }
 
     public AtomicBoolean isRunning(){

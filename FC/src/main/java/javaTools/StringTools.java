@@ -1,5 +1,8 @@
 package javaTools;
 
+import constants.Strings;
+import org.jetbrains.annotations.NotNull;
+
 public class StringTools {
     public static String arrayToString(String[] array) {
         if (array == null || array.length == 0) {
@@ -15,5 +18,10 @@ public class StringTools {
         }
 
         return stringBuilder.toString();
+    }
+
+    @NotNull
+    public static String getTempName() {
+        return Strings.TEMP + Hex.toHex(BytesTools.getRandomBytes(3));
     }
 }

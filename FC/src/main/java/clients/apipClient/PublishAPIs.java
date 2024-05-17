@@ -7,8 +7,8 @@ import javax.annotation.Nullable;
 
 public class PublishAPIs {
 
-    public static ApipClientData tokenByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask tokenByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -20,8 +20,8 @@ public class PublishAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData tokenSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask tokenSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
        
 
         String urlTail = ApiNames.APIP16V1Path + ApiNames.TokenSearchAPI;
@@ -31,8 +31,8 @@ public class PublishAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData tokenHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask tokenHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
        
 
         String urlTail = ApiNames.APIP16V1Path + ApiNames.TokenHistoryAPI;
@@ -42,8 +42,8 @@ public class PublishAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData tokenHolderByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask tokenHolderByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
        
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -55,8 +55,8 @@ public class PublishAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData myTokensPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask myTokensPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
        
 
         String urlTail = ApiNames.APIP16V1Path + ApiNames.MyTokensAPI;
@@ -66,8 +66,8 @@ public class PublishAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData tokenHoldersPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask tokenHoldersPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
        
 
         String urlTail = ApiNames.APIP16V1Path + ApiNames.TokenHoldersAPI;
@@ -76,8 +76,8 @@ public class PublishAPIs {
         if (!isGood) return null;
         return apipClientData;
     }
-    public static ApipClientData proofByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask proofByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -89,8 +89,8 @@ public class PublishAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData proofSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask proofSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         String urlTail = ApiNames.APIP14V1Path + ApiNames.ProofSearchAPI;
 
@@ -99,8 +99,8 @@ public class PublishAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData proofHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask proofHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP14V1Path + ApiNames.ProofHistoryAPI;
@@ -110,8 +110,8 @@ public class PublishAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData statementByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask statementByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -123,8 +123,8 @@ public class PublishAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData statementSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask statementSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP15V1Path + ApiNames.StatementSearchAPI;
@@ -134,8 +134,8 @@ public class PublishAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData nidSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask nidSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         apipClientData.setRawFcdsl(fcdsl);
 
         String urlTail = ApiNames.APIP19V1Path + ApiNames.NidSearchAPI;

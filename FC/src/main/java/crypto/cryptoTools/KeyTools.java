@@ -1,11 +1,12 @@
 package crypto.cryptoTools;
 
 import constants.Constants;
-import crypto.eccAes256K1P7.EccAes256K1P7;
-import crypto.eccAes256K1P7.EccAesDataByte;
+import crypto.CryptoDataByte;
+import crypto.eccAes256K1.EccAes256K1P7;
 import appTools.Shower;
 
 
+import fcData.Algorithm;
 import javaTools.BytesTools;
 import FCH.FchMainNetwork;
 import FCH.Inputer;
@@ -14,6 +15,13 @@ import org.bitcoinj.core.Base58;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.params.MainNetParams;
+import org.bouncycastle.asn1.x9.X9ECParameters;
+import org.bouncycastle.crypto.params.ECDomainParameters;
+import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
+import org.bouncycastle.crypto.params.ECPublicKeyParameters;
+import org.bouncycastle.math.ec.ECCurve;
+import org.bouncycastle.math.ec.ECPoint;
+import org.bouncycastle.util.encoders.Hex;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -145,7 +153,7 @@ public class KeyTools {
             }
             case "c" -> {
                 do {
-                    System.out.println("Input the private key cipher json by  " + Constants.ECC_AES_256_K1_P7 + ":");
+                    System.out.println("Input the private key cipher json by  " + Algorithm.EccAes256K1P7_No1_NrC7 + ":");
                     String cipher = Inputer.inputString(br);
                     if (cipher == null || "".equals(cipher)) break;
 
@@ -155,19 +163,19 @@ public class KeyTools {
                     EccAes256K1P7 ecc = new EccAes256K1P7();
                     byte[] userPasswordBytes = BytesTools.utf8CharArrayToByteArray(userPassword);
 
-                    EccAesDataByte eccAesDataByte;
+                    CryptoDataByte cryptoDataByte;
                     if (cipher.contains("SymKey"))
-                        eccAesDataByte = ecc.decrypt(cipher, Hash.Sha256x2(userPasswordBytes));
-                    else eccAesDataByte = ecc.decrypt(cipher, userPasswordBytes);
+                        cryptoDataByte = ecc.decrypt(cipher, Hash.Sha256x2(userPasswordBytes));
+                    else cryptoDataByte = ecc.decrypt(cipher, userPasswordBytes);
 
                     BytesTools.clearCharArray(userPassword);
 
-                    if (eccAesDataByte.getError() != null) {
-                        System.out.println("Decrypt priKey cipher from input wrong." + eccAesDataByte.getError());
+                    if (cryptoDataByte.getMessage() != null) {
+                        System.out.println("Decrypt priKey cipher from input wrong." + cryptoDataByte.getMessage());
                         System.out.println("Try again.");
                         continue;
                     }
-                    priKey32 = getPriKey32(eccAesDataByte.getMsg());
+                    priKey32 = getPriKey32(cryptoDataByte.getData());
                     System.out.println("Your FID is: \n" + priKeyToFid(priKey32));
                     System.out.println("Is it right? y/n");
                     input = Inputer.inputString(br);
@@ -1042,5 +1050,62 @@ public class KeyTools {
         }
 
         return priKey32Bytes;
+    }
+
+    public static ECPublicKeyParameters pubKeyFromBytes(byte[] publicKeyBytes) {
+
+        X9ECParameters ecParameters = org.bouncycastle.asn1.sec.SECNamedCurves.getByName("secp256k1");
+        ECDomainParameters domainParameters = new ECDomainParameters(ecParameters.getCurve(), ecParameters.getG(), ecParameters.getN(), ecParameters.getH());
+
+        ECCurve curve = domainParameters.getCurve();
+
+        ECPoint point = curve.decodePoint(publicKeyBytes);
+
+        return new ECPublicKeyParameters(point, domainParameters);
+    }
+
+    public static ECPublicKeyParameters pubKeyFromHex(String publicKeyHex) {
+        return pubKeyFromBytes(HexFormat.of().parseHex(publicKeyHex));
+    }
+
+    public static String pubKeyToHex(ECPublicKeyParameters publicKey) {
+        return Hex.toHexString(pubKeyToBytes(publicKey));
+    }
+
+    public static String priKeyToHex(ECPrivateKeyParameters privateKey) {
+        BigInteger privateKeyValue = privateKey.getD();
+        String hex = privateKeyValue.toString(16);
+        while (hex.length() < 64) {  // 64 is for 256-bit key
+            hex = "0" + hex;
+        }
+        return hex;
+    }
+
+    public static byte[] priKeyToBytes(ECPrivateKeyParameters privateKey) {
+        return HexFormat.of().parseHex(priKeyToHex(privateKey));//Hex.decode(priKeyToHex(privateKey));
+    }
+
+    public static byte[] pubKeyToBytes(ECPublicKeyParameters publicKey) {
+        return publicKey.getQ().getEncoded(true);
+    }
+
+    public static ECPrivateKeyParameters priKeyFromBytes(byte[] privateKey) {
+        return priKeyFromHex(HexFormat.of().formatHex(privateKey));
+    }
+
+    public static ECPrivateKeyParameters priKeyFromHex(String privateKeyHex) {
+        BigInteger privateKeyValue = new BigInteger(privateKeyHex, 16); // Convert hex to BigInteger
+        X9ECParameters ecParameters = org.bouncycastle.asn1.sec.SECNamedCurves.getByName("secp256k1"); // Use the same curve name as in key pair generation
+        ECDomainParameters domainParameters = new ECDomainParameters(ecParameters.getCurve(), ecParameters.getG(), ecParameters.getN(), ecParameters.getH());
+        return new ECPrivateKeyParameters(privateKeyValue, domainParameters);
+    }
+
+    public static ECPublicKeyParameters pubKeyFromPriKey(ECPrivateKeyParameters privateKey) {
+        X9ECParameters ecParameters = org.bouncycastle.asn1.sec.SECNamedCurves.getByName("secp256k1");
+        ECDomainParameters domainParameters = new ECDomainParameters(ecParameters.getCurve(), ecParameters.getG(), ecParameters.getN(), ecParameters.getH());
+
+        ECPoint Q = domainParameters.getG().multiply(privateKey.getD()); // Scalar multiplication of base point (G) and private key
+
+        return new ECPublicKeyParameters(Q, domainParameters);
     }
 }

@@ -1,6 +1,6 @@
 package FCH;
 
-import clients.apipClient.ApipClientData;
+import clients.apipClient.ApipClientTask;
 import FCH.fchData.SendTo;
 import NaSa.RPC.SendRawTransaction;
 import NaSa.data.TxInput;
@@ -54,7 +54,7 @@ public class WalletTools {
         String txSigned = createTransactionSignFch(cashList, priKey, sendToList, msg);
 
         System.out.println("Broadcast with " + urlHead + " ...");
-        ApipClientData apipClientData = FreeGetAPIs.broadcast(urlHead, txSigned);
+        ApipClientTask apipClientData = FreeGetAPIs.broadcast(urlHead, txSigned);
         if(apipClientData.checkResponse()!=0) {
             String result = apipClientData.getCode() + ": " + apipClientData.getMessage();
             if (apipClientData.getResponseBody().getData() != null)

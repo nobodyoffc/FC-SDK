@@ -122,7 +122,7 @@ public class SwapParams extends Params {
                 Menu.anyKeyToContinue(br);
                 return null;
             }
-            priKeyCipher = crypto.eccAes256K1P7.EccAes256K1P7.encryptWithSymKey(ecKey.getPrivKeyBytes(), initSymKey.clone());
+            priKeyCipher = crypto.eccAes256K1.EccAes256K1P7.encryptWithSymKey(ecKey.getPrivKeyBytes(), initSymKey.clone());
             setAddr(ecKey, true,gTick);
             setAddr(ecKey,false, mTick);
             Shower.printUnderline(10);

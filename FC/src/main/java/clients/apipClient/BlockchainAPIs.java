@@ -1,7 +1,6 @@
 package clients.apipClient;
 
 import APIP.apipData.Fcdsl;
-import clients.ApiUrl;
 import constants.ApiNames;
 
 import javax.annotation.Nullable;
@@ -13,8 +12,8 @@ import static constants.Strings.HEIGHT;
 
 public class BlockchainAPIs {
 
-    public static ApipClientData blockByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask blockByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
         apipClientData.setRawFcdsl(fcdsl);
@@ -26,8 +25,8 @@ public class BlockchainAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData blockByHeightPost(String urlHead, String[] heights, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask blockByHeightPost(String urlHead, String[] heights, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.addNewQuery().addNewTerms().addNewFields(HEIGHT).addNewValues(heights);
@@ -40,8 +39,8 @@ public class BlockchainAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData blockSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask blockSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         apipClientData.setRawFcdsl(fcdsl);
 
@@ -52,8 +51,8 @@ public class BlockchainAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData cashValidPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask cashValidPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         apipClientData.setRawFcdsl(fcdsl);
 
@@ -64,8 +63,8 @@ public class BlockchainAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData cashByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask cashByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -78,8 +77,8 @@ public class BlockchainAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData cashSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask cashSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         apipClientData.setRawFcdsl(fcdsl);
 
@@ -90,8 +89,8 @@ public class BlockchainAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData fidByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask fidByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -104,8 +103,8 @@ public class BlockchainAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData fidSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask fidSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         apipClientData.setRawFcdsl(fcdsl);
 
@@ -116,8 +115,8 @@ public class BlockchainAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData opReturnByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask opReturnByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -130,8 +129,8 @@ public class BlockchainAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData opReturnSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask opReturnSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         apipClientData.setRawFcdsl(fcdsl);
 
@@ -142,8 +141,8 @@ public class BlockchainAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData p2shByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask p2shByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -156,8 +155,8 @@ public class BlockchainAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData p2shSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask p2shSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         apipClientData.setRawFcdsl(fcdsl);
 
@@ -168,8 +167,8 @@ public class BlockchainAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData txByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask txByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -182,8 +181,8 @@ public class BlockchainAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData txSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask txSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP2V1Path + ApiNames.TxSearchAPI;
@@ -205,11 +204,11 @@ public class BlockchainAPIs {
         return fcdsl;
     }
 
-    public static ApipClientData getUtxo(String urlHead, String id, double amount) {
+    public static ApipClientTask getUtxo(String urlHead, String id, double amount) {
         Map<String,String> paramMap = new HashMap<>();
         paramMap.put("address",id);
         paramMap.put("amount", String.valueOf(amount));
-        ApipClientData apipClientData = new ApipClientData(urlHead, ApiNames.APIP2V1Path,ApiNames.GetUtxoAPI);
+        ApipClientTask apipClientData = new ApipClientTask(urlHead, ApiNames.APIP2V1Path,ApiNames.GetUtxoAPI);
         apipClientData.get();
         return apipClientData;
     }

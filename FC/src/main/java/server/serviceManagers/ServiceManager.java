@@ -1,7 +1,7 @@
 package server.serviceManagers;
 
 import clients.apipClient.ApipClient;
-import clients.apipClient.ApipClientData;
+import clients.apipClient.ApipClientTask;
 import clients.apipClient.ConstructAPIs;
 import FEIP.feipData.FcInfo;
 import FEIP.feipData.Service;
@@ -73,7 +73,7 @@ public abstract class ServiceManager {
     private void reloadServices(BufferedReader br, byte[] symKey) {
         String sid = service.getSid();
 
-        ApipClientData apipClientData = ConstructAPIs.serviceByIdsPost(apipAccount.getApiUrl(), new String[]{sid}, apipAccount.getVia(),symKey);
+        ApipClientTask apipClientData = ConstructAPIs.serviceByIdsPost(apipAccount.getApiUrl(), new String[]{sid}, apipAccount.getVia(),symKey);
         if(apipClientData ==null)return;
         if(apipClientData.checkResponse()!=0){
             Menu.anyKeyToContinue(br);

@@ -1,11 +1,11 @@
 package FCH;
 
-import clients.apipClient.ApipClientData;
+import clients.apipClient.ApipClientTask;
 import config.ApiAccount;
 import FCH.fchData.SendTo;
 import NaSa.data.TxInput;
 import NaSa.data.TxOutput;
-import clients.apipClient.ApipDataGetter;
+import clients.apipClient.DataGetter;
 import clients.apipClient.BlockchainAPIs;
 import clients.apipClient.WalletAPIs;
 import com.google.gson.Gson;
@@ -85,9 +85,9 @@ public class TxTest {
         //Get multisig address information
         String urlHead = Constants.UrlHead_CID_CASH;
         BlockchainAPIs blockchainAPIs = new BlockchainAPIs();
-        ApipClientData apipClientData = blockchainAPIs.p2shByIdsPost(urlHead, new String[]{mFid}, null, sessionKey);
+        ApipClientTask apipClientData = blockchainAPIs.p2shByIdsPost(urlHead, new String[]{mFid}, null, sessionKey);
         Object responseData = apipClientData.getResponseBody().getData();
-        Map<String, P2SH> p2SHMap = ApipDataGetter.getP2SHMap(responseData);
+        Map<String, P2SH> p2SHMap = DataGetter.getP2SHMap(responseData);
 
         P2SH p2sh = p2SHMap.get(mFid);
         JsonTools.gsonPrint(p2sh);
@@ -109,7 +109,7 @@ public class TxTest {
 
         long fee = calcSizeMultiSign(0, sendToList.size(), msg.length(), 2, 3);
 
-        ApipClientData apipClientData1 = walletAPIs.cashValidForPayPost(urlHead, mFid, 0.1 + ((double) fee / COIN_TO_SATOSHI), null, sessionKey);
+        ApipClientTask apipClientData1 = walletAPIs.cashValidForPayPost(urlHead, mFid, 0.1 + ((double) fee / COIN_TO_SATOSHI), null, sessionKey);
 
         if (apipClientData.checkResponse() != 0) {
             JsonTools.gsonPrint(apipClientData1);
@@ -117,7 +117,7 @@ public class TxTest {
         }
 
         responseData = apipClientData1.getResponseBody().getData();
-        List<Cash> cashList = ApipDataGetter.getCashList(responseData);
+        List<Cash> cashList = DataGetter.getCashList(responseData);
 
         JsonTools.gsonPrint(cashList);
 
@@ -208,7 +208,7 @@ public class TxTest {
 
         long fee = calcTxSize(0, sendToList.size(), msg.length());
 
-        ApipClientData apipClientData = walletAPIs.cashValidForPayPost(urlHead, fid, 0.1 + ((double) fee / COIN_TO_SATOSHI), null, sessionKey);
+        ApipClientTask apipClientData = walletAPIs.cashValidForPayPost(urlHead, fid, 0.1 + ((double) fee / COIN_TO_SATOSHI), null, sessionKey);
 
         Object responseData = apipClientData.getResponseBody().getData();
         Type t = new TypeToken<ArrayList<Cash>>() {

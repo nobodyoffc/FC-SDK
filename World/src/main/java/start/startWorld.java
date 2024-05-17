@@ -4,7 +4,7 @@ import FCH.Inputer;
 import appTools.Menu;
 import clients.apipClient.ApipClient;
 import config.Configure;
-import crypto.eccAes256K1P7.EccAes256K1P7;
+import crypto.eccAes256K1.EccAes256K1P7;
 import javaTools.BytesTools;
 
 import java.io.BufferedReader;

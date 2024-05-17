@@ -18,7 +18,7 @@ import config.ApiType;
 import constants.ApiNames;
 import constants.FieldNames;
 import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1P7.EccAes256K1P7;
+import crypto.eccAes256K1.EccAes256K1P7;
 import javaTools.Hex;
 import org.jetbrains.annotations.Nullable;
 
@@ -143,9 +143,9 @@ public class ApipClient extends Client {
         }
     }
     public List<Cash> getCashesFree(String apiUrl, String fid) {
-        clientData = FreeGetAPIs.getCashes(apiUrl, fid, 0);
+        clientTask = FreeGetAPIs.getCashes(apiUrl, fid, 0);
         Object data = checkApipV1Result();
-        return ApipDataGetter.getCashList(data);
+        return DataGetter.getCashList(data);
     }
 
     @Nullable
@@ -155,7 +155,7 @@ public class ApipClient extends Client {
         if(urlHead.contains(ApiNames.APIP0V1Path + ApiNames.GetServiceAPI))
             urlHead.replaceAll(ApiNames.APIP0V1Path + ApiNames.GetServiceAPI,"");
 
-        clientData = OpenAPIs.getService(urlHead);
+        clientTask = OpenAPIs.getService(urlHead);
 
         Object data = checkApipV1Result();
         if(data==null)return null;
@@ -166,187 +166,187 @@ public class ApipClient extends Client {
     }
 
     public CidInfo getCidInfo(String fid, ApiAccount apiAccount) {
-        clientData = IdentityAPIs.cidInfoByIdsPost(apiAccount.getApiUrl(), new String[]{fid}, apiAccount.getVia(), sessionKey);
+        clientTask = IdentityAPIs.cidInfoByIdsPost(apiAccount.getApiUrl(), new String[]{fid}, apiAccount.getVia(), sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCidInfoMap(data).get(fid);
+        return DataGetter.getCidInfoMap(data).get(fid);
     }
 
     public String getPubKey(String fid) {
-        clientData = BlockchainAPIs.fidByIdsPost(apiAccount.getApiUrl(), new String[]{fid}, apiAccount.getVia(), sessionKey);
+        clientTask = BlockchainAPIs.fidByIdsPost(apiAccount.getApiUrl(), new String[]{fid}, apiAccount.getVia(), sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getAddressMap(data).get(fid).getPubKey();
+        return DataGetter.getAddressMap(data).get(fid).getPubKey();
     }
 
     public Map<String, BlockInfo> blockByIds(String[] ids){
-        clientData = BlockchainAPIs.blockByIdsPost(apiAccount.getApiUrl(), ids, apiAccount.getVia(), sessionKey);
+        clientTask = BlockchainAPIs.blockByIdsPost(apiAccount.getApiUrl(), ids, apiAccount.getVia(), sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getBlockInfoMap(data);
+        return DataGetter.getBlockInfoMap(data);
     }
 
     public Map<String, BlockInfo> blockByHeights(String[] heights){
-        clientData = BlockchainAPIs.blockByHeightPost(apiAccount.getApiUrl(), heights, apiAccount.getVia(), sessionKey);
+        clientTask = BlockchainAPIs.blockByHeightPost(apiAccount.getApiUrl(), heights, apiAccount.getVia(), sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getBlockInfoMap(data);
+        return DataGetter.getBlockInfoMap(data);
     }
 
     public List<BlockInfo> blockSearch(Fcdsl fcdsl){
-        clientData = BlockchainAPIs.blockSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = BlockchainAPIs.blockSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getBlockInfoList(data);
+        return DataGetter.getBlockInfoList(data);
     }
 
     public List<Cash> cashValid(Fcdsl fcdsl){
-       clientData = BlockchainAPIs.cashValidPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+       clientTask = BlockchainAPIs.cashValidPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCashList(data);
+        return DataGetter.getCashList(data);
     }
 
     public Map<String, Cash> cashByIds(String[] ids){
-        clientData = BlockchainAPIs.cashByIdsPost(apiAccount.getApiUrl(), ids, apiAccount.getVia(), sessionKey);
+        clientTask = BlockchainAPIs.cashByIdsPost(apiAccount.getApiUrl(), ids, apiAccount.getVia(), sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCashMap(data);
+        return DataGetter.getCashMap(data);
     }
 
     public List<Utxo> getUtxo(String id, double amount){
-        clientData = BlockchainAPIs.getUtxo(apiAccount.getApiUrl(), id,amount);
+        clientTask = BlockchainAPIs.getUtxo(apiAccount.getApiUrl(), id,amount);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getUtxoList(data);
+        return DataGetter.getUtxoList(data);
     }
 
     public List<Cash> cashSearch(Fcdsl fcdsl){
-        clientData = BlockchainAPIs.cashSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = BlockchainAPIs.cashSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCashList(data);
+        return DataGetter.getCashList(data);
     }
 
     public Map<String, Address> fidByIds(String[] ids){
-        clientData = BlockchainAPIs.fidByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = BlockchainAPIs.fidByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getAddressMap(data);
+        return DataGetter.getAddressMap(data);
     }
 
     public Map<String, OpReturn> opReturnByIds(String[] ids){
-        clientData =  BlockchainAPIs.opReturnByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask =  BlockchainAPIs.opReturnByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getOpReturnMap(data);
+        return DataGetter.getOpReturnMap(data);
     }
 
     public List<OpReturn> opReturnSearch(Fcdsl fcdsl){
-        clientData = BlockchainAPIs.opReturnSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = BlockchainAPIs.opReturnSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getOpReturnList(data);
+        return DataGetter.getOpReturnList(data);
     }
 
     public Map<String, P2SH> p2shByIds(String[] ids){
-        clientData = BlockchainAPIs.p2shByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = BlockchainAPIs.p2shByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getP2SHMap(data);
+        return DataGetter.getP2SHMap(data);
     }
 
     public List<P2SH> p2shSearch(Fcdsl fcdsl){
-        clientData = BlockchainAPIs.p2shSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = BlockchainAPIs.p2shSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getP2SHList(data);
+        return DataGetter.getP2SHList(data);
     }
 
     public List<TxInfo> txSearch(Fcdsl fcdsl){
-        clientData = BlockchainAPIs.txSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = BlockchainAPIs.txSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getTxInfoList(data);
+        return DataGetter.getTxInfoList(data);
     }
 
     public Map<String, TxInfo> txByIds(String[] ids){
-        clientData = BlockchainAPIs.txByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = BlockchainAPIs.txByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getTxInfoMap(data);
+        return DataGetter.getTxInfoMap(data);
     }
 
     public List<TxInfo> txByFid(String fid, String[] last){
         Fcdsl fcdsl = BlockchainAPIs.txByFidQuery(fid,last);
-        clientData = BlockchainAPIs.txSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = BlockchainAPIs.txSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getTxInfoList(data);
+        return DataGetter.getTxInfoList(data);
     }
 
     public Map<String, Protocol> protocolByIds(String[] ids){
-        clientData = ConstructAPIs.protocolByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.protocolByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getProtocolMap(data);
+        return DataGetter.getProtocolMap(data);
     }
     public List<Protocol> protocolSearch(Fcdsl fcdsl){
-        clientData = ConstructAPIs.protocolSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.protocolSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getProtocolList(data);
+        return DataGetter.getProtocolList(data);
     }
 
     public List<ProtocolHistory> protocolOpHistory(Fcdsl fcdsl){
-        clientData = ConstructAPIs.protocolOpHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.protocolOpHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getProtocolHistoryList(data);
+        return DataGetter.getProtocolHistoryList(data);
     }
 
 
     public List<ProtocolHistory> protocolRateHistory(Fcdsl fcdsl){
-        clientData = ConstructAPIs.protocolRateHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.protocolRateHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getProtocolHistoryList(data);
+        return DataGetter.getProtocolHistoryList(data);
     }
 
     public Map<String, Code> codeByIds(String[] ids){
-        clientData = ConstructAPIs.codeByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.codeByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCodeMap(data);
+        return DataGetter.getCodeMap(data);
     }
     public List<Code> codeSearch(Fcdsl fcdsl){
-        clientData = ConstructAPIs.codeSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.codeSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCodeList(data);
+        return DataGetter.getCodeList(data);
     }
 
     public List<CodeHistory> codeOpHistory(Fcdsl fcdsl){
-        clientData = ConstructAPIs.codeOpHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.codeOpHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCodeHistoryList(data);
+        return DataGetter.getCodeHistoryList(data);
     }
 
 
     public List<CodeHistory> codeRateHistory(Fcdsl fcdsl){
-        clientData = ConstructAPIs.codeRateHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.codeRateHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCodeHistoryList(data);
+        return DataGetter.getCodeHistoryList(data);
     }
 
 
     public Map<String, Service> serviceMapByIds(String[] ids){
-        clientData = ConstructAPIs.serviceByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.serviceByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getServiceMap(data);
+        return DataGetter.getServiceMap(data);
     }
 
     public Service serviceById(String id){
@@ -357,264 +357,264 @@ public class ApipClient extends Client {
     public List<Service> serviceSearch(Fcdsl fcdsl){
 
 
-        clientData = ConstructAPIs.serviceSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.serviceSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getServiceList(data);
+        return DataGetter.getServiceList(data);
     }
 
     public List<ServiceHistory> serviceOpHistory(Fcdsl fcdsl){
-        clientData = ConstructAPIs.serviceOpHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.serviceOpHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getServiceHistoryList(data);
+        return DataGetter.getServiceHistoryList(data);
     }
 
 
     public List<ServiceHistory> serviceRateHistory(Fcdsl fcdsl){
-        clientData = ConstructAPIs.serviceRateHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.serviceRateHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getServiceHistoryList(data);
+        return DataGetter.getServiceHistoryList(data);
     }
 
 
     public Map<String, App> appByIds(String[] ids){
-        clientData = ConstructAPIs.appByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.appByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getAppMap(data);
+        return DataGetter.getAppMap(data);
     }
     public List<App> appSearch(Fcdsl fcdsl){
-        clientData = ConstructAPIs.appSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.appSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getAppList(data);
+        return DataGetter.getAppList(data);
     }
 
     public List<AppHistory> appOpHistory(Fcdsl fcdsl){
-        clientData = ConstructAPIs.appOpHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.appOpHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getAppHistoryList(data);
+        return DataGetter.getAppHistoryList(data);
     }
 
 
     public List<AppHistory> appRateHistory(Fcdsl fcdsl){
-        clientData = ConstructAPIs.appRateHistoryPost(apiAccount.getApiUrl(),fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = ConstructAPIs.appRateHistoryPost(apiAccount.getApiUrl(),fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getAppHistoryList(data);
+        return DataGetter.getAppHistoryList(data);
     }
 
     public Map<String, String> addresses(String addrOrPubKey){
-        clientData = CryptoToolAPIs.addressesPost(apiAccount.getApiUrl(), addrOrPubKey,apiAccount.getVia(),sessionKey);
+        clientTask = CryptoToolAPIs.addressesPost(apiAccount.getApiUrl(), addrOrPubKey,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getStringMap(data);
+        return DataGetter.getStringMap(data);
     }
     public String encrypt(String key, String message){
-        clientData = CryptoToolAPIs.encryptPost(apiAccount.getApiUrl(), key,message,apiAccount.getVia(),sessionKey);
+        clientTask = CryptoToolAPIs.encryptPost(apiAccount.getApiUrl(), key,message,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return (String) data;
     }
     public boolean verify(String signature){
-        clientData = CryptoToolAPIs.verifyPost(apiAccount.getApiUrl(), signature, apiAccount.getVia(),sessionKey);
+        clientTask = CryptoToolAPIs.verifyPost(apiAccount.getApiUrl(), signature, apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return false;
         return (boolean) data;
     }
     public String sha256(String text){
-        clientData = CryptoToolAPIs.sha256Post(apiAccount.getApiUrl(), text,apiAccount.getVia(),sessionKey);
+        clientTask = CryptoToolAPIs.sha256Post(apiAccount.getApiUrl(), text,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return (String) data;
     }
     public String sha256x2(String text){
-        clientData = CryptoToolAPIs.sha256x2Post(apiAccount.getApiUrl(), text,apiAccount.getVia(),sessionKey);
+        clientTask = CryptoToolAPIs.sha256x2Post(apiAccount.getApiUrl(), text,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return (String) data;
     }
     public String sha256Bytes(String hex){
-        clientData = CryptoToolAPIs.sha256BytesPost(apiAccount.getApiUrl(), hex,apiAccount.getVia(),sessionKey);
+        clientTask = CryptoToolAPIs.sha256BytesPost(apiAccount.getApiUrl(), hex,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return (String) data;
     }
 
     public String sha256x2Bytes(String hex){
-        clientData = CryptoToolAPIs.sha256x2BytesPost(apiAccount.getApiUrl(), hex,apiAccount.getVia(),sessionKey);
+        clientTask = CryptoToolAPIs.sha256x2BytesPost(apiAccount.getApiUrl(), hex,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return (String) data;
     }
 
     public String offLineTx(String fromFid, List<SendTo> sendToList, String msg){
-        clientData = CryptoToolAPIs.offLineTxPost(apiAccount.getApiUrl(), fromFid,sendToList,msg,apiAccount.getVia(),sessionKey);
+        clientTask = CryptoToolAPIs.offLineTxPost(apiAccount.getApiUrl(), fromFid,sendToList,msg,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return (String) data;
     }
 
     public String offLineTxByCd(String fromFid, List<SendTo> sendToList, String msg, int cd){
-        clientData = CryptoToolAPIs.offLineTxByCdPost(apiAccount.getApiUrl(), fromFid,sendToList,msg,cd,apiAccount.getVia(),sessionKey);
+        clientTask = CryptoToolAPIs.offLineTxByCdPost(apiAccount.getApiUrl(), fromFid,sendToList,msg,cd,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return (String) data;
     }
 
     public List<App> getAppsFree(String id){
-        clientData = FreeGetAPIs.getApps(apiAccount.getApiUrl(), id);
+        clientTask = FreeGetAPIs.getApps(apiAccount.getApiUrl(), id);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getAppList(data);
+        return DataGetter.getAppList(data);
     }
 
     public List<Service> getServicesFree(String id){
-        clientData = FreeGetAPIs.getServices(apiAccount.getApiUrl(), id);
+        clientTask = FreeGetAPIs.getServices(apiAccount.getApiUrl(), id);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getServiceList(data);
+        return DataGetter.getServiceList(data);
     }
 //TODO unchecked
     public Object getAvatarFree(String fid){
-        clientData = FreeGetAPIs.getAvatar(apiAccount.getApiUrl(), fid);
+        clientTask = FreeGetAPIs.getAvatar(apiAccount.getApiUrl(), fid);
         Object data = checkApipV1Result();
         return data;
     }
 
 
     public String broadcastFree(String txHex){
-        clientData = FreeGetAPIs.broadcast(apiAccount.getApiUrl(),txHex);
+        clientTask = FreeGetAPIs.broadcast(apiAccount.getApiUrl(),txHex);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return (String)data;
     }
 
     public String broadcastRawTx(String txHex){
-        clientData = WalletAPIs.broadcastTxPost(apiAccount.getApiUrl(),txHex, apiAccount.getVia(), sessionKey);
+        clientTask = WalletAPIs.broadcastTxPost(apiAccount.getApiUrl(),txHex, apiAccount.getVia(), sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return (String)data;
     }
 
     public List<Cash> getCashesFree(String id, double amount){
-        clientData = FreeGetAPIs.getCashes(apiAccount.getApiUrl(),id,amount);
+        clientTask = FreeGetAPIs.getCashes(apiAccount.getApiUrl(),id,amount);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCashList(data);
+        return DataGetter.getCashList(data);
     }
 
     public CidInfo getFidCid(String id){
-        clientData = FreeGetAPIs.getFidCid(apiAccount.getApiUrl(), id);
+        clientTask = FreeGetAPIs.getFidCid(apiAccount.getApiUrl(), id);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return gson.fromJson(gson.toJson(data), CidInfo.class);
     }
 
-    public ApipClientData getTotals(){
+    public ApipClientTask getTotals(){
         return FreeGetAPIs.getTotals(apiAccount.getApiUrl());
     }
 
     public Map<String, CidInfo> cidInfoByIds(String[] ids){
-        clientData = IdentityAPIs.cidInfoByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = IdentityAPIs.cidInfoByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCidInfoMap(data);
+        return DataGetter.getCidInfoMap(data);
     }
     public List<CidInfo> cidInfoSearch(Fcdsl fcdsl){
-        clientData = IdentityAPIs.cidInfoSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = IdentityAPIs.cidInfoSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCidInfoList(data);
+        return DataGetter.getCidInfoList(data);
     }
     public List<CidInfo> cidInfoSearch(String searchStr){
-        clientData = IdentityAPIs.cidInfoSearchPost(apiAccount.getApiUrl(), searchStr,apiAccount.getVia(),sessionKey);
+        clientTask = IdentityAPIs.cidInfoSearchPost(apiAccount.getApiUrl(), searchStr,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCidInfoList(data);
+        return DataGetter.getCidInfoList(data);
     }
 
     public List<CidHist> cidHistory(Fcdsl fcdsl){
-        clientData = IdentityAPIs.cidHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = IdentityAPIs.cidHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCidHistoryList(data);
+        return DataGetter.getCidHistoryList(data);
     }
 
     public List<CidHist> homepageHistory(Fcdsl fcdsl){
-        clientData = IdentityAPIs.homepageHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = IdentityAPIs.homepageHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCidHistoryList(data);
+        return DataGetter.getCidHistoryList(data);
     }
 
     public List<CidHist> noticeFeeHistory(Fcdsl fcdsl){
-        clientData = IdentityAPIs.noticeFeeHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = IdentityAPIs.noticeFeeHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCidHistoryList(data);
+        return DataGetter.getCidHistoryList(data);
     }
 
     public List<CidHist> reputationHistory(Fcdsl fcdsl){
-        clientData = IdentityAPIs.reputationHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = IdentityAPIs.reputationHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCidHistoryList(data);
+        return DataGetter.getCidHistoryList(data);
     }
 
     public Map<String, String[]> fidCidSeek(Fcdsl fcdsl){
-        clientData = IdentityAPIs.fidCidSeekPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = IdentityAPIs.fidCidSeekPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getStringArrayMap(data);
+        return DataGetter.getStringArrayMap(data);
     }
 
     public Map<String, String[]> fidCidSeek(String searchStr){
-        clientData = IdentityAPIs.fidCidSeekPost(apiAccount.getApiUrl(), searchStr,apiAccount.getVia(),sessionKey);
+        clientTask = IdentityAPIs.fidCidSeekPost(apiAccount.getApiUrl(), searchStr,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getStringArrayMap(data);
+        return DataGetter.getStringArrayMap(data);
     }
 
     public Map<String, String[]> fidCidGetFree(String id){
-        clientData = IdentityAPIs.fidCidGetFree(apiAccount.getApiUrl(), id);
+        clientTask = IdentityAPIs.fidCidGetFree(apiAccount.getApiUrl(), id);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getStringArrayMap(data);
+        return DataGetter.getStringArrayMap(data);
     }
 
     public Map<String, Nobody> nobodyByIds(String[] ids){
-        clientData = IdentityAPIs.nobodyByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = IdentityAPIs.nobodyByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getNobodyMap(data);
+        return DataGetter.getNobodyMap(data);
     }
     public List<Nobody> nobodySearch(Fcdsl fcdsl){
-        clientData = IdentityAPIs.nobodySearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = IdentityAPIs.nobodySearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getNobodyList(data);
+        return DataGetter.getNobodyList(data);
     }
 
     public Map<String, String> avatars(String[] ids){
-        clientData = IdentityAPIs.avatarsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = IdentityAPIs.avatarsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getStringMap(data);
+        return DataGetter.getStringMap(data);
     }
 
     public Service getServiceFree(){
-        clientData = OpenAPIs.getService(apiAccount.getApiUrl());
+        clientTask = OpenAPIs.getService(apiAccount.getApiUrl());
         Object data = checkApipV1Result();
         if(data==null)return null;
         return gson.fromJson(gson.toJson(data),Service.class);
     }
 
     public Session signIn(byte[] priKey, RequestBody.SignInMode mode_RefreshOrNull){
-        clientData = OpenAPIs.signInPost(apiAccount.getApiUrl(),apiAccount.getVia(),priKey,mode_RefreshOrNull);
+        clientTask = OpenAPIs.signInPost(apiAccount.getApiUrl(),apiAccount.getVia(),priKey,mode_RefreshOrNull);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return gson.fromJson(gson.toJson(data), Session.class);
@@ -622,7 +622,7 @@ public class ApipClient extends Client {
 
 
     public Session signInEcc(byte[] priKey, RequestBody.SignInMode mode){
-        clientData = OpenAPIs.signInEccPost(apiAccount.getApiUrl(), apiAccount.getVia(), priKey,mode);
+        clientTask = OpenAPIs.signInEccPost(apiAccount.getApiUrl(), apiAccount.getVia(), priKey,mode);
         Object data = checkApipV1Result();
         if(data==null)return null;
         Session session = gson.fromJson(gson.toJson(data), Session.class);
@@ -638,347 +638,347 @@ public class ApipClient extends Client {
     }
 
     public Map<String, String> totals(){
-        clientData = OpenAPIs.totalsPost(apiAccount.getApiUrl(),apiAccount.getVia(),sessionKey);
+        clientTask = OpenAPIs.totalsPost(apiAccount.getApiUrl(),apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getStringMap(data);
+        return DataGetter.getStringMap(data);
     }
     public Map<String, String> totalsFree() {
-        clientData = OpenAPIs.totalsGet(apiAccount.getApiUrl());
+        clientTask = OpenAPIs.totalsGet(apiAccount.getApiUrl());
         Object data = checkApipV1Result();
         if (data == null) return null;
-        return ApipDataGetter.getStringMap(data);
+        return DataGetter.getStringMap(data);
     }
 
     public Object general(String index, Fcdsl fcdsl){
-        clientData = OpenAPIs.generalPost(index,apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = OpenAPIs.generalPost(index,apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         return checkApipV1Result();
     }
 
     public Map<String, Group> groupByIds(String[] ids){
-        clientData = OrganizeAPIs.groupByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = OrganizeAPIs.groupByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getGroupMap(data);
+        return DataGetter.getGroupMap(data);
     }
     public List<Group> groupSearch(Fcdsl fcdsl){
-        clientData = OrganizeAPIs.groupSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = OrganizeAPIs.groupSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getGroupList(data);
+        return DataGetter.getGroupList(data);
     }
 
     public List<GroupHistory> groupOpHistory(Fcdsl fcdsl){
-        clientData = OrganizeAPIs.groupOpHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = OrganizeAPIs.groupOpHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getGroupHistoryList(data);
+        return DataGetter.getGroupHistoryList(data);
     }
     public Map<String, String[]> groupMembers(String[] ids){
-        clientData = OrganizeAPIs.groupMembersPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = OrganizeAPIs.groupMembersPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getStringArrayMap(data);
+        return DataGetter.getStringArrayMap(data);
     }
 
     public List<MyGroupData> myGroups(String fid){
-        clientData = OrganizeAPIs.myGroupsPost(apiAccount.getApiUrl(), fid,apiAccount.getVia(),sessionKey);
+        clientTask = OrganizeAPIs.myGroupsPost(apiAccount.getApiUrl(), fid,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getMyGroupList(data);
+        return DataGetter.getMyGroupList(data);
     }
 
 
     public Map<String, Team> teamByIds(String[] ids){
-        clientData = OrganizeAPIs.teamByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = OrganizeAPIs.teamByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getTeamMap(data);
+        return DataGetter.getTeamMap(data);
     }
     public List<Team> teamSearch(Fcdsl fcdsl){
-        clientData = OrganizeAPIs.teamSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = OrganizeAPIs.teamSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getTeamList(data);
+        return DataGetter.getTeamList(data);
     }
 
     public List<TeamHistory> teamOpHistory(Fcdsl fcdsl){
-        clientData = OrganizeAPIs.teamOpHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = OrganizeAPIs.teamOpHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getTeamHistoryList(data);
+        return DataGetter.getTeamHistoryList(data);
     }
 
     public List<TeamHistory> teamRateHistory(Fcdsl fcdsl){
-        clientData = OrganizeAPIs.teamRateHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = OrganizeAPIs.teamRateHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getTeamHistoryList(data);
+        return DataGetter.getTeamHistoryList(data);
     }
     public Map<String, String[]> teamMembers(String[] ids){
-        clientData = OrganizeAPIs.teamMembersPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = OrganizeAPIs.teamMembersPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getStringArrayMap(data);
+        return DataGetter.getStringArrayMap(data);
     }
 
     public Map<String, String[]> teamExMembers(String[] ids){
-        clientData = OrganizeAPIs.teamExMembersPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = OrganizeAPIs.teamExMembersPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getStringArrayMap(data);
+        return DataGetter.getStringArrayMap(data);
     }
     public TeamOtherPersonsData teamOtherPersons(String[] ids){
-        clientData = OrganizeAPIs.teamOtherPersonsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = OrganizeAPIs.teamOtherPersonsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return gson.fromJson(gson.toJson(data), TeamOtherPersonsData.class);
     }
     public List<MyTeamData> myTeams(String fid){
-        clientData = OrganizeAPIs.myTeamsPost(apiAccount.getApiUrl(), fid,apiAccount.getVia(),sessionKey);
+        clientTask = OrganizeAPIs.myTeamsPost(apiAccount.getApiUrl(), fid,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getMyTeamList(data);
+        return DataGetter.getMyTeamList(data);
     }
 
 
     public Map<String, Box> boxByIds(String[] ids){
-        clientData = PersonalAPIs.boxByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = PersonalAPIs.boxByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getBoxMap(data);
+        return DataGetter.getBoxMap(data);
     }
     public List<Box> boxSearch(Fcdsl fcdsl){
-        clientData = PersonalAPIs.boxSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PersonalAPIs.boxSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getBoxList(data);
+        return DataGetter.getBoxList(data);
     }
 
     public List<BoxHistory> boxHistory(Fcdsl fcdsl){
-        clientData = PersonalAPIs.boxHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PersonalAPIs.boxHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getBoxHistoryList(data);
+        return DataGetter.getBoxHistoryList(data);
     }
 
     public Map<String, Contact> contactByIds(String[] ids){
-        clientData = PersonalAPIs.contactByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = PersonalAPIs.contactByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getContactMap(data);
+        return DataGetter.getContactMap(data);
     }
     public List<Contact> contacts(Fcdsl fcdsl){
-        clientData = PersonalAPIs.contactsPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PersonalAPIs.contactsPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getContactList(data);
+        return DataGetter.getContactList(data);
     }
 
     public List<Contact> contactsDeleted(Fcdsl fcdsl){
-        clientData = PersonalAPIs.contactsDeletedPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PersonalAPIs.contactsDeletedPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getContactList(data);
+        return DataGetter.getContactList(data);
     }
 
     public Map<String, Mail> mailByIds(String[] ids){
-        clientData = PersonalAPIs.mailByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = PersonalAPIs.mailByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getMailMap(data);
+        return DataGetter.getMailMap(data);
     }
     public List<Mail> mails(Fcdsl fcdsl){
-        clientData = PersonalAPIs.mailsPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PersonalAPIs.mailsPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getMailList(data);
+        return DataGetter.getMailList(data);
     }
 
     public List<Mail> mailsDeleted(Fcdsl fcdsl){
-        clientData = PersonalAPIs.mailsDeletedPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PersonalAPIs.mailsDeletedPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getMailList(data);
+        return DataGetter.getMailList(data);
     }
     public Map<String, Secret> secretByIds(String[] ids){
-        clientData = PersonalAPIs.secretByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = PersonalAPIs.secretByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getSecretMap(data);
+        return DataGetter.getSecretMap(data);
     }
     public List<Secret> secrets(Fcdsl fcdsl){
-        clientData = PersonalAPIs.secretsPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PersonalAPIs.secretsPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getSecretList(data);
+        return DataGetter.getSecretList(data);
     }
 
     public List<Secret> secretsDeleted(Fcdsl fcdsl){
-        clientData = PersonalAPIs.secretsDeletedPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PersonalAPIs.secretsDeletedPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getSecretList(data);
+        return DataGetter.getSecretList(data);
     }
 
     public Map<String, Token> tokenByIds(String[] ids){
-        clientData = PublishAPIs.tokenByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = PublishAPIs.tokenByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getTokenMap(data);
+        return DataGetter.getTokenMap(data);
     }
     public List<Token> tokenSearch(Fcdsl fcdsl){
-        clientData = PublishAPIs.tokenSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PublishAPIs.tokenSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getTokenList(data);
+        return DataGetter.getTokenList(data);
     }
 
     public List<TokenHistory> tokenHistory(Fcdsl fcdsl){
-        clientData = PublishAPIs.tokenHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PublishAPIs.tokenHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getTokenHistoryList(data);
+        return DataGetter.getTokenHistoryList(data);
     }
     public List<TokenHolder> myTokens(Fcdsl fcdsl){
-        clientData = PublishAPIs.myTokensPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PublishAPIs.myTokensPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getTokenHolderList(data);
+        return DataGetter.getTokenHolderList(data);
     }
     public Map<String, TokenHolder> tokenHolderByIds(String[] ids){
-        clientData = PublishAPIs.tokenHolderByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = PublishAPIs.tokenHolderByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getTokenHolderMap(data);
+        return DataGetter.getTokenHolderMap(data);
     }
 
     public Map<String, Proof> proofByIds(String[] ids){
-        clientData = PublishAPIs.proofByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = PublishAPIs.proofByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getProofMap(data);
+        return DataGetter.getProofMap(data);
     }
     public List<Proof> proofSearch(Fcdsl fcdsl){
-        clientData =  PublishAPIs.proofSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask =  PublishAPIs.proofSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getProofList(data);
+        return DataGetter.getProofList(data);
     }
 
     public List<ProofHistory> proofHistory(Fcdsl fcdsl){
-        clientData = PublishAPIs.proofHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PublishAPIs.proofHistoryPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getProofHistoryList(data);
+        return DataGetter.getProofHistoryList(data);
     }
 
     public Map<String, Statement> statementByIds(String[] ids){
-        clientData =  PublishAPIs.statementByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask =  PublishAPIs.statementByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getStatementMap(data);
+        return DataGetter.getStatementMap(data);
     }
     public List<Statement> statementSearch(Fcdsl fcdsl){
-        clientData = PublishAPIs.statementSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PublishAPIs.statementSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getStatementList(data);
+        return DataGetter.getStatementList(data);
     }
 
     public List<Nid> nidSearch(Fcdsl fcdsl){
-        clientData = PublishAPIs.nidSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
+        clientTask = PublishAPIs.nidSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getNidList(data);
+        return DataGetter.getNidList(data);
     }
 
     public String decodeRawTx(String rawTxHex){
-        clientData = WalletAPIs.decodeRawTxPost(apiAccount.getApiUrl(), rawTxHex,apiAccount.getVia(),sessionKey);
+        clientTask = WalletAPIs.decodeRawTxPost(apiAccount.getApiUrl(), rawTxHex,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return (String)data;
     }
 
     public List<Cash> cashValidForPay(String fid, double amount){
-        clientData = WalletAPIs.cashValidForPayPost(apiAccount.getApiUrl(), fid,amount,apiAccount.getVia(),sessionKey);
+        clientTask = WalletAPIs.cashValidForPayPost(apiAccount.getApiUrl(), fid,amount,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCashList(data);
+        return DataGetter.getCashList(data);
     }
 
     public List<Cash> cashValidForCd(String fid, int cd){
-        clientData = WalletAPIs.cashValidForCdPost(apiAccount.getApiUrl(), fid,cd,apiAccount.getVia(),sessionKey);
+        clientTask = WalletAPIs.cashValidForCdPost(apiAccount.getApiUrl(), fid,cd,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getCashList(data);
+        return DataGetter.getCashList(data);
     }
     public List<UnconfirmedInfo> unconfirmed(String[] ids){
-        clientData = WalletAPIs.unconfirmedPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
+        clientTask = WalletAPIs.unconfirmedPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getUnconfirmedList(data);
+        return DataGetter.getUnconfirmedList(data);
     }
 
     public String swapRegister(String sid){
-        clientData = SwapHallAPIs.swapRegisterPost(apiAccount.getApiUrl(), sid,apiAccount.getVia(),sessionKey);
+        clientTask = SwapHallAPIs.swapRegisterPost(apiAccount.getApiUrl(), sid,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
         return (String)data;
     }
 
     public List<String> swapUpdate(Map<String, Object> uploadMap){
-        clientData = SwapHallAPIs.swapUpdatePost(apiAccount.getApiUrl(), uploadMap,apiAccount.getVia(),sessionKey);
+        clientTask = SwapHallAPIs.swapUpdatePost(apiAccount.getApiUrl(), uploadMap,apiAccount.getVia(),sessionKey);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getStringList(data);
+        return DataGetter.getStringList(data);
     }
     public SwapStateData swapState(String sid, String[] last){
-        clientData = SwapHallAPIs.getSwapState(apiAccount.getApiUrl(), sid);
+        clientTask = SwapHallAPIs.getSwapState(apiAccount.getApiUrl(), sid);
         Object data = checkApipV1Result();
         if(data==null)return null;
         try{
             return gson.fromJson(gson.toJson(data),SwapStateData.class);
         }catch (Exception e){
-            clientData.setMessage(clientData.getMessage()+(String)data);
+            clientTask.setMessage(clientTask.getMessage()+(String)data);
             return null;
         }
     }
 
     public SwapLpData swapLp(String sid, String[] last){
-        clientData = SwapHallAPIs.getSwapLp(apiAccount.getApiUrl(), sid);
+        clientTask = SwapHallAPIs.getSwapLp(apiAccount.getApiUrl(), sid);
         Object data = checkApipV1Result();
         if(data==null)return null;
         try{
             return gson.fromJson(gson.toJson(data),SwapLpData.class);
         }catch (Exception e){
-            clientData.setMessage(clientData.getMessage()+(String)data);
+            clientTask.setMessage(clientTask.getMessage()+(String)data);
             return null;
         }
     }
 
     public List<SwapAffair> swapFinished(String sid, String[] last){
-        clientData = SwapHallAPIs.getSwapFinished(apiAccount.getApiUrl(), sid,last);
+        clientTask = SwapHallAPIs.getSwapFinished(apiAccount.getApiUrl(), sid,last);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getSwapAffairList(data);
+        return DataGetter.getSwapAffairList(data);
     }
 
     public List<SwapAffair> swapPending(String sid){
-        clientData = SwapHallAPIs.getSwapPending(apiAccount.getApiUrl(), sid);
+        clientTask = SwapHallAPIs.getSwapPending(apiAccount.getApiUrl(), sid);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getSwapAffairList(data);
+        return DataGetter.getSwapAffairList(data);
     }
 
     public List<SwapPriceData> swapPrices(String sid, String gTick, String mTick, String[] last){
-        clientData = SwapHallAPIs.getSwapPrice(apiAccount.getApiUrl(), sid,gTick,mTick,last);
+        clientTask = SwapHallAPIs.getSwapPrice(apiAccount.getApiUrl(), sid,gTick,mTick,last);
         Object data = checkApipV1Result();
         if(data==null)return null;
-        return ApipDataGetter.getSwapPriceDataList(data);
+        return DataGetter.getSwapPriceDataList(data);
     }
-    public void setClientData(ApipClientData clientData) {
-        this.clientData = clientData;
+    public void setClientData(ApipClientTask clientData) {
+        this.clientTask = clientData;
     }
 
 //    public Fcdsl getFcdsl() {

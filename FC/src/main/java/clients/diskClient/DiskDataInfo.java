@@ -1,4 +1,4 @@
-package startManager;
+package clients.diskClient;
 
 import java.util.Date;
 

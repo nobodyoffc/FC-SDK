@@ -17,8 +17,8 @@ import java.util.Map;
 
 public class CryptoToolAPIs {
 
-    public static ApipClientData addressesPost(String urlHead, String addrOrPubKey, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask addressesPost(String urlHead, String addrOrPubKey, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setOther(addrOrPubKey);
@@ -30,8 +30,8 @@ public class CryptoToolAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData encryptPost(String urlHead, String key, String message, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask encryptPost(String urlHead, String key, String message, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         EncryptIn encryptIn = new EncryptIn();
@@ -51,8 +51,8 @@ public class CryptoToolAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData verifyPost(String urlHead, String signature, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask verifyPost(String urlHead, String signature, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         Map<String, String> signMap = new HashMap<>();
@@ -72,8 +72,8 @@ public class CryptoToolAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData sha256Post(String urlHead, String text, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask sha256Post(String urlHead, String text, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setOther(text);
@@ -85,8 +85,8 @@ public class CryptoToolAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData sha256x2Post(String urlHead, String text, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask sha256x2Post(String urlHead, String text, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setOther(text);
@@ -98,13 +98,13 @@ public class CryptoToolAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData sha256BytesPost(String urlHead, String hex, @Nullable String via, byte[] sessionKey) {
+    public static ApipClientTask sha256BytesPost(String urlHead, String hex, @Nullable String via, byte[] sessionKey) {
         if (!Hex.isHexString(hex)) {
             System.out.println("Error: It's not a hex.");
             return null;
         }
 
-        ApipClientData apipClientData = new ApipClientData();
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setOther(hex);
@@ -116,12 +116,12 @@ public class CryptoToolAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData sha256x2BytesPost(String urlHead, String hex, @Nullable String via, byte[] sessionKey) {
+    public static ApipClientTask sha256x2BytesPost(String urlHead, String hex, @Nullable String via, byte[] sessionKey) {
         if (!Hex.isHexString(hex)) {
             System.out.println("Error: It's not a hex.");
             return null;
         }
-        ApipClientData apipClientData = new ApipClientData();
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setOther(hex);
@@ -133,8 +133,8 @@ public class CryptoToolAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData offLineTxPost(String urlHead, String fromFid, List<SendTo> sendToList, String msg, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask offLineTxPost(String urlHead, String fromFid, List<SendTo> sendToList, String msg, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         DataForOffLineTx dataForOffLineTx = new DataForOffLineTx();
@@ -150,8 +150,8 @@ public class CryptoToolAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData offLineTxByCdPost(String urlHead, String fromFid, List<SendTo> sendToList, String msg, int cd, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask offLineTxByCdPost(String urlHead, String fromFid, List<SendTo> sendToList, String msg, int cd, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         DataForOffLineTx dataForOffLineTx = new DataForOffLineTx();

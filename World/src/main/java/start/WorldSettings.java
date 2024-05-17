@@ -5,7 +5,7 @@ import appTools.Menu;
 import config.ApiType;
 import config.Configure;
 import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1P7.EccAes256K1P7;
+import crypto.eccAes256K1.EccAes256K1P7;
 import org.bitcoinj.core.ECKey;
 import redis.clients.jedis.JedisPool;
 import server.Settings;

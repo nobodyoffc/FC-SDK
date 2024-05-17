@@ -24,7 +24,7 @@ public class Fcdsl {
     public static final String[] FCDSL_FIELDS = new String[]{MATCH_ALL, IDS, QUERY, FILTER, EXCEPT, SIZE, SORT, AFTER, OTHER};
     private String index;
     private String[] ids;
-    private Query query;
+    private FcQuery fcQuery;
     private Filter filter;
     private Except except;
     private String size;
@@ -104,7 +104,7 @@ public class Fcdsl {
     public boolean checkFcdsl() {
         //1. ids 不可有query，filter，except，matchAll
         if (ids != null) {
-            if (query != null) {
+            if (fcQuery != null) {
                 System.out.println("With Ids search, there can't be a query.");
                 return false;
             }
@@ -132,7 +132,7 @@ public class Fcdsl {
 
         //2. 没有query就不能有filter，except
         if (filter != null || except != null) {
-            if (query == null) {
+            if (fcQuery == null) {
                 System.out.println("Filter and except have to be used with a query.");
                 return false;
             }
@@ -150,10 +150,10 @@ public class Fcdsl {
         return;
     }
 
-    public Query addNewQuery() {
-        Query query = new Query();
-        this.setQuery(query);
-        return query;
+    public FcQuery addNewQuery() {
+        FcQuery fcQuery = new FcQuery();
+        this.setQuery(fcQuery);
+        return fcQuery;
     }
 
     public Filter addNewFilter() {
@@ -197,16 +197,16 @@ public class Fcdsl {
     }
 
     public void setQueryTerms(String field, String value) {
-        Query query = new Query();
+        FcQuery fcQuery = new FcQuery();
         Terms terms;
-        if (query.getTerms() != null) {
-            terms = query.getTerms();
+        if (fcQuery.getTerms() != null) {
+            terms = fcQuery.getTerms();
         } else terms = new Terms();
 
         terms.setFields(new String[]{field});
         terms.setValues(new String[]{value});
-        query.setTerms(terms);
-        this.query = query;
+        fcQuery.setTerms(terms);
+        this.fcQuery = fcQuery;
     }
 
     public void setFilterTerms(String field, String value) {
@@ -251,12 +251,12 @@ public class Fcdsl {
         this.ids = ids;
     }
 
-    public Query getQuery() {
-        return query;
+    public FcQuery getQuery() {
+        return fcQuery;
     }
 
-    public void setQuery(Query query) {
-        this.query = query;
+    public void setQuery(FcQuery fcQuery) {
+        this.fcQuery = fcQuery;
     }
 
     public Filter getFilter() {
@@ -387,8 +387,8 @@ public class Fcdsl {
     }
 
     public void inputQuery(BufferedReader br) {
-        query = new Query();
-        query.promoteInput(QUERY, br);
+        fcQuery = new FcQuery();
+        fcQuery.promoteInput(QUERY, br);
     }
 
     public void inputFilter(BufferedReader br) {

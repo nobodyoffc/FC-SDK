@@ -1,7 +1,7 @@
 package FCH;
 
-import clients.apipClient.ApipClientData;
-import clients.apipClient.ApipDataGetter;
+import clients.apipClient.ApipClientTask;
+import clients.apipClient.DataGetter;
 import clients.apipClient.WalletAPIs;
 import FCH.fchData.SendTo;
 import NaSa.data.TxInput;
@@ -843,7 +843,7 @@ public class TxCreator {
 
         String urlHead = apiAccount.getApiUrl();
         System.out.println("Getting cashes from " + urlHead + " ...");
-        ApipClientData apipClientData = WalletAPIs.cashValidForPayPost(urlHead, sender, sum + ((double) fee / COIN_TO_SATOSHI), apiAccount.getVia(), sessionKey);
+        ApipClientTask apipClientData = WalletAPIs.cashValidForPayPost(urlHead, sender, sum + ((double) fee / COIN_TO_SATOSHI), apiAccount.getVia(), sessionKey);
 
         if (apipClientData.checkResponse() != 0) {
             System.out.println("Failed to get cashes." + apipClientData.getMessage() + apipClientData.getResponseBody().getData());
@@ -851,7 +851,7 @@ public class TxCreator {
             return apipClientData.getMessage();
         }
 
-        List<Cash> cashList = ApipDataGetter.getCashList(apipClientData.getResponseBody().getData());
+        List<Cash> cashList = DataGetter.getCashList(apipClientData.getResponseBody().getData());
 
         String txSigned = TxCreator.createTransactionSignFch(cashList, priKey, sendToList, msg);
 

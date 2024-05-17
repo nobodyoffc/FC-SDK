@@ -1,5 +1,5 @@
 package APIP.apipData;
 
-public class Filter extends Query {
+public class Filter extends FcQuery {
 
 }

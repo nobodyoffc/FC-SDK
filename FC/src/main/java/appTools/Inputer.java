@@ -505,7 +505,8 @@ public class Inputer {
             System.out.println((i+1)+" "+values[i].toString());
         }
         Shower.printUnderline(10);
-        int choice = inputInteger(br,"Choose the number:",values.length);
+        int choice = inputInteger(br,"Choose the number. 0 to skip:",values.length);
+        if(choice==0)return null;
         return values[choice-1];
     }
 }

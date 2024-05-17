@@ -6,8 +6,8 @@ import constants.ApiNames;
 import javax.annotation.Nullable;
 
 public class PersonalAPIs {
-    public static ApipClientData boxByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask boxByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -19,8 +19,8 @@ public class PersonalAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData boxSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask boxSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP10V1Path + ApiNames.BoxSearchAPI;
@@ -30,8 +30,8 @@ public class PersonalAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData boxHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask boxHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP10V1Path + ApiNames.BoxHistoryAPI;
@@ -41,8 +41,8 @@ public class PersonalAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData contactByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask contactByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -54,8 +54,8 @@ public class PersonalAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData contactsPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask contactsPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP11V1Path + ApiNames.ContactsAPI;
@@ -65,8 +65,8 @@ public class PersonalAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData contactsDeletedPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask contactsDeletedPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP11V1Path + ApiNames.ContactsDeletedAPI;
@@ -76,8 +76,8 @@ public class PersonalAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData secretByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask secretByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -89,8 +89,8 @@ public class PersonalAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData secretsPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask secretsPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP12V1Path + ApiNames.SecretsAPI;
@@ -100,8 +100,8 @@ public class PersonalAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData secretsDeletedPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask secretsDeletedPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP12V1Path + ApiNames.SecretsDeletedAPI;
@@ -111,8 +111,8 @@ public class PersonalAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData mailByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask mailByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -124,8 +124,8 @@ public class PersonalAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData mailsPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask mailsPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP13V1Path + ApiNames.MailsAPI;
@@ -135,8 +135,8 @@ public class PersonalAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData mailsDeletedPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask mailsDeletedPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP13V1Path + ApiNames.MailsDeletedAPI;
@@ -146,8 +146,8 @@ public class PersonalAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData mailThreadPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask mailThreadPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP13V1Path + ApiNames.MailThreadAPI;

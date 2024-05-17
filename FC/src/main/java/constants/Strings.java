@@ -14,6 +14,7 @@ public class Strings {
 
     public static final String SCAN_MEMPOOL = "scanMempool";
     public static final String SIGNER = "signer";
+    public static final String TEMP = "temp";
 
     public static final String ES_PASSWORD_CIPHER = "esPasswordCipher";
     public static final String ORDER_LAST_HEIGHT = "orderLastHeight";

@@ -6,7 +6,7 @@ import appTools.Menu;
 import java.io.BufferedReader;
 import java.util.Arrays;
 
-public class Query {
+public class FcQuery {
 
     public static final String TERMS = "terms";
     public static final String PART = "part";
@@ -54,24 +54,24 @@ public class Query {
         return newOne;
     }
 
-    public Query addNewExists(String... fields) {
+    public FcQuery addNewExists(String... fields) {
         this.exists = fields;
         return this;
     }
 
-    public Query appendExists(String field) {
+    public FcQuery appendExists(String field) {
         String[] newExists = Arrays.copyOf(exists, exists.length + 1);
         newExists[exists.length] = field;
         exists = newExists;
         return this;
     }
 
-    public Query addNewUnexists(String... fields) {
+    public FcQuery addNewUnexists(String... fields) {
         this.unexists = fields;
         return this;
     }
 
-    public Query appendUnexists(String field) {
+    public FcQuery appendUnexists(String field) {
         String[] newUnexists = Arrays.copyOf(unexists, unexists.length + 1);
         newUnexists[unexists.length] = field;
         unexists = newUnexists;

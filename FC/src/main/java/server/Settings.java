@@ -12,7 +12,7 @@ import constants.FieldNames;
 import constants.Strings;
 import constants.Values;
 import crypto.cryptoTools.Hash;
-import crypto.eccAes256K1P7.EccAes256K1P7;
+import crypto.eccAes256K1.EccAes256K1P7;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.JsonTools;

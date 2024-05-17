@@ -150,6 +150,23 @@ public class JsonTools {
         return t;
     }
 
+    public static <T> T readOneJsonFromFile(String path,String fileName,Class<T> tClass) throws IOException {
+        File file = new File(path,fileName);
+        if(!file.exists())return null;
+        FileInputStream fis = new FileInputStream(file);
+        byte[] jsonBytes = readOneJsonFromFile(fis);
+        if(jsonBytes==null) return null;
+        String json = new String(jsonBytes,StandardCharsets.UTF_8);
+        Gson gson = new Gson();
+        T t;
+        try {
+            t = gson.fromJson(json, tClass);
+        }catch (Exception e){
+            return null;
+        }
+        return t;
+    }
+
     @Nullable
     public static byte[] readOneJsonFromFile(FileInputStream fis) throws IOException {
         byte[] jsonBytes;

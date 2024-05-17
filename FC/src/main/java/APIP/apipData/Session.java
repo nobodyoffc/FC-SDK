@@ -3,9 +3,9 @@ package APIP.apipData;
 
 import constants.Strings;
 import crypto.cryptoTools.Hash;
-import crypto.eccAes256K1P7.EccAes256K1P7;
-import crypto.eccAes256K1P7.EccAesData;
-import crypto.eccAes256K1P7.EccAesType;
+import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.CryptoData;
+import crypto.eccAes256K1.EccAesType;
 import javaTools.BytesTools;
 import javaTools.JsonTools;
 import redis.clients.jedis.Jedis;
@@ -100,12 +100,12 @@ public class Session {
 
     public static String encryptSessionKey(String sessionKey, String pubKey, String sign) throws Exception {
         EccAes256K1P7 ecc = new EccAes256K1P7();
-        EccAesData eccAesData= new EccAesData(EccAesType.AsyOneWay, sessionKey,pubKey);
-        ecc.encrypt(eccAesData);
-        if(eccAesData.getError()!=null){
-            return "Error:"+eccAesData.getError();
+        CryptoData cryptoData = new CryptoData(EccAesType.AsyOneWay, sessionKey,pubKey);
+        ecc.encrypt(cryptoData);
+        if(cryptoData.getMessage()!=null){
+            return "Error:"+ cryptoData.getMessage();
         }
-        return eccAesData.toJson();
+        return cryptoData.toJson();
     }
 
     public String getSessionName() {

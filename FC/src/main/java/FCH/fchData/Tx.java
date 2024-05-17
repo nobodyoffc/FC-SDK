@@ -1,146 +1,155 @@
 package FCH.fchData;
 
 public class Tx {
+	
+	//from block;
+	private String txId;		//txid,hash of tx
+	private Integer version;		//version
+	private long lockTime;	//lockTime
+	private long blockTime;		//blockTime
+	private String blockId;		//block ID, hash of block head
+	private int txIndex;		//the index of this tx in the block
+	private String coinbase;	//string of the coinbase script
+	private int outCount;		//number of outputs
+	private int inCount;		//number of inputs
+	private long height;		//block height of the block
+	
+	private String opReBrief; 	//Former 30 bytes of OP_RETURN data in String.
+	
+	//calculated
+	private long inValueT;		//total amount of inputs
+	private long outValueT;		//total amount of outputs
+	private long fee;		//tx fee
+	
+	private long cdd;
+	transient private String rawTx;
 
-    //from block;
-    private String txId;        //txid,hash of tx
-    private int version;        //version
-    private long lockTime;    //lockTime
-    private long blockTime;        //blockTime
-    private String blockId;        //block ID, hash of block head
-    private int txIndex;        //the index of this tx in the block
-    private String coinbase;    //string of the coinbase script
-    private int outCount;        //number of outputs
-    private int inCount;        //number of inputs
-    private long height;        //block height of the block
+	public String getRawTx() {
+		return rawTx;
+	}
 
-    private String opReBrief;    //Former 30 bytes of OP_RETURN data in String.
+	public void setRawTx(String rawTx) {
+		this.rawTx = rawTx;
+	}
 
-    //calculated
-    private long inValueT;        //total amount of inputs
-    private long outValueT;        //total amount of outputs
-    private long fee;        //tx fee
+	public Integer getVersion() {
+		return version;
+	}
 
-    private long cdd;
+	public void setVersion(Integer version) {
+		this.version = version;
+	}
 
-    public int getVersion() {
-        return version;
-    }
+	public long getLockTime() {
+		return lockTime;
+	}
 
-    public void setVersion(int version) {
-        this.version = version;
-    }
+	public void setLockTime(long lockTime) {
+		this.lockTime = lockTime;
+	}
 
-    public long getLockTime() {
-        return lockTime;
-    }
+	public String getTxId() {
+		return txId;
+	}
 
-    public void setLockTime(long lockTime) {
-        this.lockTime = lockTime;
-    }
+	public void setTxId(String txId) {
+		this.txId = txId;
+	}
 
-    public String getTxId() {
-        return txId;
-    }
+	public long getBlockTime() {
+		return blockTime;
+	}
 
-    public void setTxId(String txId) {
-        this.txId = txId;
-    }
+	public void setBlockTime(long blockTime) {
+		this.blockTime = blockTime;
+	}
 
-    public long getBlockTime() {
-        return blockTime;
-    }
+	public String getBlockId() {
+		return blockId;
+	}
 
-    public void setBlockTime(long blockTime) {
-        this.blockTime = blockTime;
-    }
+	public void setBlockId(String blockId) {
+		this.blockId = blockId;
+	}
 
-    public String getBlockId() {
-        return blockId;
-    }
+	public int getTxIndex() {
+		return txIndex;
+	}
 
-    public void setBlockId(String blockId) {
-        this.blockId = blockId;
-    }
+	public void setTxIndex(int txIndex) {
+		this.txIndex = txIndex;
+	}
 
-    public int getTxIndex() {
-        return txIndex;
-    }
+	public String getCoinbase() {
+		return coinbase;
+	}
 
-    public void setTxIndex(int txIndex) {
-        this.txIndex = txIndex;
-    }
+	public void setCoinbase(String coinbase) {
+		this.coinbase = coinbase;
+	}
 
-    public String getCoinbase() {
-        return coinbase;
-    }
+	public int getOutCount() {
+		return outCount;
+	}
 
-    public void setCoinbase(String coinbase) {
-        this.coinbase = coinbase;
-    }
+	public void setOutCount(int outCount) {
+		this.outCount = outCount;
+	}
 
-    public int getOutCount() {
-        return outCount;
-    }
+	public int getInCount() {
+		return inCount;
+	}
 
-    public void setOutCount(int outCount) {
-        this.outCount = outCount;
-    }
+	public void setInCount(int inCount) {
+		this.inCount = inCount;
+	}
 
-    public int getInCount() {
-        return inCount;
-    }
+	public long getHeight() {
+		return height;
+	}
 
-    public void setInCount(int inCount) {
-        this.inCount = inCount;
-    }
+	public void setHeight(long height) {
+		this.height = height;
+	}
 
-    public long getHeight() {
-        return height;
-    }
+	public String getOpReBrief() {
+		return opReBrief;
+	}
 
-    public void setHeight(long height) {
-        this.height = height;
-    }
+	public void setOpReBrief(String opReBrief) {
+		this.opReBrief = opReBrief;
+	}
 
-    public String getOpReBrief() {
-        return opReBrief;
-    }
+	public long getInValueT() {
+		return inValueT;
+	}
 
-    public void setOpReBrief(String opReBrief) {
-        this.opReBrief = opReBrief;
-    }
+	public void setInValueT(long inValueT) {
+		this.inValueT = inValueT;
+	}
 
-    public long getInValueT() {
-        return inValueT;
-    }
+	public long getOutValueT() {
+		return outValueT;
+	}
 
-    public void setInValueT(long inValueT) {
-        this.inValueT = inValueT;
-    }
+	public void setOutValueT(long outValueT) {
+		this.outValueT = outValueT;
+	}
 
-    public long getOutValueT() {
-        return outValueT;
-    }
+	public long getFee() {
+		return fee;
+	}
 
-    public void setOutValueT(long outValueT) {
-        this.outValueT = outValueT;
-    }
+	public void setFee(long fee) {
+		this.fee = fee;
+	}
 
-    public long getFee() {
-        return fee;
-    }
+	public long getCdd() {
+		return cdd;
+	}
 
-    public void setFee(long fee) {
-        this.fee = fee;
-    }
-
-    public long getCdd() {
-        return cdd;
-    }
-
-    public void setCdd(long cdd) {
-        this.cdd = cdd;
-    }
+	public void setCdd(long cdd) {
+		this.cdd = cdd;
+	}
 
 }

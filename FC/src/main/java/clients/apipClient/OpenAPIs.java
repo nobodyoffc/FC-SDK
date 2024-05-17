@@ -8,15 +8,15 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class OpenAPIs {
-    public static ApipClientData getService(String urlHead) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask getService(String urlHead) {
+        ApipClientTask apipClientData = new ApipClientTask();
         apipClientData.addNewApipUrl(urlHead, ApiNames.APIP0V1Path + ApiNames.GetServiceAPI);
         apipClientData.get();
         return apipClientData;
     }
 
-    public static ApipClientData signInPost(String urlHead, String via, byte[] priKey, RequestBody.SignInMode mode) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask signInPost(String urlHead, String via, byte[] priKey, RequestBody.SignInMode mode) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         String urlTail = ApiNames.APIP0V1Path + ApiNames.SignInAPI;
         doSignIn(apipClientData, urlHead, via, priKey, urlTail, mode);
@@ -24,8 +24,8 @@ public class OpenAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData signInEccPost(String urlHead, @Nullable String via, byte[] priKey, @Nullable RequestBody.SignInMode modeNullOrRefresh) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask signInEccPost(String urlHead, @Nullable String via, byte[] priKey, @Nullable RequestBody.SignInMode modeNullOrRefresh) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         String urlTail = ApiNames.APIP0V1Path + ApiNames.SignInEccAPI;
         doSignIn(apipClientData, urlHead, via, priKey, urlTail, modeNullOrRefresh);
@@ -34,7 +34,7 @@ public class OpenAPIs {
     }
 
     @Nullable
-    private static ApipClientData doSignIn(ApipClientData apipClientData, String urlHead, @Nullable String via, byte[] priKey, String urlTail, @Nullable RequestBody.SignInMode mode) {
+    private static ApipClientTask doSignIn(ApipClientTask apipClientData, String urlHead, @Nullable String via, byte[] priKey, String urlTail, @Nullable RequestBody.SignInMode mode) {
 
         try {
             apipClientData.asySignPost(urlHead, urlTail, via, null, priKey, mode);
@@ -46,15 +46,15 @@ public class OpenAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData totalsGet(String urlHead) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask totalsGet(String urlHead) {
+        ApipClientTask apipClientData = new ApipClientTask();
         apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.GetTotalsAPI);
         apipClientData.get();
         return apipClientData;
     }
 
-    public static ApipClientData totalsPost(String urlHead, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask totalsPost(String urlHead, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         String urlTail = ApiNames.APIP0V1Path + ApiNames.TotalsAPI;
 
@@ -63,8 +63,8 @@ public class OpenAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData generalPost(String index, String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask generalPost(String index, String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         if (index == null) {
             System.out.println("The index name is required.");
             return null;

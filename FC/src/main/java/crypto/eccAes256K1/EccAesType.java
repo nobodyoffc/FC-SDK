@@ -1,4 +1,4 @@
-package crypto.eccAes256K1P7;
+package crypto.eccAes256K1;
 
 public enum EccAesType {
     AsyOneWay, AsyTwoWay, SymKey, Password

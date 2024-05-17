@@ -15,7 +15,7 @@ import constants.Constants;
 import constants.Strings;
 import crypto.cryptoTools.Hash;
 import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1P7.EccAes256K1P7;
+import crypto.eccAes256K1.EccAes256K1P7;
 import fcData.Signature;
 import javaTools.BytesTools;
 import javaTools.JsonTools;
@@ -247,13 +247,13 @@ public class startFchClient {
     private static void createTx(byte[] sessionKey, BufferedReader br) {
 
         String fid = inputGoodFid(br, "Input the multisig fid:");
-        ApipClientData apipClientData = BlockchainAPIs.p2shByIdsPost(initApiAccount.getApiUrl(), new String[]{fid}, initApiAccount.getVia(), sessionKey);
+        ApipClientTask apipClientData = BlockchainAPIs.p2shByIdsPost(initApiAccount.getApiUrl(), new String[]{fid}, initApiAccount.getVia(), sessionKey);
 
         if (apipClientData == null || apipClientData.checkResponse() != 0) {
             System.out.println(JsonTools.getNiceString(apipClientData.getResponseBody()));
             return;
         }
-        Map<String, P2SH> p2shMap = ApipDataGetter.getP2SHMap(apipClientData.getResponseBody().getData());
+        Map<String, P2SH> p2shMap = DataGetter.getP2SHMap(apipClientData.getResponseBody().getData());
         P2SH p2sh = p2shMap.get(fid);
         if (p2sh == null) {
             System.out.println(fid + " is not found.");
@@ -280,7 +280,7 @@ public class startFchClient {
 
         if(apipClientData.checkResponse()!=0) return;
 
-        List<Cash> cashList = ApipDataGetter.getCashList(apipClientData.getResponseBody().getData());
+        List<Cash> cashList = DataGetter.getCashList(apipClientData.getResponseBody().getData());
 
         byte[] rawTx = TxCreator.createMultiSignRawTx(cashList, sendToList, msg, p2sh, DEFAULT_FEE_RATE);
 
@@ -306,10 +306,10 @@ public class startFchClient {
         }
         int m = Inputer.inputInteger(br, "How many signatures is required? ", 16);
 
-        ApipClientData apipClientData = BlockchainAPIs.fidByIdsPost(initApiAccount.getApiUrl(), fids, initApiAccount.getVia(), sessionKey);
+        ApipClientTask apipClientData = BlockchainAPIs.fidByIdsPost(initApiAccount.getApiUrl(), fids, initApiAccount.getVia(), sessionKey);
         if(apipClientData.checkResponse()!=0) return;
 
-        Map<String, Address> fidMap = ApipDataGetter.getAddressMap(apipClientData.getResponseBody().getData());
+        Map<String, Address> fidMap = DataGetter.getAddressMap(apipClientData.getResponseBody().getData());
 
         List<byte[]> pubKeyList = new ArrayList<>();
         for (String fid : fids) {
@@ -340,10 +340,10 @@ public class startFchClient {
             return;
         }
         System.out.println("Requesting APIP from " + initApiAccount.getApiUrl());
-        ApipClientData apipClientData = BlockchainAPIs.p2shByIdsPost(initApiAccount.getApiUrl(), new String[]{fid}, initApiAccount.getVia(), sessionKey);
+        ApipClientTask apipClientData = BlockchainAPIs.p2shByIdsPost(initApiAccount.getApiUrl(), new String[]{fid}, initApiAccount.getVia(), sessionKey);
         if(apipClientData.checkResponse()!=0) return;
         ;
-        Map<String, P2SH> p2shMap = ApipDataGetter.getP2SHMap(apipClientData.getResponseBody().getData());
+        Map<String, P2SH> p2shMap = DataGetter.getP2SHMap(apipClientData.getResponseBody().getData());
         P2SH p2sh = p2shMap.get(fid);
 
         if (p2sh == null) {
@@ -361,7 +361,7 @@ public class startFchClient {
             System.out.println(JsonTools.getNiceString(apipClientData.getResponseBody()));
             return;
         }
-        Map<String, CidInfo> cidInfoMap = ApipDataGetter.getCidInfoMap(apipClientData.getResponseBody().getData());
+        Map<String, CidInfo> cidInfoMap = DataGetter.getCidInfoMap(apipClientData.getResponseBody().getData());
         System.out.println(JsonTools.getNiceString(cidInfoMap));
         Shower.printUnderline(10);
         Menu.anyKeyToContinue(br);
@@ -443,13 +443,13 @@ public class startFchClient {
         String sender = priKeyToFid(priKey);
         System.out.println("The sender is :" + sender);
         byte[] sessionKey = initApiAccount.decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), symKey);
-        ApipClientData apipClientData;
+        ApipClientTask apipClientData;
 
         apipClientData = BlockchainAPIs.fidByIdsPost(initApiAccount.getApiUrl(), new String[]{sender}, initApiAccount.getVia(), sessionKey);
         if(apipClientData.checkResponse()!=0) {
             System.out.println("The fid is no found in the APIP.");
         } else {
-            Map<String, Address> fidMap = ApipDataGetter.getAddressMap(apipClientData.getResponseBody().getData());
+            Map<String, Address> fidMap = DataGetter.getAddressMap(apipClientData.getResponseBody().getData());
             Address addr = fidMap.get(sender);
             if (addr == null) {
                 System.out.println("The fid is no found in the APIP.");
@@ -476,7 +476,7 @@ public class startFchClient {
             return;
         }
 
-        List<Cash> cashList = ApipDataGetter.getCashList(apipClientData.getResponseBody().getData());
+        List<Cash> cashList = DataGetter.getCashList(apipClientData.getResponseBody().getData());
 
         String txSigned = TxCreator.createTransactionSignFch(cashList, priKey, sendToList, msg);
 
@@ -677,7 +677,7 @@ public class startFchClient {
         String via = initApiAccount.getVia();
 
         System.out.println("Requesting ...");
-        ApipClientData apipClientData = ConstructAPIs.serviceByIdsPost(urlHead, ids, via, sessionKey);
+        ApipClientTask apipClientData = ConstructAPIs.serviceByIdsPost(urlHead, ids, via, sessionKey);
         System.out.println(apipClientData.getResponseBodyStr());
 
         Shower.printUnderline(20);

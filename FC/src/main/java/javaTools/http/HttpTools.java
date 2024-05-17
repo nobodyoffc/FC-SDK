@@ -1,9 +1,15 @@
 package javaTools.http;
 
+import APIP.apipData.RequestBody;
 import clients.ApiUrl;
+import clients.apipClient.DataGetter;
+import constants.ReplyInfo;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
+import server.RequestCheckResult;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -16,8 +22,12 @@ import static constants.ApiNames.freeApiList;
 public class HttpTools {
     public static String getApiNameFromUrl(String url) {
         int lastSlashIndex = url.lastIndexOf('/');
+        int firstQuestionIndex = url.indexOf('?');
         if (lastSlashIndex != -1 && lastSlashIndex != url.length() - 1) {
             String name = url.substring(lastSlashIndex + 1);
+            if(firstQuestionIndex!=-1){
+                name = name.substring(0,firstQuestionIndex);
+            }
             if (apiList.contains(name) || freeApiList.contains(name)) {
                 return name;
             }
@@ -56,6 +66,34 @@ public class HttpTools {
             return url.substring(index);
         }
         return null;
+    }
+
+    @Nullable
+    public static String getStringFromHeader(HttpServletRequest request, HttpServletResponse response, FcReplier replier, RequestCheckResult requestCheckResult, String name) {
+        String value = request.getParameter(name);
+        if (value == null) {
+            replier.replyWithCodeAndMessage(response, ReplyInfo.Code3009DidMissed,ReplyInfo.Msg3009DidMissed,null, requestCheckResult.getSessionKey() );
+            return null;
+        }
+        return value;
+    }
+
+    @Nullable
+    public static String getStringFromBodyJsonData(HttpServletResponse response, FcReplier replier, RequestCheckResult requestCheckResult, RequestBody requestBody, String name) {
+        String value;
+        try {
+            Map<String, String> requestDataMap = DataGetter.getStringMap(requestBody.getData());
+            value = requestDataMap.get(name);
+        }catch (Exception e){
+            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1020OtherError,"Can not get the"+ name +"from request body.",null, requestCheckResult.getSessionKey());
+            return null;
+        }
+
+        if (value == null) {
+            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1020OtherError,"Can not get the "+ name +" from request body.", null, requestCheckResult.getSessionKey());
+            return null;
+        }
+        return value;
     }
 
     @Test

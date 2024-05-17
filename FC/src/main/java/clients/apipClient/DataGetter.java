@@ -6,6 +6,7 @@ import FCH.fchData.*;
 import FEIP.feipData.*;
 import appTools.swapClass.SwapAffair;
 import appTools.swapClass.SwapPriceData;
+import clients.diskClient.DiskDataInfo;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -15,8 +16,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ApipDataGetter {
+public class DataGetter {
 
+    public static List<DiskDataInfo> getDiskDataInfoList(Object responseData) {
+        Type t = new TypeToken<ArrayList<DiskDataInfo>>() {
+        }.getType();
+        Gson gson = new Gson();
+        return gson.fromJson(gson.toJson(responseData), t);
+    }
     public static List<TxInfo> getTxInfoList(Object responseData) {
         Type t = new TypeToken<ArrayList<TxInfo>>() {
         }.getType();

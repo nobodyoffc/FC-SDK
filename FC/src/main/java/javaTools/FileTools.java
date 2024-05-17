@@ -1,6 +1,7 @@
 package javaTools;
 
 import crypto.cryptoTools.Hash;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
@@ -43,7 +44,7 @@ public class FileTools {
             return null;
         }
     }
-    public static File getNewFile(String filePath, String fileName,Mode mode) {
+    public static File getNewFile(String filePath, String fileName, CreateNewFileMode createNewFileMode) {
         File file = new File(filePath, fileName);
 
         int i=1;
@@ -52,7 +53,7 @@ public class FileTools {
         String fileNameTail = getFileNameTail(fileName,true);
 
         if(file.exists()){
-            switch (mode){
+            switch (createNewFileMode){
                 case ADD_1 -> {
                     while (file.exists()){
                         String newFileName = fileNameHead+"_"+i+fileNameTail;
@@ -60,7 +61,10 @@ public class FileTools {
                         file = new File(filePath,newFileName);
                     }
                 }
-                case REWRITE -> System.out.println("File "+file.getName()+" existed. It will be covered.");
+                case REWRITE -> {
+                    System.out.println("File "+file.getName()+" existed. It will be covered.");
+                    file.delete();
+                }
                 case RETURN_NULL -> {
                     System.out.println("File "+file.getName()+" existed.");
                     return null;
@@ -99,7 +103,7 @@ public class FileTools {
             } catch (IOException e) {
                 return null;
             }
-        }else if(checkFileOfFreeDisk(path, did))return did;
+        }else if(Boolean.TRUE.equals(checkFileOfFreeDisk(path, did)))return did;
         else return null;
     }
 
@@ -142,20 +146,27 @@ public class FileTools {
         return "/"+did.substring(0,2)+"/"+did.substring(2,4)+"/"+did.substring(4,6)+"/"+did.substring(6,8);
     }
 
-    public static boolean checkFileOfFreeDisk(String path, String did) {
+    public static Boolean checkFileOfFreeDisk(String path, String did) {
         File file = new File(path,did);
         if(!file.exists())return false;
-        byte[] existBytes;
-        try(FileInputStream fileInputStream = new FileInputStream(file)) {
-            existBytes = fileInputStream.readAllBytes();
+
+        String existDid;
+        try {
+            existDid = Hash.Sha256x2(file);
         } catch (IOException e) {
-            return false;
+            System.out.println("Failed to make sha256 of file "+did);
+            return null;
         }
-        String existDid = Hex.toHex(Hash.Sha256x2(existBytes));
+
         return did.equals(existDid);
     }
 
-//    public static boolean checkFileOfFreeDisk(String storageDir, String did) {
+    @NotNull
+    public static String getTempFileName() {
+        return Hex.toHex(BytesTools.getRandomBytes(4));
+    }
+
+    //    public static boolean checkFileOfFreeDisk(String storageDir, String did) {
 //        String path = FileTools.getSubPathForFreeDisk(did);
 //        File file = new File(storageDir+path, did);
 //        if(!file.exists())return false;
@@ -168,7 +179,7 @@ public class FileTools {
 //        String existDid = Hex.toHex(Hash.Sha256x2(existBytes));
 //        return did.equals(existDid);
 //    }
-    public static enum Mode{
+    public static enum CreateNewFileMode {
         REWRITE,ADD_1,RETURN_NULL,THROW_EXCEPTION
     }
 
@@ -176,7 +187,7 @@ public class FileTools {
     public void test(){
         String name = "a.b.txt";
         System.out.println(getFileNameTail(name,false));
-        getNewFile(null,"config.json",Mode.REWRITE);
+        getNewFile(null,"config.json", CreateNewFileMode.REWRITE);
     }
     public static String getFileNameHead(String fileName) {
         int dotIndex = fileName.lastIndexOf(".");

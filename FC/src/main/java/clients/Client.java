@@ -4,7 +4,7 @@ import APIP.apipData.RequestBody;
 import APIP.apipData.Session;
 import FCH.ParseTools;
 import clients.apipClient.ApipClient;
-import clients.diskClient.DiskClientData;
+import clients.diskClient.DiskClientTask;
 import com.google.gson.Gson;
 import config.ApiAccount;
 import config.ApiProvider;
@@ -13,10 +13,11 @@ import constants.ApiNames;
 import constants.ReplyInfo;
 import crypto.cryptoTools.Hash;
 import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1P7.EccAes256K1P7;
+import crypto.eccAes256K1.EccAes256K1P7;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.JsonTools;
+import javaTools.http.AuthType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +38,7 @@ public class Client {
     protected ApiAccount apiAccount;
 
     protected String signInUrlTailPath;
-    protected ClientData clientData;
+    protected ClientTask clientTask;
     protected byte[] symKey;
     protected byte[] sessionKey;
     protected ApipClient apipClient;
@@ -59,41 +60,41 @@ public class Client {
     }
 
     public Object checkResult(ApiType type){
-        if(clientData ==null)return null;
+        if(clientTask ==null)return null;
 
-        if(clientData.getCode()!= ReplyInfo.Code0Success) {
+        if(clientTask.getCode()!= ReplyInfo.Code0Success) {
 //            System.out.println("Failed to " + taskName);
-            if (clientData.getResponseBody()== null) {
-                System.out.println("ResponseBody is null when requesting "+this.clientData.getApiUrl().getUrl());
-                System.out.println(clientData.getMessage());
+            if (clientTask.getResponseBody()== null) {
+                System.out.println("ResponseBody is null when requesting "+this.clientTask.getApiUrl().getUrl());
+                System.out.println(clientTask.getMessage());
             } else {
-                System.out.println(clientData.getResponseBody().getCode() + ":" + clientData.getResponseBody().getMessage());
-                if (clientData.getResponseBody().getData() != null)
-                    System.out.println(JsonTools.getString(clientData.getResponseBody().getData()));
+                System.out.println(clientTask.getResponseBody().getCode() + ":" + clientTask.getResponseBody().getMessage());
+                if (clientTask.getResponseBody().getData() != null)
+                    System.out.println(JsonTools.getString(clientTask.getResponseBody().getData()));
             }
-            log.debug(clientData.getMessage());
-            if (clientData.getCode() == ReplyInfo.Code1004InsufficientBalance) {
+            log.debug(clientTask.getMessage());
+            if (clientTask.getCode() == ReplyInfo.Code1004InsufficientBalance) {
                 apiAccount.buyApi(symKey);
                 return null;
             }
 
-            if (clientData.getCode() == ReplyInfo.Code1002SessionNameMissed || clientData.getCode() == ReplyInfo.Code1009SessionTimeExpired) {
+            if (clientTask.getCode() == ReplyInfo.Code1002SessionNameMissed || clientTask.getCode() == ReplyInfo.Code1009SessionTimeExpired) {
                 sessionFreshen=false;
                 sessionKey = apiAccount.freshSessionKey(symKey, signInUrlTailPath, type, null);
                 if (sessionKey != null) sessionFreshen=true;
             }
             return null;
         }
-        checkBalance(apiAccount, clientData, symKey);
-        if(clientData.getResponseBody().getData()==null && clientData.getCode()==0)
+        checkBalance(apiAccount, clientTask, symKey);
+        if(clientTask.getResponseBody().getData()==null && clientTask.getCode()==0)
             return true;
-        return clientData.getResponseBody().getData();
+        return clientTask.getResponseBody().getData();
     }
 
 
-    public static void checkBalance(ApiAccount apiAccount, final ClientData clientData, byte[] symKey) {
-        if(clientData ==null|| clientData.getResponseBody()==null)return;
-        if(clientData.getResponseBody().getCode()!=0)return;
+    public static void checkBalance(ApiAccount apiAccount, final ClientTask clientTask, byte[] symKey) {
+        if(clientTask ==null|| clientTask.getResponseBody()==null)return;
+        if(clientTask.getResponseBody().getCode()!=0)return;
 
         String priceStr;
         if(apiAccount.getServiceParams().getPricePerKBytes()==null)
@@ -101,8 +102,8 @@ public class Client {
         else priceStr =apiAccount.getApipParams().getPricePerKBytes();
         long price = ParseTools.fchStrToSatoshi(priceStr);
 
-        if( clientData.getResponseBody().getBalance()==null)return;
-        Long balance = clientData.getResponseBody().getBalance();
+        if( clientTask.getResponseBody().getBalance()==null)return;
+        Long balance = clientTask.getResponseBody().getBalance();
         if(balance==null)return;
         apiAccount.setBalance(balance);
 
@@ -137,33 +138,33 @@ public class Client {
         return HexFormat.of().formatHex(Arrays.copyOf(sessionKey, 6));
     }
 
-    public boolean ping(ApiType type) {
-        clientData = new ClientData(apiAccount.getApiUrl(),null,null,null,ApiNames.PingAPI);
-        clientData.postWithJsonBody(apiAccount.getVia(),sessionKey);
+    public boolean pingFree(ApiType type) {
+        clientTask = new ClientTask(apiAccount.getApiUrl(),null,null,null,ApiNames.PingAPI);
+        clientTask.get();
         Object data = checkResult(type);
         if(data==null)return false;
         return (boolean) data;
     }
 
-    public boolean pingWithAuth(ApiType type, ClientData.AuthType authType) {
-        clientData = new ClientData(sessionKey,apiAccount.getApiUrl(),null,null,null,ApiNames.PingAPI, apiAccount.getVia(), authType,null);
-        clientData.post(sessionKey);
+    public boolean ping(ApiType type, AuthType authType) {
+        clientTask = new ClientTask(sessionKey,apiAccount.getApiUrl(),null,null,null,ApiNames.PingAPI, apiAccount.getVia(), authType,null);
+        clientTask.post(sessionKey);
         Object data = checkResult(type);
         if(data==null)return false;
         return (boolean) data;
     }
 
     public Session signIn(byte[] priKey,ApiType type, @Nullable RequestBody.SignInMode mode) {
-        clientData = new ClientData(apiAccount.getApiUrl(),signInUrlTailPath,ApiNames.SignInAPI);
-        clientData.signInPost(apiAccount.getVia(), priKey, mode);
+        clientTask = new ClientTask(apiAccount.getApiUrl(),signInUrlTailPath,ApiNames.SignInAPI);
+        clientTask.signInPost(apiAccount.getVia(), priKey, mode);
         Object data = checkResult(type);
         if(data==null)return null;
         return gson.fromJson(gson.toJson(data), Session.class);
     }
 
     public Session signInEcc(byte[] priKey, ApiType type, @Nullable RequestBody.SignInMode mode) {
-        clientData = new ClientData(apiAccount.getApiUrl(),signInUrlTailPath,ApiNames.SignInEccAPI);
-        clientData.signInPost(apiAccount.getVia(), priKey, mode);
+        clientTask = new ClientTask(apiAccount.getApiUrl(),signInUrlTailPath,ApiNames.SignInEccAPI);
+        clientTask.signInPost(apiAccount.getVia(), priKey, mode);
         Object data = checkResult(type);
         if(data==null)return null;
         return gson.fromJson(gson.toJson(data), Session.class);
@@ -185,12 +186,12 @@ public class Client {
         this.apiAccount = apiAccount;
     }
 
-    public ClientData getClientData() {
-        return clientData;
+    public ClientTask getClientData() {
+        return clientTask;
     }
 
-    public void setClientData(DiskClientData clientData) {
-        this.clientData = clientData;
+    public void setClientData(DiskClientTask clientData) {
+        this.clientTask = clientData;
     }
 
     public byte[] getSymKey() {
@@ -274,8 +275,8 @@ public class Client {
     }
 
 
-    public void setClientData(ClientData clientData) {
-        this.clientData = clientData;
+    public void setClientData(ClientTask clientTask) {
+        this.clientTask = clientTask;
     }
 
     public String getSignInUrlTailPath() {

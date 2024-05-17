@@ -4,7 +4,7 @@ import clients.apipClient.ApipClient;
 import FCH.TxCreator;
 import constants.Constants;
 import constants.UpStrings;
-import crypto.eccAes256K1P7.EccAes256K1P7;
+import crypto.eccAes256K1.EccAes256K1P7;
 import FEIP.feipData.Feip;
 import FEIP.feipData.MasterData;
 import fcData.Algorithm;

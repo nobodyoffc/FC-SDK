@@ -1,7 +1,8 @@
 package startClient;
 
+import APIP.apipData.Fcdsl;
 import appTools.Inputer;
-import clients.ClientData;
+import appTools.Shower;
 import clients.apipClient.ApipClient;
 import APIP.apipData.RequestBody;
 import APIP.apipData.Session;
@@ -9,14 +10,18 @@ import FEIP.feipData.Service;
 import FEIP.feipData.serviceParams.DiskParams;
 import appTools.Menu;
 import clients.diskClient.DiskClient;
+import clients.diskClient.DiskDataInfo;
 import config.ApiAccount;
 import config.ApiType;
-import constants.ApiNames;
-import crypto.eccAes256K1P7.EccAes256K1P7;
+import crypto.eccAes256K1.EccAes256K1P7;
 import config.Configure;
+import javaTools.*;
+import javaTools.http.AuthType;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 
 import static config.ApiAccount.updateSession;
 
@@ -38,7 +43,7 @@ public class StartDiskClient {
 
         //Load config info from the file of config.json
         Configure configure = Configure.loadConfig(br);
-        byte[] symKey = configure.checkPassword(configure);
+        symKey = configure.checkPassword(configure);
 
         configure.initiate(symKey);
 
@@ -52,94 +57,206 @@ public class StartDiskClient {
 
         Menu menu = new Menu();
         menu.setName("Disk Client");
-        menu.add("Ping","Ping with authority","PUT","GetFree","GET","GetPost","CHECK","SignIn","SignIn encrypted","Settings");
+        menu.add("Ping free","Ping","PUT free","PUT","GET free","GET","GET by Post","CHECK free","CHECK","LIST free","LIST","LIST post","SignIn","SignIn encrypted","Settings");
         while (true) {
             menu.show();
             int choice = menu.choose(br);
             switch (choice) {
-                case 1 -> ping(br);
-                case 2 -> pingWithAuth(br);
-                case 3 -> put(br);
-                case 4 -> getFree(br);
-                case 5 -> get(br);
-                case 6 -> getPost(br);
-                case 7 -> check(br);
-                case 8 -> list(br);
-                case 9 -> {
-                    diskClient.signIn(diskClientSettings.getDiskAccount(), ApiType.DISK,RequestBody.SignInMode.NORMAL,symKey);
-                    configure.saveConfigToFile();
-                }
-                case 10 -> {
-                    diskClient.signInEcc(diskClientSettings.getDiskAccount(), ApiType.DISK,RequestBody.SignInMode.NORMAL,symKey);
-                    configure.saveConfigToFile();
-                }
-                case 11 -> diskClientSettings.setting(symKey, br);
+                case 1 -> pingFree(br);
+                case 2 -> ping(br);
+                case 3 -> putFree(br);
+                case 4 -> put(br);
+                case 5 -> getFree(br);
+                case 6 -> get(br);
+                case 7 -> getPost(br);
+                case 8 -> checkFree(br);
+                case 9 -> check(br);
+                case 10 -> list(br);
+                case 11 -> list(br);
+                case 12 -> listPost(br);
+                case 13 -> signIn(configure);
+                case 14 -> signInEcc(configure);
+                case 15 -> diskClientSettings.setting(symKey, br);
                 case 0 -> {
                     return;
                 }
             }
         }
     }
-    public static void ping(BufferedReader br){
-        boolean done = diskClient.ping(ApiType.DISK);
+
+    private static void signInEcc(Configure configure) {
+        Session session = diskClient.signInEcc(diskClientSettings.getDiskAccount(), ApiType.DISK, RequestBody.SignInMode.NORMAL, symKey);
+        JsonTools.gsonPrint(session);
+        configure.saveConfigToFile();
+        Menu.anyKeyToContinue(br);
+    }
+
+    private static void signIn(Configure configure) {
+        Session session = diskClient.signIn(diskClientSettings.getDiskAccount(), ApiType.DISK,RequestBody.SignInMode.NORMAL,symKey);
+        JsonTools.gsonPrint(session);
+        configure.saveConfigToFile();
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void pingFree(BufferedReader br){
+        boolean done = diskClient.pingFree(ApiType.DISK);
         if(done) System.out.println("OK!");
         else System.out.println("Failed!");
         Menu.anyKeyToContinue(br);
     }
 
-    public static void pingWithAuth(BufferedReader br){
-        boolean done = diskClient.pingWithAuth(ApiType.DISK, ClientData.AuthType.FC_SIGN_BODY);
+    public static void ping(BufferedReader br){
+        boolean done = diskClient.ping(ApiType.DISK, AuthType.FC_SIGN_BODY);
         if(done) System.out.println("OK!");
         else System.out.println("Failed!");
         Menu.anyKeyToContinue(br);
     }
 
     public static void put(BufferedReader br){
-        String filename = Inputer.inputPath(br,"Input the path of the file:");
-        String dataResponse = diskClient.put(filename);
-        if(dataResponse==null || !javaTools.Hex.isHexString(dataResponse)) System.out.println("Request failed.");
-        else System.out.println("Done. \nDID:"+dataResponse);
+        String fileName;
+        while(true) {
+            fileName = Inputer.inputPath(br, "Input the path of the file:");
+            if (new File(fileName).isDirectory()) {
+                System.out.println("It is a directory. A file name is required.");
+                continue;
+            }
+            break;
+        }
+        if(Inputer.askIfYes(br,"Encrypt it?")) {
+            fileName = DiskClient.encryptFile(fileName, symKey,diskClient.getApiAccount().getUserPriKeyCipher());
+            System.out.println("Encrypted to: "+fileName);
+        }
+        String dataResponse = diskClient.put(fileName);
+        System.out.println("Got:"+dataResponse);
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void putFree(BufferedReader br){
+        String fileName;
+        while(true) {
+            fileName = Inputer.inputPath(br, "Input the path of the file:");
+            if (new File(fileName).isDirectory()) {
+                System.out.println("It is a directory. A file name is required.");
+                continue;
+            }
+            break;
+        }
+        if(Inputer.askIfYes(br,"Encrypt it?")) {
+            fileName = DiskClient.encryptFile(fileName, symKey,diskClient.getApiAccount().getUserPriKeyCipher());
+            System.out.println("Encrypted to: "+fileName);
+        }
+        String dataResponse = diskClient.putFree(fileName);
+        System.out.println("Got:"+dataResponse);
         Menu.anyKeyToContinue(br);
     }
     public static void getFree(BufferedReader br){
-        String filename = Inputer.inputString(br,"Input the DID of the file:");
-        String dataResponse = diskClient.getFree(filename);
-        if(dataResponse==null || !javaTools.Hex.isHexString(dataResponse)) {
-            System.out.println("Request failed.");
-            System.out.println(diskClient.getClientData().getMessage());
-        }
-        else System.out.println("Done. \nDID:"+dataResponse);
+        String filename = Inputer.inputString(br,"Input the DID of the file");
+        String path = Inputer.inputString(br,"Input the destination path");
+        String dataResponse = diskClient.getFree(filename,path);
+        System.out.println("Got:"+dataResponse);
+        if(!Hex.isHexString(dataResponse))return;
+        DiskClient.decryptFile(filename, path, dataResponse,path , symKey, diskClient.getApiAccount().getUserPriKeyCipher());
+
         Menu.anyKeyToContinue(br);
     }
+
     public static void get(BufferedReader br){
         String filename = Inputer.inputString(br,"Input the DID of the file:");
-        String dataResponse = diskClient.get(filename);
-        if(dataResponse==null || !javaTools.Hex.isHexString(dataResponse)) {
-            System.out.println("Request failed.");
-            System.out.println(diskClient.getClientData().getMessage());
-        }
-        else System.out.println("Done. \nDID:"+dataResponse);
+        String path = Inputer.inputString(br,"Input the destination path");
+        String dataResponse = diskClient.get(filename,path);
+        System.out.println("Got:"+dataResponse);
+        if(!Hex.isHexString(dataResponse))return;
+        DiskClient.decryptFile(filename, path, dataResponse, path, symKey, diskClient.getApiAccount().getUserPriKeyCipher());
         Menu.anyKeyToContinue(br);
     }
 
     public static void getPost(BufferedReader br){
         String filename = Inputer.inputString(br,"Input the DID of the file:");
-        String dataResponse = diskClient.getPost(filename);
-        if(dataResponse==null || !javaTools.Hex.isHexString(dataResponse)) {
-            System.out.println("Request failed.");
-            System.out.println(diskClient.getClientData().getMessage());
-        }
-        else System.out.println("Done. \nDID:"+dataResponse);
+        String path = Inputer.inputString(br,"Input the destination path");
+        String dataResponse = diskClient.getPost(filename,path );
+        System.out.println("Got:"+dataResponse);
+        if(!Hex.isHexString(dataResponse))return;
+        DiskClient.decryptFile(filename, path, dataResponse,path , symKey, diskClient.getApiAccount().getUserPriKeyCipher());
         Menu.anyKeyToContinue(br);
     }
     public static void check(BufferedReader br){
         System.out.println("Check...");
+        String did = Inputer.inputString(br,"Input the DID of the file:");
+        String dataResponse = diskClient.check(did);
+        System.out.println("Got:"+dataResponse);
         Menu.anyKeyToContinue(br);
     }
+
+    public static void checkFree(BufferedReader br){
+        System.out.println("Check...");
+        String did = Inputer.inputString(br,"Input the DID of the file:");
+        String dataResponse = diskClient.checkFree(did);
+        System.out.println("Got:"+dataResponse);
+        Menu.anyKeyToContinue(br);
+    }
+
     public static void list(BufferedReader br){
         System.out.println("List...");
+        String[] last = new String[0];
+        String sort = null;
+        String order = null;
+        int size = 0;
+        if(Inputer.askIfYes(br,"Set the last?")){
+            last = Inputer.inputStringArray(br,"Set the last values:",0);
+        }
+        if(Inputer.askIfYes(br,"Set the sort?")){
+            sort = Inputer.inputString(br,"Set the field name of the sort:");
+        }
+        if(sort!=null && Inputer.askIfYes(br,"Set the order of the sort?")){
+            do {
+                order = Inputer.inputString(br, "Set the order, asc or desc:");
+            } while (!order.equalsIgnoreCase("asc") && !order.equalsIgnoreCase("desc"));
+        }
+        if(Inputer.askIfYes(br,"Set the size?")){
+            size = Inputer.inputInteger(br,"Set the size:",0);
+        }
+
+        List<DiskDataInfo> dataResponse = diskClient.list(size,sort,order,last);
+
+        showDiskInfoList(dataResponse);
+
         Menu.anyKeyToContinue(br);
     }
+
+
+    public static void listPost(BufferedReader br){
+        System.out.println("List with POST...");
+
+        Fcdsl fcdsl = new Fcdsl();
+
+        List<DiskDataInfo> dataResponse = diskClient.list(fcdsl);
+
+        showDiskInfoList(dataResponse);
+
+        Menu.anyKeyToContinue(br);
+    }
+
+    private static void showDiskInfoList(List<DiskDataInfo> dataResponse) {
+        String title = "Got disk items";
+        String[] fields = new String[]{"did","since","expire","size"};
+        int[] widths = new int[]{16,20,20,9};
+        List<List<Object>> valueListList=new ArrayList<>();
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        if(dataResponse==null||dataResponse.isEmpty()){
+            System.out.println("Nothing to show.");
+            return;
+        }
+        for(DiskDataInfo diskDataInfo : dataResponse){
+            List<Object> valueList = new ArrayList<>();
+            valueList.add(diskDataInfo.getDid());
+            valueList.add(formatter.format(diskDataInfo.getSince()));
+            valueList.add(formatter.format(diskDataInfo.getExpire()));
+            valueList.add(String.valueOf(diskDataInfo.getSize()));
+            valueListList.add(valueList);
+        }
+        Shower.showDataTable(title,fields,widths,valueListList);
+    }
+
     public static void setting(BufferedReader br){
         System.out.println("Setting...");
         Menu.anyKeyToContinue(br);

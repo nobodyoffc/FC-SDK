@@ -10,8 +10,8 @@ import javax.annotation.Nullable;
 
 public class IdentityAPIs {
 
-    public static ApipClientData cidInfoByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask cidInfoByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -24,8 +24,8 @@ public class IdentityAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData cidInfoSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask cidInfoSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         apipClientData.setRawFcdsl(fcdsl);
 
@@ -36,8 +36,8 @@ public class IdentityAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData cidInfoSearchPost(String urlHead, String str, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask cidInfoSearchPost(String urlHead, String str, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         Fcdsl fcdsl = new Fcdsl();
 
@@ -50,8 +50,8 @@ public class IdentityAPIs {
     }
 
 
-    public static ApipClientData cidHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask cidHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
 
 
@@ -62,8 +62,8 @@ public class IdentityAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData homepageHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask homepageHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         apipClientData.setRawFcdsl(fcdsl);
 
@@ -74,8 +74,8 @@ public class IdentityAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData noticeFeeHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask noticeFeeHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         apipClientData.setRawFcdsl(fcdsl);
 
@@ -86,8 +86,8 @@ public class IdentityAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData reputationHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask reputationHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         apipClientData.setRawFcdsl(fcdsl);
 
@@ -98,9 +98,9 @@ public class IdentityAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData fidCidSeekPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+    public static ApipClientTask fidCidSeekPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
 
-        ApipClientData apipClientData = new ApipClientData();
+        ApipClientTask apipClientData = new ApipClientTask();
 
         apipClientData.setRawFcdsl(fcdsl);
 
@@ -124,9 +124,9 @@ public class IdentityAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData fidCidSeekPost(String urlHead, String searchStr, @Nullable String via, byte[] sessionKey) {
+    public static ApipClientTask fidCidSeekPost(String urlHead, String searchStr, @Nullable String via, byte[] sessionKey) {
 
-        ApipClientData apipClientData = new ApipClientData();
+        ApipClientTask apipClientData = new ApipClientTask();
 
 
         Fcdsl fcdsl = new Fcdsl();
@@ -141,8 +141,8 @@ public class IdentityAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData fidCidGetFree(String urlHead, String id) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask fidCidGetFree(String urlHead, String id) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         if (!id.contains("_")) {
             if (!KeyTools.isValidFchAddr(id)) {
@@ -156,8 +156,8 @@ public class IdentityAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData nobodyByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask nobodyByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -170,8 +170,8 @@ public class IdentityAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData nobodySearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask nobodySearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
 
         apipClientData.setRawFcdsl(fcdsl);
 
@@ -182,8 +182,8 @@ public class IdentityAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData avatarsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask avatarsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
         apipClientData.setRawFcdsl(fcdsl);

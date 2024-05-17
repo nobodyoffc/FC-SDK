@@ -53,6 +53,10 @@ public class Hash {
         byte[] hashBytes = sha256x2Bytes(file);
         return Hex.toHex(sha256(hashBytes));
     }
+    public static byte[] Sha256x2Bytes(File file) throws IOException {
+        byte[] hashBytes = sha256x2Bytes(file);
+        return sha256(hashBytes);
+    }
 
     private static byte[] sha256x2Bytes(File file) throws IOException {
         return Sha256HashCode(file).asBytes();

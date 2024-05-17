@@ -8,8 +8,8 @@ import javax.annotation.Nullable;
 public class OrganizeAPIs {
 
 
-    public static ApipClientData groupByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask groupByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -22,8 +22,8 @@ public class OrganizeAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData groupSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask groupSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
 
@@ -34,8 +34,8 @@ public class OrganizeAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData groupOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask groupOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP8V1Path + ApiNames.GroupOpHistoryAPI;
@@ -45,8 +45,8 @@ public class OrganizeAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData groupMembersPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask groupMembersPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -58,8 +58,8 @@ public class OrganizeAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData myGroupsPost(String urlHead, String fid, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask myGroupsPost(String urlHead, String fid, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
 
@@ -73,8 +73,8 @@ public class OrganizeAPIs {
     }
 
 
-    public static ApipClientData teamByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask teamByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -86,8 +86,8 @@ public class OrganizeAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData teamSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask teamSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP9V1Path + ApiNames.TeamSearchAPI;
@@ -97,8 +97,8 @@ public class OrganizeAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData teamOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask teamOpHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP9V1Path + ApiNames.TeamOpHistoryAPI;
@@ -108,8 +108,8 @@ public class OrganizeAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData teamRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask teamRateHistoryPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
 
         String urlTail = ApiNames.APIP9V1Path + ApiNames.TeamRateHistoryAPI;
@@ -119,8 +119,8 @@ public class OrganizeAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData teamMembersPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask teamMembersPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -132,8 +132,8 @@ public class OrganizeAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData teamExMembersPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask teamExMembersPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -145,8 +145,8 @@ public class OrganizeAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData teamOtherPersonsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask teamOtherPersonsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
@@ -158,8 +158,8 @@ public class OrganizeAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData myTeamsPost(String urlHead, String fid, @Nullable String via, byte[] sessionKey) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask myTeamsPost(String urlHead, String fid, @Nullable String via, byte[] sessionKey) {
+        ApipClientTask apipClientData = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
 

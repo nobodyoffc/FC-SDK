@@ -1,8 +1,8 @@
 package APIP;
 
 import FCH.fchData.Cash;
-import clients.apipClient.ApipClientData;
-import clients.apipClient.ApipDataGetter;
+import clients.apipClient.ApipClientTask;
+import clients.apipClient.DataGetter;
 import clients.apipClient.FreeGetAPIs;
 import clients.apipClient.OpenAPIs;
 import FEIP.feipData.serviceParams.ApipParams;
@@ -14,6 +14,7 @@ import constants.ApiNames;
 
 import crypto.cryptoTools.Hash;
 import javaTools.BytesTools;
+import javaTools.Hex;
 import org.jetbrains.annotations.Nullable;
 import redis.clients.jedis.Jedis;
 
@@ -58,10 +59,12 @@ public class ApipTools {
         return isGoodSign(requestBodyBytes, sign, HexFormat.of().parseHex(symKey));
     }
 
-    public static boolean isGoodSign(byte[] requestBodyBytes, String sign, byte[] symKey) {
-        if (sign == null || requestBodyBytes == null) return false;
-        byte[] signBytes = BytesTools.bytesMerger(requestBodyBytes, symKey);
-        String doubleSha256Hash = HexFormat.of().formatHex(Hash.Sha256x2(signBytes));
+    public static boolean isGoodSign(byte[] bytes, String sign, byte[] symKey) {
+        if (sign == null || bytes == null) return false;
+        byte[] signBytes = BytesTools.bytesMerger(bytes, symKey);
+        byte[] hash = Hash.Sha256x2(signBytes);
+        String doubleSha256Hash = Hex.toHex(hash);
+
         return (sign.equals(doubleSha256Hash));
     }
 
@@ -71,10 +74,10 @@ public class ApipTools {
     }
 
     public static List<Cash> getFreeCashes(String apiUrl, String fid) {
-        ApipClientData apipClientData = FreeGetAPIs.getCashes(apiUrl, fid, 0);
+        ApipClientTask apipClientData = FreeGetAPIs.getCashes(apiUrl, fid, 0);
         if(apipClientData.checkResponse()!=0)return null;
 
-        List<Cash> cashList = ApipDataGetter.getCashList(apipClientData.getResponseBody().getData());
+        List<Cash> cashList = DataGetter.getCashList(apipClientData.getResponseBody().getData());
         if (cashList == null || cashList.isEmpty()) {
             System.out.println("No FCH of " + fid + ". Send at lest 0.001 fch to it.");
             return null;
@@ -90,7 +93,7 @@ public class ApipTools {
         if(urlHead.contains(ApiNames.APIP0V1Path + ApiNames.GetServiceAPI))
             urlHead.replaceAll(ApiNames.APIP0V1Path + ApiNames.GetServiceAPI,"");
 
-        ApipClientData apipClientData = OpenAPIs.getService(urlHead);
+        ApipClientTask apipClientData = OpenAPIs.getService(urlHead);
         if(apipClientData.checkResponse()!=0)return null;
         Gson gson = new Gson();
         Service service = gson.fromJson(gson.toJson(apipClientData.getResponseBody().getData()),Service.class);
@@ -101,14 +104,14 @@ public class ApipTools {
     }
 
     @Nullable
-    public static Map<String, Service> parseApipServiceMap(ApipClientData apipClientData) {
+    public static Map<String, Service> parseApipServiceMap(ApipClientTask apipClientData) {
         if(apipClientData.checkResponse()!=0) {
             System.out.println("Failed to buy APIP service. Code:"+ apipClientData.getCode()+", Message:"+ apipClientData.getMessage());
             return null;
         }
 
         try {
-            Map<String, Service> serviceMap = ApipDataGetter.getServiceMap(apipClientData.getResponseBody().getData());
+            Map<String, Service> serviceMap = DataGetter.getServiceMap(apipClientData.getResponseBody().getData());
             if(serviceMap==null) return null;
             for(String sid :serviceMap.keySet()) {
                 Service service = serviceMap.get(sid);

@@ -4,12 +4,9 @@ package crypto.cryptoTools;
 import appTools.Inputer;
 import appTools.Menu;
 import constants.Constants;
-import crypto.cryptoTools.Base58;
-import crypto.cryptoTools.Hash;
-import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1P7.EccAes256K1P7;
-import crypto.eccAes256K1P7.EccAesData;
-import crypto.eccAes256K1P7.EccAesType;
+import crypto.CryptoData;
+import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.eccAes256K1.EccAesType;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.FileTools;
@@ -196,17 +193,17 @@ public class StartTools {
 
     private static void encryptAsyTwoWayBundle(BufferedReader br) {
         EccAes256K1P7 ecc = new EccAes256K1P7();
-        EccAesData eccAesData = getEncryptedEccAesDataTwoWay(br);
-        if (eccAesData.getMsg() == null) {
+        CryptoData cryptoData = getEncryptedEccAesDataTwoWay(br);
+        if (cryptoData.getData() == null) {
             System.out.println("Error: no message.");
             return;
         }
-        String bundle = ecc.encryptAsyTwoWayBundle(eccAesData.getMsg(), eccAesData.getPubKeyB(), eccAesData.getPriKeyA());
+        String bundle = ecc.encryptAsyTwoWayBundle(cryptoData.getData(), cryptoData.getPubKeyB(), cryptoData.getPriKeyA());
         System.out.println(bundle);
         Menu.anyKeyToContinue(br);
     }
 
-    private static EccAesData getEncryptedEccAesDataTwoWay(BufferedReader br) {
+    private static CryptoData getEncryptedEccAesDataTwoWay(BufferedReader br) {
 
         String pubKeyB;
         String msg;
@@ -228,17 +225,17 @@ public class StartTools {
             System.out.println("BufferedReader wrong.");
             return null;
         }
-        return new EccAesData(EccAesType.AsyTwoWay, msg, pubKeyB, priKeyA);
+        return new CryptoData(EccAesType.AsyTwoWay, msg, pubKeyB, priKeyA);
     }
 
     private static void encryptAsyOneWayBundle(BufferedReader br) {
         EccAes256K1P7 ecc = new EccAes256K1P7();
-        EccAesData eccAesData = getEncryptedEccAesDataOneWay(br);
-        if (eccAesData.getMsg() == null) {
+        CryptoData cryptoData = getEncryptedEccAesDataOneWay(br);
+        if (cryptoData.getData() == null) {
             System.out.println("Error: no message.");
             return;
         }
-        String bundle = ecc.encryptAsyOneWayBundle(eccAesData.getMsg(), eccAesData.getPubKeyB());
+        String bundle = ecc.encryptAsyOneWayBundle(cryptoData.getData(), cryptoData.getPubKeyB());
         System.out.println(bundle);
         Menu.anyKeyToContinue(br);
     }
@@ -355,11 +352,11 @@ public class StartTools {
         if (msg == null) return;
         String ask = "Input the symKey in hex:";
         char[] symKey = Inputer.input32BytesKey(br, ask);
-        EccAesData eccAesData = new EccAesData(EccAesType.SymKey, msg, symKey);
+        CryptoData cryptoData = new CryptoData(EccAesType.SymKey, msg, symKey);
 
-        ecc.encrypt(eccAesData);
+        ecc.encrypt(cryptoData);
 
-        System.out.println(eccAesData.toJson());
+        System.out.println(cryptoData.toJson());
         Menu.anyKeyToContinue(br);
     }
 
@@ -455,16 +452,16 @@ public class StartTools {
 
     private static void encryptAsy(BufferedReader br) {
         EccAes256K1P7 ecc = new EccAes256K1P7();
-        EccAesData eccAesData = getEncryptedEccAesDataOneWay(br);
-        ecc.encrypt(eccAesData);
-        if (eccAesData == null) return;
-        if (eccAesData.getError() != null) {
-            System.out.println(eccAesData.getError());
-        } else System.out.println(eccAesData.toJson());
+        CryptoData cryptoData = getEncryptedEccAesDataOneWay(br);
+        ecc.encrypt(cryptoData);
+        if (cryptoData == null) return;
+        if (cryptoData.getMessage() != null) {
+            System.out.println(cryptoData.getMessage());
+        } else System.out.println(cryptoData.toJson());
         Menu.anyKeyToContinue(br);
     }
 
-    private static EccAesData getEncryptedEccAesDataOneWay(BufferedReader br) {
+    private static CryptoData getEncryptedEccAesDataOneWay(BufferedReader br) {
         System.out.println("Input the recipient public key in hex:");
         String pubKeyB;
         String msg;
@@ -480,7 +477,7 @@ public class StartTools {
             System.out.println("BufferedReader wrong.");
             return null;
         }
-        return new EccAesData(EccAesType.AsyOneWay, msg, pubKeyB);
+        return new CryptoData(EccAesType.AsyOneWay, msg, pubKeyB);
     }
 
     private static void encryptWithBtcEcc() {

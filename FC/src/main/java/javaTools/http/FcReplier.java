@@ -2,6 +2,9 @@ package javaTools.http;
 
 import com.google.gson.Gson;
 import constants.ReplyInfo;
+import crypto.cryptoTools.Hash;
+import javaTools.BytesTools;
+import javaTools.Hex;
 import javaTools.JsonTools;
 
 import javax.annotation.Nullable;
@@ -15,19 +18,58 @@ public class FcReplier {
     private String balance;
     private Object data;
     private String[] last;
+    private Long got;
+    private Long total;
 
-    public void replyWithCodeAndMessage(HttpServletResponse response,int code, String message,@Nullable Object data){
+    public static String symSign(String replyJson, String sessionKey) {
+        if(replyJson==null || sessionKey==null)return null;
+        byte[] replyJsonBytes = replyJson.getBytes();
+        byte[] keyBytes = BytesTools.hexToByteArray(sessionKey);
+        byte[] bytes = BytesTools.bytesMerger(replyJsonBytes,keyBytes);
+        byte[] signBytes = Hash.Sha256x2(bytes);
+        return BytesTools.bytesToHexStringBE(signBytes);
+    }
+
+    public void symSign(String sessionKey,HttpServletResponse response) {
+        if(sessionKey==null){
+            return;
+        }
+        String json = this.toNiceJson();
+        byte[] replyJsonBytes = json.getBytes();
+        byte[] keyBytes = Hex.fromHex(sessionKey);
+        byte[] bytes = BytesTools.bytesMerger(replyJsonBytes,keyBytes);
+        byte[] signBytes = Hash.Sha256x2(bytes);
+        String sign = BytesTools.bytesToHexStringBE(signBytes);
+        response.setHeader(ReplyInfo.SignInHeader,sign);
+    }
+
+    public void reply0Success(HttpServletResponse response,@Nullable Object data,@Nullable String sessionKey){
+        response.setContentType("application/json");
+        response.setHeader(ReplyInfo.CodeInHeader, String.valueOf(ReplyInfo.Code0Success));
+        this.code = ReplyInfo.Code0Success;
+        this.message = ReplyInfo.Msg0Success;
+        this.data=data;
+        if(sessionKey!=null)symSign(sessionKey, response);
+        try {
+            response.getWriter().write(toNiceJson());
+        } catch (IOException e) {
+            this.code = ReplyInfo.Code1020OtherError;
+            this.message = "IO exception when writing to response.";
+        }
+    }
+    public void replyWithCodeAndMessage(HttpServletResponse response, int code, String message, @Nullable Object data, String sessionKey){
+        response.setContentType("application/json");
         response.setHeader(ReplyInfo.CodeInHeader, String.valueOf(code));
         this.code = code;
         this.message =message;
         this.data=data;
         if(code!=0)response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        if(sessionKey!=null)symSign(sessionKey, response);
         try {
             response.getWriter().write(toNiceJson());
         } catch (IOException e) {
             this.code = ReplyInfo.Code1020OtherError;
-            this.message = ReplyInfo.Msg1020OtherError;
-            this.data = "IO exception when writing to response.";
+            this.message = "IO exception when writing to response.";
         }
     }
 
@@ -92,5 +134,21 @@ public class FcReplier {
 
     public Long getNonce() {
         return nonce;
+    }
+
+    public Long getGot() {
+        return got;
+    }
+
+    public void setGot(Long got) {
+        this.got = got;
+    }
+
+    public Long getTotal() {
+        return total;
+    }
+
+    public void setTotal(Long total) {
+        this.total = total;
     }
 }

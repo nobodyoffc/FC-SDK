@@ -5,38 +5,38 @@ import constants.ReplyInfo;
 
 public class FreeGetAPIs {
 
-    public static ApipClientData broadcast(String urlHead, String rawTx) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask broadcast(String urlHead, String rawTx) {
+        ApipClientTask apipClientData = new ApipClientTask();
         apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.BroadcastAPI + "?rawTx=" + rawTx);
         apipClientData.get();
         return apipClientData;
     }
 
-    public static ApipClientData getApps(String urlHead, String id) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask getApps(String urlHead, String id) {
+        ApipClientTask apipClientData = new ApipClientTask();
         if (id == null) apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.GetAppsAPI);
         else apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.GetAppsAPI + "?id=" + id);
         apipClientData.get();
         return apipClientData;
     }
 
-    public static ApipClientData getServices(String urlHead, String id) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask getServices(String urlHead, String id) {
+        ApipClientTask apipClientData = new ApipClientTask();
         if (id == null) apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.GetServicesAPI);
         else apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.GetServicesAPI + "?id=" + id);
         apipClientData.get();
         return apipClientData;
     }
 
-    public static ApipClientData getAvatar(String urlHead, String fid) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask getAvatar(String urlHead, String fid) {
+        ApipClientTask apipClientData = new ApipClientTask();
         apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.GetAvatarAPI + "?fid=" + fid);
         apipClientData.get();
         return apipClientData;
     }
 
-    public static ApipClientData getCashes(String urlHead, String id, double amount) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask getCashes(String urlHead, String id, double amount) {
+        ApipClientTask apipClientData = new ApipClientTask();
         String urlTail = ApiNames.FreeGetPath + ApiNames.GetCashesAPI;
         if (id != null) urlTail = urlTail + "?fid=" + id;
         if (amount != 0) {
@@ -53,22 +53,22 @@ public class FreeGetAPIs {
         return apipClientData;
     }
 
-    public static ApipClientData getFidCid(String urlHead, String id) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask getFidCid(String urlHead, String id) {
+        ApipClientTask apipClientData = new ApipClientTask();
         apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.GetFidCidAPI + "?id=" + id);
         apipClientData.get();
         return apipClientData;
     }
 
-    public static ApipClientData getFreeService(String urlHead) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask getFreeService(String urlHead) {
+        ApipClientTask apipClientData = new ApipClientTask();
         apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.GetFreeServiceAPI);
         apipClientData.get();
         return apipClientData;
     }
 
-    public static ApipClientData getTotals(String urlHead) {
-        ApipClientData apipClientData = new ApipClientData();
+    public static ApipClientTask getTotals(String urlHead) {
+        ApipClientTask apipClientData = new ApipClientTask();
         apipClientData.addNewApipUrl(urlHead, ApiNames.FreeGetPath + ApiNames.GetTotalsAPI);
         apipClientData.get();
         return apipClientData;

@@ -6,7 +6,7 @@ import FEIP.feipData.serviceParams.DiskParams;
 import FEIP.feipData.serviceParams.Params;
 import FEIP.feipData.serviceParams.SwapParams;
 import clients.apipClient.ApipClient;
-import clients.apipClient.ApipClientData;
+import clients.apipClient.ApipClientTask;
 import clients.apipClient.OpenAPIs;
 import FEIP.feipData.Service;
 import appTools.Inputer;
@@ -121,7 +121,7 @@ public class ApiProvider {
         apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service. Enter to set default as "+ DEFAULT_API_URL);
         if(apiUrl==null) return null;
         if("".equals(apiUrl))apiUrl = DEFAULT_API_URL;
-        ApipClientData apipClientData = OpenAPIs.getService(apiUrl);
+        ApipClientTask apipClientData = OpenAPIs.getService(apiUrl);
         if(apipClientData.checkResponse()!=0){
             System.out.println("Failed to get the APIP service from "+apiUrl);
             return null;
@@ -248,7 +248,7 @@ public class ApiProvider {
                 if(Inputer.askIfYes(br,"The apiUrl is "+apiUrl+". Update it?")){
                     apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service:");
                     if(apiUrl==null)return;
-                    ApipClientData apipClientData = OpenAPIs.getService(apiUrl);
+                    ApipClientTask apipClientData = OpenAPIs.getService(apiUrl);
                     if(apipClientData.checkResponse()!=0){
                         System.out.println("Failed to get the APIP service from "+apiUrl);
                         return;

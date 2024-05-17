@@ -83,32 +83,32 @@ public class TestTools {
 
     private static void makeEquals() {
         RequestBody dataRequestBody = new RequestBody();
-        Query query = makeEmptyQury(dataRequestBody);
+        FcQuery fcQuery = makeEmptyQury(dataRequestBody);
         String urlTail = setUrlAndVia(dataRequestBody);
         if (urlTail == null) return;
-        query.setEquals(inputEquals());
-        askSizeSortAfterThenPrint(dataRequestBody, query);
+        fcQuery.setEquals(inputEquals());
+        askSizeSortAfterThenPrint(dataRequestBody, fcQuery);
     }
 
     private static void makeUnexists() {
         RequestBody dataRequestBody = new RequestBody();
-        Query query = makeEmptyQury(dataRequestBody);
+        FcQuery fcQuery = makeEmptyQury(dataRequestBody);
         String urlTail = setUrlAndVia(dataRequestBody);
         if (urlTail == null) return;
-        query.setUnexists(inputUnexists());
-        askSizeSortAfterThenPrint(dataRequestBody, query);
+        fcQuery.setUnexists(inputUnexists());
+        askSizeSortAfterThenPrint(dataRequestBody, fcQuery);
     }
 
-    private static Query makeEmptyQury(RequestBody dataRequestBody) {
+    private static FcQuery makeEmptyQury(RequestBody dataRequestBody) {
         Fcdsl fcdsl = new Fcdsl();
-        Query query = new Query();
-        fcdsl.setQuery(query);
+        FcQuery fcQuery = new FcQuery();
+        fcdsl.setQuery(fcQuery);
         dataRequestBody.setFcdsl(fcdsl);
-        return query;
+        return fcQuery;
     }
 
-    private static void askSizeSortAfterThenPrint(RequestBody dataRequestBody, Query query) {
-        dataRequestBody.getFcdsl().setQuery(query);
+    private static void askSizeSortAfterThenPrint(RequestBody dataRequestBody, FcQuery fcQuery) {
+        dataRequestBody.getFcdsl().setQuery(fcQuery);
 
         askSize(dataRequestBody);
         askSort(dataRequestBody);
@@ -122,58 +122,58 @@ public class TestTools {
 
     private static void makeExists() {
         RequestBody dataRequestBody = new RequestBody();
-        Query query = makeEmptyQury(dataRequestBody);
+        FcQuery fcQuery = makeEmptyQury(dataRequestBody);
 
         String urlTail = setUrlAndVia(dataRequestBody);
         if (urlTail == null) return;
 
-        query.setExists(inputExists());
-        askSizeSortAfterThenPrint(dataRequestBody, query);
+        fcQuery.setExists(inputExists());
+        askSizeSortAfterThenPrint(dataRequestBody, fcQuery);
     }
 
     private static void makePart() {
         RequestBody dataRequestBody = new RequestBody();
-        Query query = makeEmptyQury(dataRequestBody);
+        FcQuery fcQuery = makeEmptyQury(dataRequestBody);
 
         String urlTail = setUrlAndVia(dataRequestBody);
         if (urlTail == null) return;
 
-        query.setPart(inputPart());
-        askSizeSortAfterThenPrint(dataRequestBody, query);
+        fcQuery.setPart(inputPart());
+        askSizeSortAfterThenPrint(dataRequestBody, fcQuery);
     }
 
     private static void makeRange() {
         RequestBody dataRequestBody = new RequestBody();
-        Query query = makeEmptyQury(dataRequestBody);
+        FcQuery fcQuery = makeEmptyQury(dataRequestBody);
 
         String urlTail = setUrlAndVia(dataRequestBody);
         if (urlTail == null) return;
 
-        query.setRange(inputRange());
-        askSizeSortAfterThenPrint(dataRequestBody, query);
+        fcQuery.setRange(inputRange());
+        askSizeSortAfterThenPrint(dataRequestBody, fcQuery);
     }
 
     private static void makeMatch() {
         RequestBody dataRequestBody = new RequestBody();
-        Query query = makeEmptyQury(dataRequestBody);
+        FcQuery fcQuery = makeEmptyQury(dataRequestBody);
 
         String urlTail = setUrlAndVia(dataRequestBody);
         if (urlTail == null) return;
 
-        query.setMatch(inputMatch());
-        askSizeSortAfterThenPrint(dataRequestBody, query);
+        fcQuery.setMatch(inputMatch());
+        askSizeSortAfterThenPrint(dataRequestBody, fcQuery);
     }
 
     private static void makeTerms() {
 
         RequestBody dataRequestBody = new RequestBody();
-        Query query = makeEmptyQury(dataRequestBody);
+        FcQuery fcQuery = makeEmptyQury(dataRequestBody);
 
         String urlTail = setUrlAndVia(dataRequestBody);
         if (urlTail == null) return;
 
-        query.setTerms(inputTerms());
-        askSizeSortAfterThenPrint(dataRequestBody, query);
+        fcQuery.setTerms(inputTerms());
+        askSizeSortAfterThenPrint(dataRequestBody, fcQuery);
     }
 
     private static void makeByIds() {
@@ -464,8 +464,8 @@ public class TestTools {
     }
 
     private static void setQuery(RequestBody dataRequestBody) {
-        Query query = new Query();
-        dataRequestBody.getFcdsl().setQuery(query);
+        FcQuery fcQuery = new FcQuery();
+        dataRequestBody.getFcdsl().setQuery(fcQuery);
 
         Menu menu = new Menu();
 
