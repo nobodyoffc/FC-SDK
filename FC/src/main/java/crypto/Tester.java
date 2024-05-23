@@ -3,6 +3,7 @@ package crypto;
 import crypto.Algorithm.AesCbc256;
 import javaTools.BytesTools;
 import javaTools.Hex;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -13,9 +14,10 @@ import java.util.HexFormat;
 import static fcData.AlgorithmId.FC_Aes256Cbc_No1_NrC7;
 import static fcData.AlgorithmId.FC_EccK1AesCbc256_No1_NrC7;
 
+
 public class Tester {
 
-    @org.junit.jupiter.api.Test
+    @Test
     public void testSym() throws InterruptedException {
         System.out.println("\n# Info");
         byte[] key = BytesTools.getRandomBytes(32);
@@ -113,7 +115,7 @@ public class Tester {
         System.out.println("File decrypted by password:"+cryptoDataByteFile3.getMessage()+"\n"+cryptoDataByteFile3.toNiceJson());
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     public void testAsy() throws IOException {
         //Info
         System.out.println("\n# Info");
@@ -290,5 +292,15 @@ public class Tester {
         System.out.println("Did:"+Hex.toHex(cryptoDataByte7.getDid()));
         System.out.println("CipherId:"+Hex.toHex(cryptoDataByte7.getCipherId()));
 
+    }
+
+    @Test
+    public void testOldCipher(){
+        String cipher = "{\"type\":\"AsyOneWay\",\"alg\":\"EccAes256K1P7@No1_NrC7\",\"cipher\":\"CCKkr6q18/PxOw5D5JKpGQ\\u003d\\u003d\",\"pubKeyA\":\"03ae8bca1097a4f55cf74aecf40b747136a66eb35c8eedcd7b50985779859c8520\",\"pubKeyB\":\"030be1d7e633feb2338a74a860e76d893bac525f35a5813cb7b21e27ba1bc8312a\",\"iv\":\"73629238b90ff41e35f76534bf98ad85\",\"sum\":\"73939eb0\",\"badSum\":false}";
+        byte[] priKey = Hex.fromHex("a048f6c843f92bfe036057f7fc2bf2c27353c624cf7ad97e98ed41432f700575");
+        Decryptor decryptor = new Decryptor();
+        CryptoDataByte cryptoDataByte = decryptor.decryptJsonByAsyOneWay(cipher,priKey);
+        System.out.println(cryptoDataByte.toNiceJson());
+        System.out.println(cryptoDataByte.getMessage());
     }
 }

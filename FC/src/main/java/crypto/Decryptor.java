@@ -370,6 +370,8 @@ public class Decryptor {
         try(ByteArrayInputStream bis = new ByteArrayInputStream(cipher);
             ByteArrayOutputStream bos = new ByteArrayOutputStream()){
             decryptStreamByAsy(bis,bos,cryptoDataByte);
+            cryptoDataByte.setData(bos.toByteArray());
+            cryptoDataByte.makeDid();
         } catch (IOException e) {
             cryptoDataByte.setCodeMessage(6);
         }
@@ -480,10 +482,27 @@ public class Decryptor {
         }else if(priKeyB!=null && pubKeyA!=null){
             priKeyX = priKeyB;
             pubKeyY = pubKeyA;
-        }else if((priKeyA==null && priKeyB ==null) || (pubKeyA==null && pubKeyB ==null)) {
-            cryptoDataByte.setCodeMessage(12);
-            return;
-        }else {
+        }else if(priKeyA!=null && pubKeyA!=null){
+            byte[] pubKey = KeyTools.priKeyToPubKey(priKeyA);
+            if(!Arrays.equals(pubKey,pubKeyA)){
+                priKeyX = priKeyA;
+                pubKeyY = pubKeyA;
+            }else {
+                cryptoDataByte.setCodeMessage(19);
+                return;
+            }
+        }
+        else if(priKeyB!=null && pubKeyB!=null){
+            byte[] pubKey = KeyTools.priKeyToPubKey(priKeyB);
+            if(!Arrays.equals(pubKey,pubKeyA)){
+                priKeyX = priKeyB;
+                pubKeyY = pubKeyB;
+            }else {
+                cryptoDataByte.setCodeMessage(19);
+                return;
+            }
+        }
+        else {
             cryptoDataByte.setCodeMessage(19);
             return;
         }
