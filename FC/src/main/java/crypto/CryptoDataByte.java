@@ -1,23 +1,26 @@
 package crypto;
 
-import crypto.eccAes256K1.EccAesType;
-import fcData.Algorithm;
+import fcData.AlgorithmType;
 import javaTools.BytesTools;
 import javaTools.Hex;
-import javaTools.JsonTools;
+import org.jetbrains.annotations.NotNull;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HexFormat;
 
+import static javaTools.JsonTools.readOneJsonFromFile;
+
 public class CryptoDataByte {
 
-    private EccAesType type;
-    private Algorithm alg;
+    private EncryptType type;
+    private AlgorithmType alg;
     private transient byte[] data;
-    private transient byte[] msgId;
+    private transient byte[] did;
     private transient byte[] symKey;
     private transient byte[] password;
     private transient byte[] pubKeyA;
@@ -26,75 +29,130 @@ public class CryptoDataByte {
     private transient byte[] priKeyB;
     private transient byte[] iv;
     private transient byte[] sum;
-    private Boolean badSum;
     private transient byte[] cipher;
     private transient byte[] cipherId;
     private transient InputStream msgInputStream;
     private transient InputStream cipherInputStream;
     private transient OutputStream msgOutputStream;
     private transient OutputStream cipherOutputStream;
-    private String message;
-    private Integer code;
+    private transient String message;
+    private transient Integer code;
 
 
     public CryptoDataByte() {
     }
 
-    public CryptoDataByte(EccAesType type, Algorithm alg, InputStream msgInputStream,InputStream cipherInputStream,OutputStream msgOutputStream,OutputStream cipherOutputStream,byte[] pubKeyA,byte[] priKeyA,byte[]pubKeyB,byte[]priKeyB,byte[] symKey,byte[] password,byte[] iv) {
-        this.type = type;
-        this.alg = alg;
-        this.msgInputStream = msgInputStream;
-        this.cipherInputStream = cipherInputStream;
-        this.msgOutputStream = msgOutputStream;
-        this.cipherOutputStream = cipherOutputStream;
-        this.pubKeyA = pubKeyA;
-        this.priKeyA = priKeyA;
-        this.pubKeyB = pubKeyB;
-        this.priKeyB = priKeyB;
-        this.symKey = symKey;
-        this.password = password;
-        this.iv = iv;
+    public String toNiceJson() {
+        CryptoDataStr cryptoDataStr = CryptoDataStr.fromCryptoDataByte(this);
+        return cryptoDataStr.toNiceJson();
     }
 
-    public CryptoDataByte(EccAesType type) {
-        this.type = type;
+    public String toJson() {
+        CryptoDataStr cryptoDataStr = CryptoDataStr.fromCryptoDataByte(this);
+        return cryptoDataStr.toJson();
     }
 
-    public static CryptoDataByte fromCryptoData(CryptoData cryptoData) {
+    public static CryptoDataByte readFromFileStream(FileInputStream fis) throws IOException {
+        byte[] jsonBytes = readOneJsonFromFile(fis);
+        if (jsonBytes == null) return null;
+        return fromJson(new String(jsonBytes));
+    }
+    public static CryptoDataByte fromCryptoData(CryptoDataStr cryptoDataStr) {
         CryptoDataByte cryptoDataByte = new CryptoDataByte();
 
-        if (cryptoData.getType() != null)
-            cryptoDataByte.setType(cryptoData.getType());
-        if (cryptoData.getAlg() != null)
-            cryptoDataByte.setAlg(cryptoData.getAlg());
-        if (cryptoData.getCipher() != null)
-            cryptoDataByte.setCipher(Base64.getDecoder().decode(cryptoData.getCipher()));
-        if (cryptoData.getIv() != null)
-            cryptoDataByte.setIv(HexFormat.of().parseHex(cryptoData.getIv()));
-        if (cryptoData.getData() != null)
-            cryptoDataByte.setData(cryptoData.getData().getBytes(StandardCharsets.UTF_8));
-        if (cryptoData.getPassword() != null)
-            cryptoDataByte.setPassword(BytesTools.utf8CharArrayToByteArray(cryptoData.getPassword()));
-        if (cryptoData.getPubKeyA() != null)
-            cryptoDataByte.setPubKeyA(HexFormat.of().parseHex(cryptoData.getPubKeyA()));
-        if (cryptoData.getPubKeyB() != null)
-            cryptoDataByte.setPubKeyB(HexFormat.of().parseHex(cryptoData.getPubKeyB()));
-        if (cryptoData.getPriKeyA() != null)
-            cryptoDataByte.setPriKeyA(BytesTools.hexCharArrayToByteArray(cryptoData.getPriKeyA()));
-        if (cryptoData.getPriKeyB() != null)
-            cryptoDataByte.setPriKeyB(BytesTools.hexCharArrayToByteArray(cryptoData.getPriKeyB()));
-        if (cryptoData.getSymKey() != null)
-            cryptoDataByte.setSymKey(BytesTools.hexCharArrayToByteArray(cryptoData.getSymKey()));
-        if (cryptoData.getSum() != null)
-            cryptoDataByte.setSum(HexFormat.of().parseHex(cryptoData.getSum()));
-        if (cryptoData.getMessage() != null)
-            cryptoDataByte.setMessage(cryptoData.getMessage());
-        if(cryptoData.getDid()!=null)
-            cryptoDataByte.setMsgId(Hex.fromHex(cryptoData.getDid()));
-        if(cryptoData.getCipherId()!=null)
-            cryptoDataByte.setCipherId(Hex.fromHex(cryptoData.getCipherId()));
-        cryptoDataByte.setBadSum(cryptoData.isBadSum());
+        if (cryptoDataStr.getType() != null)
+            cryptoDataByte.setType(cryptoDataStr.getType());
+        if (cryptoDataStr.getAlg() != null)
+            cryptoDataByte.setAlg(cryptoDataStr.getAlg());
+        if (cryptoDataStr.getCipher() != null)
+            cryptoDataByte.setCipher(Base64.getDecoder().decode(cryptoDataStr.getCipher()));
+        if (cryptoDataStr.getIv() != null)
+            cryptoDataByte.setIv(HexFormat.of().parseHex(cryptoDataStr.getIv()));
+        if (cryptoDataStr.getData() != null)
+            cryptoDataByte.setData(cryptoDataStr.getData().getBytes(StandardCharsets.UTF_8));
+        if (cryptoDataStr.getPassword() != null)
+            cryptoDataByte.setPassword(BytesTools.utf8CharArrayToByteArray(cryptoDataStr.getPassword()));
+        if (cryptoDataStr.getPubKeyA() != null)
+            cryptoDataByte.setPubKeyA(HexFormat.of().parseHex(cryptoDataStr.getPubKeyA()));
+        if (cryptoDataStr.getPubKeyB() != null)
+            cryptoDataByte.setPubKeyB(HexFormat.of().parseHex(cryptoDataStr.getPubKeyB()));
+        if (cryptoDataStr.getPriKeyA() != null)
+            cryptoDataByte.setPriKeyA(BytesTools.hexCharArrayToByteArray(cryptoDataStr.getPriKeyA()));
+        if (cryptoDataStr.getPriKeyB() != null)
+            cryptoDataByte.setPriKeyB(BytesTools.hexCharArrayToByteArray(cryptoDataStr.getPriKeyB()));
+        if (cryptoDataStr.getSymKey() != null)
+            cryptoDataByte.setSymKey(BytesTools.hexCharArrayToByteArray(cryptoDataStr.getSymKey()));
+        if (cryptoDataStr.getSum() != null)
+            cryptoDataByte.setSum(HexFormat.of().parseHex(cryptoDataStr.getSum()));
+        if (cryptoDataStr.getMessage() != null)
+            cryptoDataByte.setMessage(cryptoDataStr.getMessage());
+        if(cryptoDataStr.getDid()!=null)
+            cryptoDataByte.setDid(Hex.fromHex(cryptoDataStr.getDid()));
+        if(cryptoDataStr.getCipherId()!=null)
+            cryptoDataByte.setCipherId(Hex.fromHex(cryptoDataStr.getCipherId()));
+//        cryptoDataByte.setBadSum(cryptoData.isBadSum());
 
+        return cryptoDataByte;
+    }
+    public static CryptoDataByte fromJson(String json){
+        CryptoDataStr cryptoDataStr = CryptoDataStr.fromJson(json);
+        return CryptoDataByte.fromCryptoData(cryptoDataStr);
+    }
+    public byte[] toBundle() {
+        return makeBundle(pubKeyA, iv, cipher, sum, type);
+    }
+    public static byte[] makeBundle(byte[] pubKeyA, byte[] iv, byte[] cipher, byte[] sum, EncryptType type) {
+        byte[] bundle;
+        switch (type){
+            case AsyOneWay ->  {
+                if(pubKeyA==null||iv==null||cipher==null)return null;
+                bundle = new byte[pubKeyA.length+iv.length+ sum.length+ cipher.length];
+                System.arraycopy(pubKeyA,0,bundle,0, pubKeyA.length);
+                System.arraycopy(iv,0,bundle,pubKeyA.length, iv.length);
+                System.arraycopy(cipher,0,bundle, pubKeyA.length+iv.length, cipher.length);
+                System.arraycopy(sum,0,bundle, pubKeyA.length+iv.length+cipher.length, sum.length);
+            }
+            default -> {
+
+                bundle = new byte[iv.length+ sum.length+ cipher.length];
+                System.arraycopy(iv,0,bundle,0, iv.length);
+                System.arraycopy(cipher,0,bundle, iv.length, cipher.length);
+                System.arraycopy(sum,0,bundle, iv.length+ cipher.length, sum.length);
+            }
+
+        }
+        return bundle;
+    }
+
+    public static CryptoDataByte fromBundle(byte[] bundle,boolean isTwoWay) {
+        CryptoDataByte cryptoDataByte = new CryptoDataByte();
+        byte[] iv = new byte[16];
+        byte[] pubKeyA = new byte[33];
+        byte[] sum = new byte[4];
+        byte[] cipher;
+        if(isTwoWay)
+            cipher = new byte[bundle.length -iv.length-sum.length];
+            else cipher = new byte[bundle.length -iv.length-pubKeyA.length-sum.length];
+        if(isTwoWay){
+            cryptoDataByte.setType(EncryptType.AsyTwoWay);
+            System.arraycopy(bundle,0,iv,0,iv.length);
+            cryptoDataByte.setIv(iv);
+            System.arraycopy(bundle,iv.length,cipher,0,cipher.length);
+            cryptoDataByte.setCipher(cipher);
+            System.arraycopy(bundle,iv.length+cipher.length,sum,0,sum.length);
+            cryptoDataByte.setSum(sum);
+        }
+        else {
+            cryptoDataByte.setType(EncryptType.AsyOneWay);
+            System.arraycopy(bundle, 0, pubKeyA, 0, pubKeyA.length);
+            cryptoDataByte.setPubKeyA(pubKeyA);
+            System.arraycopy(bundle,pubKeyA.length,iv,0,iv.length);
+            cryptoDataByte.setIv(iv);
+            System.arraycopy(bundle,pubKeyA.length+iv.length,cipher,0,cipher.length);
+            cryptoDataByte.setCipher(cipher);
+            System.arraycopy(bundle,pubKeyA.length+iv.length+cipher.length,sum,0,sum.length);
+            cryptoDataByte.setSum(sum);
+        }
         return cryptoDataByte;
     }
 
@@ -115,27 +173,6 @@ public class CryptoDataByte {
         code = 9;
         this.message = message;
     }
-
-//    public String makeIvAndCipherJson() {
-//        String ivStr = HexFormat.of().formatHex(this.iv);
-//        String cipherStr = Base64.getEncoder().encodeToString(this.cipher);
-//        return "{\"iv\":\""+ivStr+"\",\"cipher\":\""+cipherStr+"\"}";
-//    }
-//
-//    public String makePubKeyIvAndCipherJson() {
-//        String pubKeyAStr = HexFormat.of().formatHex(this.pubKeyA);
-//        String ivStr = HexFormat.of().formatHex(this.iv);
-//        String cipherStr = Base64.getEncoder().encodeToString(this.cipher);
-//        return "{\"pubKeyA\":\""+pubKeyAStr +"\",\"iv\":\""+ivStr+"\",\"cipher\":\""+cipherStr+"\"}";
-//
-//    }
-
-    public String toNiceJson() {
-        CryptoData cryptoData = CryptoData.fromCryptoDataByte(this);
-        cryptoData.clearAllSensitiveData();
-        return JsonTools.getNiceString(cryptoData);
-    }
-
     public void clearAllSensitiveData() {
         clearPassword();
         clearSymKey();
@@ -177,19 +214,19 @@ public class CryptoDataByte {
         this.message = message;
     }
 
-    public Algorithm getAlg() {
+    public AlgorithmType getAlg() {
         return alg;
     }
 
-    public void setAlg(Algorithm alg) {
+    public void setAlg(AlgorithmType alg) {
         this.alg = alg;
     }
 
-    public EccAesType getType() {
+    public EncryptType getType() {
         return type;
     }
 
-    public void setType(EccAesType type) {
+    public void setType(EncryptType type) {
         this.type = type;
     }
 
@@ -273,20 +310,12 @@ public class CryptoDataByte {
         this.priKeyB = priKeyB;
     }
 
-    public Boolean isBadSum() {
-        return badSum;
+    public byte[] getDid() {
+        return did;
     }
 
-    public void setBadSum(Boolean badSum) {
-        this.badSum = badSum;
-    }
-
-    public byte[] getMsgId() {
-        return msgId;
-    }
-
-    public void setMsgId(byte[] msgId) {
-        this.msgId = msgId;
+    public void setDid(byte[] did) {
+        this.did = did;
     }
 
     public byte[] getCipherId() {
@@ -313,10 +342,6 @@ public class CryptoDataByte {
         this.cipherInputStream = cipherInputStream;
     }
 
-    public Boolean getBadSum() {
-        return badSum;
-    }
-
     public OutputStream getMsgOutputStream() {
         return msgOutputStream;
     }
@@ -339,5 +364,48 @@ public class CryptoDataByte {
 
     public void setCode(Integer code) {
         this.code = code;
+    }
+
+    public static byte[] makeSum4(byte[] symKey, byte[] iv, byte[] did) {
+        if(symKey!=null && iv!=null && did!=null) {
+            byte[] sum32 = Hash.sha256(BytesTools.addByteArray(symKey, BytesTools.addByteArray(iv, did)));
+            return BytesTools.getPartOfBytes(sum32, 0, 4);
+        }
+        return null;
+    }
+
+    public void makeSum4() {
+        if(symKey==null){
+            setCodeMessage(12);
+            return;
+        }
+        if(iv==null){
+            setCodeMessage(13);
+            return;
+        }
+        if(did==null){
+            setCodeMessage(23);
+            return;
+        }
+        byte[] sum32 = Hash.sha256(BytesTools.addByteArray(symKey, BytesTools.addByteArray(iv, did)));
+        sum = BytesTools.getPartOfBytes(sum32, 0, 4);
+
+    }
+
+    public void makeDid() {
+        if(code==0 && this.data!=null){
+            this.did = Hash.sha256x2(data);
+        }
+    }
+
+    public boolean checkSum(byte[] did) {
+        byte[] newSum = CryptoDataByte.makeSum4(symKey,iv,did);
+        String sumHex = Hex.toHex(sum);
+        String newSumHex = Hex.toHex(newSum);
+        if(!newSumHex.equals(sumHex)){
+            setCodeMessage(20);
+            return false;
+        }
+        return true;
     }
 }

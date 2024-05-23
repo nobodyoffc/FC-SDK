@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import constants.Constants;
 import constants.FieldNames;
 import javaTools.JsonTools;
-import crypto.cryptoTools.KeyTools;
+import crypto.KeyTools;
 import org.bitcoinj.core.ECKey;
 
 import javax.annotation.Nullable;

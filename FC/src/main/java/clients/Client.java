@@ -11,9 +11,7 @@ import config.ApiProvider;
 import config.ApiType;
 import constants.ApiNames;
 import constants.ReplyInfo;
-import crypto.cryptoTools.Hash;
-import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.*;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.JsonTools;
@@ -25,6 +23,8 @@ import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HexFormat;
+
+import static fcData.AlgorithmType.FC_Aes256Cbc_No1_NrC7;
 
 /*
     - provider
@@ -118,7 +118,7 @@ public class Client {
     }
 
     public static String getSessionKeySign(byte[] sessionKeyBytes, byte[] dataBytes) {
-        return HexFormat.of().formatHex(Hash.Sha256x2(BytesTools.bytesMerger(dataBytes, sessionKeyBytes)));
+        return HexFormat.of().formatHex(Hash.sha256x2(BytesTools.bytesMerger(dataBytes, sessionKeyBytes)));
     }
 
     public static boolean checkSign(String msg, String sign, String symKey) {
@@ -129,7 +129,7 @@ public class Client {
     public static boolean checkSign(byte[] msgBytes, String sign, byte[] symKey) {
         if (sign == null || msgBytes == null) return false;
         byte[] signBytes = BytesTools.bytesMerger(msgBytes, symKey);
-        String doubleSha256Hash = HexFormat.of().formatHex(Hash.Sha256x2(signBytes));
+        String doubleSha256Hash = HexFormat.of().formatHex(Hash.sha256x2(signBytes));
         return (sign.equals(doubleSha256Hash));
     }
 
@@ -219,7 +219,13 @@ public class Client {
     }
 
     public Session signIn(ApiAccount apiAccount, ApiType type, RequestBody.SignInMode mode, byte[] symKey) {
-        byte[] priKey = EccAes256K1P7.decryptJsonBytes(apiAccount.getUserPriKeyCipher(),symKey);
+
+        DecryptorSym decryptorSym = new DecryptorSym();
+        CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(apiAccount.getUserPriKeyCipher(),symKey);
+        if(cryptoDataByte.getCode()!=0)return null;
+        byte[] priKey = cryptoDataByte.getData();
+
+//        byte[] priKey = EccAes256K1P7.decryptJsonBytes(apiAccount.getUserPriKeyCipher(),symKey);
         Session session = signIn(priKey, type, mode);
         if(session==null||session.getSessionKey()==null)return null;
         byte[] sessionKey = Hex.fromHex(session.getSessionKey());
@@ -227,7 +233,13 @@ public class Client {
         apiAccount.setSessionKey(sessionKey);
 
         String sessionName = Session.makeSessionName(session.getSessionKey());
-        String sessionKeyCipher=EccAes256K1P7.encryptWithSymKey(sessionKey,symKey);
+
+        EncryptorSym encryptorSym = new EncryptorSym();
+        CryptoDataByte cryptoDataByte2 = encryptorSym.encryptBySymKey(sessionKey,symKey);
+        if(cryptoDataByte2.getCode()!=0)return null;
+        String sessionKeyCipher = cryptoDataByte2.toJson();
+//        String sessionKeyCipher=EccAes256K1P7.encryptWithSymKey(sessionKey,symKey);
+
         String fid = KeyTools.priKeyToFid(priKey);
 
         session.setSessionKeyCipher(sessionKeyCipher);
@@ -240,17 +252,33 @@ public class Client {
     }
 
     public Session signInEcc(ApiAccount apiAccount, ApiType type, RequestBody.SignInMode mode, byte[] symKey) {
-        byte[] priKey = EccAes256K1P7.decryptJsonBytes(apiAccount.getUserPriKeyCipher(),symKey);
+
+        DecryptorSym decryptorSym = new DecryptorSym();
+        CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(apiAccount.getUserPriKeyCipher(),symKey);
+        if(cryptoDataByte.getCode()!=0)return null;
+        byte[] priKey = cryptoDataByte.getData();
+
+//        byte[] priKey = EccAes256K1P7.decryptJsonBytes(apiAccount.getUserPriKeyCipher(),symKey);
         String fid = KeyTools.priKeyToFid(priKey);
         Session session = signInEcc(priKey, type,mode);
         String sessionKeyCipher1 = session.getSessionKeyCipher();
-        byte[] sessionKeyHexBytes = EccAes256K1P7.decryptWithPriKey(sessionKeyCipher1,priKey);
+
+        DecryptorAsy decryptorAsy = new DecryptorAsy();
+        CryptoDataByte cryptoDataByte1 =
+                decryptorAsy.decryptByAscKey(sessionKeyCipher1,priKey);
+        if(cryptoDataByte1.getCode()!=0)return null;
+        byte[] sessionKeyHexBytes = cryptoDataByte1.getData();
+//        byte[] sessionKeyHexBytes = EccAes256K1P7.decryptWithPriKey(sessionKeyCipher1,priKey);
         if(sessionKeyHexBytes==null)return null;
 
         String sessionKeyHex =new String(sessionKeyHexBytes);
         sessionKey = Hex.fromHex(sessionKeyHex);
 
-        String newCipher = EccAes256K1P7.encryptWithSymKey(sessionKey,symKey);
+        EncryptorSym encryptorSym = new EncryptorSym(FC_Aes256Cbc_No1_NrC7);
+        CryptoDataByte cryptoDataByte2 = encryptorSym.encryptBySymKey(sessionKey,symKey);
+        if(cryptoDataByte2.getCode()!=0)return null;
+        String newCipher = cryptoDataByte2.toJson();
+//        String newCipher = EccAes256K1P7.encryptWithSymKey(sessionKey,symKey);
         String sessionName = Session.makeSessionName(sessionKeyHex);
         Long expireTime = session.getExpireTime();
 

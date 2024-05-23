@@ -1,6 +1,6 @@
 package appTools;
 
-import crypto.cryptoTools.Hash;
+import crypto.Hash;
 import javaTools.BytesTools;
 
 import java.nio.charset.StandardCharsets;
@@ -25,7 +25,7 @@ public class ClientTools {
     }
 
     public static String getSessionKeySign(byte[] sessionKeyBytes, byte[] dataBytes) {
-        return HexFormat.of().formatHex(Hash.Sha256x2(BytesTools.bytesMerger(dataBytes, sessionKeyBytes)));
+        return HexFormat.of().formatHex(Hash.sha256x2(BytesTools.bytesMerger(dataBytes, sessionKeyBytes)));
     }
 
     public static boolean isGoodSign(String msg, String sign, String symKey) {
@@ -36,7 +36,7 @@ public class ClientTools {
     public static boolean isGoodSign(byte[] msgBytes, String sign, byte[] symKey) {
         if (sign == null || msgBytes == null) return false;
         byte[] signBytes = BytesTools.bytesMerger(msgBytes, symKey);
-        String doubleSha256Hash = HexFormat.of().formatHex(Hash.Sha256x2(signBytes));
+        String doubleSha256Hash = HexFormat.of().formatHex(Hash.sha256x2(signBytes));
         return (sign.equals(doubleSha256Hash));
     }
 

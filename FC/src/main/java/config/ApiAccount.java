@@ -24,10 +24,8 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
 import com.google.gson.Gson;
 import constants.ApiNames;
-import crypto.cryptoTools.Hash;
-import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1.EccAes256K1P7;
-import crypto.CryptoDataByte;
+import crypto.*;
+import crypto.old.EccAes256K1P7;
 import clients.esClient.EsClientMaker;
 import clients.diskClient.DiskClient;
 import javaTools.BytesTools;
@@ -51,7 +49,8 @@ import static appTools.Inputer.chooseOne;
 import static appTools.Inputer.promptAndUpdate;
 import static constants.Constants.APIP_Account_JSON;
 import static constants.Constants.COIN_TO_SATOSHI;
-import static crypto.cryptoTools.KeyTools.priKeyToFid;
+import static crypto.KeyTools.priKeyToFid;
+import static fcData.AlgorithmType.FC_Aes256Cbc_No1_NrC7;
 
 public class ApiAccount {
     private static final Logger log = LoggerFactory.getLogger(ApiAccount.class);
@@ -63,6 +62,7 @@ public class ApiAccount {
     private String userId;
     private String userName;
     private String passwordCipher;
+    private String userPubKey;
     private String userPriKeyCipher;
     private Session session;
     private transient byte[] sessionKey;
@@ -365,19 +365,25 @@ public class ApiAccount {
 
     public byte[] inputPriKeyCipher(BufferedReader br, byte[] symKey) {
         byte[] priKey32;
-
         while (true) {
             String input = FCH.Inputer.inputString(br, "Generate a new private key? y/n");
             if ("y".equals(input)) {
                 priKey32 = KeyTools.genNewFid(br).getPrivKeyBytes();
-            } else priKey32 = KeyTools.inputCipherGetPriKey(br);
-
+            } else {
+                priKey32 = KeyTools.inputCipherGetPriKey(br);
+            }
             if (priKey32 == null) return null;
-
+            this.userPubKey = Hex.toHex(KeyTools.priKeyToPubKey(priKey32));
             userId = priKeyToFid(priKey32);
             System.out.println("The FID is: \n" + userId);
 
-            String buyerPriKeyCipher = EccAes256K1P7.encryptWithSymKey(priKey32, symKey);
+            EncryptorSym encryptorSym = new EncryptorSym(FC_Aes256Cbc_No1_NrC7);
+            CryptoDataByte cryptoDataByte = encryptorSym.encryptBySymKey(priKey32,symKey);//EccAes256K1P7.encryptWithSymKey(priKey32, symKey);
+            if(cryptoDataByte.getCode() !=0){
+                System.out.println(cryptoDataByte.getMessage());
+                return null;
+            }
+            String buyerPriKeyCipher = cryptoDataByte.toJson();
             if (buyerPriKeyCipher.contains("Error")) continue;
             userPriKeyCipher = buyerPriKeyCipher;
             BytesTools.clearByteArray(priKey32);
@@ -547,7 +553,7 @@ public class ApiAccount {
         if(userName!=null) {
             bundleBytes = BytesTools.bytesMerger(sid.getBytes(), userName.getBytes());
         }else bundleBytes = sid.getBytes();
-        return HexFormat.of().formatHex(Hash.Sha256x2(bundleBytes));
+        return HexFormat.of().formatHex(Hash.sha256x2(bundleBytes));
     }
 
     public void inputAll(byte[] symKey, ApiProvider apiProvider,BufferedReader br) {
@@ -567,6 +573,7 @@ public class ApiAccount {
                     if(sid==null)inputSid(br);
                     inputPriKeyCipher(symKey, br);
                     while(userName==null) {
+                        if(userPriKeyCipher==null)return;
                         byte[] userPriKey = EccAes256K1P7.decryptJsonBytes(userPriKeyCipher, symKey);
                         userName = KeyTools.priKeyToFid(userPriKey);
                         userId = userName;
@@ -610,7 +617,7 @@ public class ApiAccount {
             this.userName = promptAndUpdate(br, "userName", this.userName);
             this.passwordCipher = updateKeyCipher(br, "user's passwordCipher", this.passwordCipher,symKey);
             this.userPriKeyCipher = updateKeyCipher(br, "userPriKeyCipher", this.userPriKeyCipher,symKey);
-
+            this.userPubKey = makePubKey(this.userPriKeyCipher,symKey);
             this.session.setSessionName(promptAndUpdate(br, "sessionName", this.session.getSessionName()));
             this.session.setSessionKeyCipher(updateKeyCipher(br, "sessionKeyCipher", this.session.getSessionKeyCipher(),symKey));
             this.session.setExpireTime(promptAndUpdate(br, "sessionExpire", this.session.getExpireTime()));
@@ -625,6 +632,28 @@ public class ApiAccount {
             e.printStackTrace();
         }
     }
+
+    public static String makePubKey(String userPriKeyCipher, byte[] symKey) {
+        DecryptorSym decryptorSym = new DecryptorSym();
+        CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(userPriKeyCipher,symKey);
+        if(cryptoDataByte.getCode()!=0)return null;
+        byte[] pubKey = KeyTools.priKeyToPubKey(cryptoDataByte.getData());
+        return Hex.toHex(pubKey);
+    }
+
+//    @org.jetbrains.annotations.Nullable
+//    public void makePubKey(byte[] symKey) {
+//        DecryptorSym decryptorSym = new DecryptorSym();
+//        CryptoDataByte result = decryptorSym.decrypt(this.userPriKeyCipher, symKey);
+//        if(result.getCode()!=0){
+//            return;
+//        }
+//        byte[] priKey = result.getData();
+//        byte[] pubKey = KeyTools.priKeyToPubKey(priKey);
+//        if(pubKey!=null)this.userPubKey = Hex.toHex(pubKey);
+//        return;
+//    }
+
     private String updateKeyCipher(BufferedReader reader, String fieldName, String currentValue, byte[] symKey) throws IOException {
         System.out.println(fieldName + " current value: " + currentValue);
         System.out.print("Do you want to update it? (y/n): ");
@@ -657,6 +686,7 @@ public class ApiAccount {
             while(true) {
                 try {
                     this.userPriKeyCipher = EccAes256K1P7.inputPriKeyCipher(br, symKey);
+                    this.userPubKey=makePubKey(this.userPriKeyCipher,symKey);
                     break;
                 }catch (Exception e){
                     System.out.println("Wrong input. Try again.");
@@ -1210,7 +1240,11 @@ public class ApiAccount {
 //    }
 
     public static byte[] decryptSessionKey(String sessionKeyCipher, byte[] symKey) {
-        return EccAes256K1P7.decryptJsonBytes(sessionKeyCipher,symKey);
+        DecryptorSym decryptorSym = new DecryptorSym();
+        CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(sessionKeyCipher,symKey);
+        if(cryptoDataByte.getCode()!=0)return null;
+        return cryptoDataByte.getData();
+//        return EccAes256K1P7.decryptJsonBytes(sessionKeyCipher,symKey);
     }
 
     public String getId() {
@@ -1381,4 +1415,11 @@ public class ApiAccount {
         this.session = session;
     }
 
+    public String getUserPubKey() {
+        return userPubKey;
+    }
+
+    public void setUserPubKey(String userPubKey) {
+        this.userPubKey = userPubKey;
+    }
 }

@@ -13,7 +13,7 @@ import com.google.gson.GsonBuilder;
 import constants.IndicesNames;
 import constants.Strings;
 import constants.Values;
-import crypto.cryptoTools.KeyTools;
+import crypto.KeyTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;

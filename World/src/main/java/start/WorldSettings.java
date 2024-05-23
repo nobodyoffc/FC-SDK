@@ -4,8 +4,8 @@ import FCH.Inputer;
 import appTools.Menu;
 import config.ApiType;
 import config.Configure;
-import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.KeyTools;
+import crypto.old.EccAes256K1P7;
 import org.bitcoinj.core.ECKey;
 import redis.clients.jedis.JedisPool;
 import server.Settings;
@@ -27,14 +27,14 @@ public class WorldSettings extends Settings {
         if(fidPriKeyCipherMap==null)fidPriKeyCipherMap = new HashMap<>();
         System.out.println("Import IDs:");
         while(true){
-            ECKey ecKey = Inputer.inputPriKey(br);
-            if(ecKey==null || ecKey.getPrivKeyBytes()==null){
+
+            byte[] priKey32 = Inputer.inputPriKey(br);
+            if (priKey32 == null){
                 System.out.println("Failed to get priKey. Try again.");
                 continue;
             }
-            byte[] priKeyBytes = ecKey.getPrivKeyBytes();
-            String fid = KeyTools.priKeyToFid(priKeyBytes);
-            String priKeyCipher = EccAes256K1P7.encryptWithSymKey(priKeyBytes,symKey);
+            String fid = KeyTools.priKeyToFid(priKey32);
+            String priKeyCipher = EccAes256K1P7.encryptWithSymKey(priKey32,symKey);
             fidPriKeyCipherMap.put(fid,priKeyCipher);
             if(!Inputer.askIfYes(br,"Add more ID?"))break;
         }

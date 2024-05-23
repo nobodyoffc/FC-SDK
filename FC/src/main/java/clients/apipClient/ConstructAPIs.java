@@ -99,16 +99,16 @@ public class ConstructAPIs {
 
 
     public static ApipClientTask serviceByIdsPost(String urlHead, String[] ids, @Nullable String via, byte[] sessionKey) {
-        ApipClientTask apipClientData = new ApipClientTask();
+        ApipClientTask apipClientTask = new ApipClientTask();
         
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIds(ids);
 
         String urlTail = ApiNames.APIP6V1Path + ApiNames.ServiceByIdsAPI;
 
-        boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
+        boolean isGood = apipClientTask.post(urlHead, urlTail, fcdsl, via, sessionKey);
         if (!isGood) return null;
-        return apipClientData;
+        return apipClientTask;
     }
 
     public static ApipClientTask serviceSearchPost(String urlHead, Fcdsl fcdsl, @Nullable String via, byte[] sessionKey) {

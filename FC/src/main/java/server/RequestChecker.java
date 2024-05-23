@@ -9,7 +9,7 @@ import constants.ApiNames;
 import constants.FieldNames;
 import constants.ReplyInfo;
 import constants.Strings;
-import crypto.cryptoTools.Hash;
+import crypto.Hash;
 
 import javaTools.BytesTools;
 import javaTools.Hex;
@@ -19,8 +19,6 @@ import javaTools.http.HttpTools;
 import org.bitcoinj.core.ECKey;
 import org.jetbrains.annotations.Nullable;
 import redis.clients.jedis.Jedis;
-import server.RequestCheckResult;
-import server.Settings;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -33,7 +31,7 @@ import java.util.HexFormat;
 import java.util.Map;
 
 import static constants.Strings.*;
-import static crypto.cryptoTools.KeyTools.pubKeyToFchAddr;
+import static crypto.KeyTools.pubKeyToFchAddr;
 import static server.Counter.updateBalance;
 import static javaTools.http.HttpTools.illegalUrl;
 
@@ -237,7 +235,7 @@ public class RequestChecker {
     private static boolean isBadSymSign(String sign, byte[] requestBodyBytes, FcReplier replier, String sessionKey) {
         if(sign==null)return true;
         byte[] signBytes = BytesTools.bytesMerger(requestBodyBytes, Hex.fromHex(sessionKey));
-        String doubleSha256Hash = HexFormat.of().formatHex(Hash.Sha256x2(signBytes));
+        String doubleSha256Hash = HexFormat.of().formatHex(Hash.sha256x2(signBytes));
 
         if(!sign.equals(doubleSha256Hash)){
             replier.setData("The sign of the request body should be: "+doubleSha256Hash);

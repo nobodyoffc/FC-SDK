@@ -1,16 +1,35 @@
-import clients.ApiUrl;
-import co.elastic.clients.json.JsonpUtils;
-import com.google.gson.Gson;
-import javaTools.JsonTools;
-import org.checkerframework.checker.units.qual.A;
+import com.google.common.hash.Hashing;
+import crypto.Hash;
+import javaTools.BytesTools;
+import javaTools.Hex;
 
 public class Test {
     public static void main(String[] args) {
-        String urlHead = "http://host:80/apip/";
-        String urlTailPath = "/apip0/v1/";
-        String api = "signIn";
-        ApiUrl apiUrl = new ApiUrl(urlHead,urlTailPath,api,null,false,null);
+//        byte[] symKey = BytesTools.bytesMerger(passwordBytes, randomBytes);
+        byte[] passwordBytes = BytesTools.getRandomBytes(16);
+        byte[] randomBytes = BytesTools.getRandomBytes(8);
+        long start;
+        byte[] hash;
 
-        JsonTools.gsonPrint(apiUrl);
+        start= System.currentTimeMillis();
+        hash =Hash.sha256(BytesTools.addByteArray(Hash.sha256(passwordBytes), randomBytes));
+        System.out.println(Hex.toHex(hash));
+        System.out.println("256:"+(System.currentTimeMillis()-start));
+
+        start = System.currentTimeMillis();
+        hash= sha256(BytesTools.addByteArray(sha256(passwordBytes), randomBytes));
+        System.out.println(Hex.toHex(hash));
+        System.out.println("local 256:"+(System.currentTimeMillis()-start));
+
+        start = System.currentTimeMillis();
+        hash = Hash.sha512(BytesTools.addByteArray(Hash.sha512(passwordBytes), randomBytes));
+        System.out.println(Hex.toHex(hash));
+        System.out.println("512:"+(System.currentTimeMillis()-start));
+
+
+
+    }
+    public static byte[] sha256(byte[] b) {
+        return Hashing.sha256().hashBytes(b).asBytes();
     }
 }

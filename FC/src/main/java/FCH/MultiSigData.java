@@ -3,7 +3,7 @@ package FCH;
 import clients.apipClient.DataGetter;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import crypto.cryptoTools.Hash;
+import crypto.Hash;
 import FCH.fchData.Cash;
 import FCH.fchData.P2SH;
 import javaTools.BytesTools;
@@ -26,7 +26,7 @@ public final class MultiSigData {
         this.rawTx = rawTx;
         this.p2SH = p2SH;
         this.cashList = cashList;
-        this.rawTxId = HexFormat.of().formatHex(Hash.Sha256x2(rawTx));
+        this.rawTxId = HexFormat.of().formatHex(Hash.sha256x2(rawTx));
     }
 
     public MultiSigData(String rawTxHex, String p2SHStr, String cashList) {
@@ -140,7 +140,7 @@ public final class MultiSigData {
 
     public void setRawTx(byte[] rawTx) {
         this.rawTx = rawTx;
-        this.rawTxId = HexFormat.of().formatHex(Hash.Sha256x2(rawTx));
+        this.rawTxId = HexFormat.of().formatHex(Hash.sha256x2(rawTx));
     }
 
     public P2SH getP2SH() {

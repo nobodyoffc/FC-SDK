@@ -4,7 +4,7 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch.core.GetResponse;
 import constants.IndicesNames;
-import crypto.cryptoTools.KeyTools;
+import crypto.KeyTools;
 import javaTools.BytesTools;
 
 import java.io.ByteArrayInputStream;

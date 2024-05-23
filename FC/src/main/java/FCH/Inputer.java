@@ -1,11 +1,11 @@
 package FCH;
 
 import clients.apipClient.ApipClient;
-import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.KeyTools;
+import crypto.old.EccAes256K1P7;
 import org.bitcoinj.core.ECKey;
 import org.jetbrains.annotations.Nullable;
-import crypto.cryptoTools.Base58;
+import crypto.Base58;
 
 
 import java.io.BufferedReader;
@@ -168,12 +168,13 @@ public class Inputer extends appTools.Inputer {
 
 
     @Nullable
-    public static ECKey inputPriKey(BufferedReader br) {
+    public static byte[] inputPriKey(BufferedReader br) {
         byte[] priKey32;
-        if(askIfYes(br,"Generate a new private key?"))return KeyTools.genNewFid(br);
+        if(askIfYes(br,"Generate a new private key?"))
+            return KeyTools.genNewFid(br).getPrivKeyBytes();
         else {
             priKey32 = KeyTools.inputCipherGetPriKey(br);
-            if (priKey32 != null) return ECKey.fromPrivate(priKey32);
+            if (priKey32 != null) return priKey32;
         }
         return null;
     }

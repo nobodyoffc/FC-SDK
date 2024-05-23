@@ -9,7 +9,8 @@ import appTools.Shower;
 
 import com.google.gson.Gson;
 
-import crypto.cryptoTools.KeyTools;
+import crypto.old.EccAes256K1P7;
+import crypto.KeyTools;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.params.MainNetParams;
 import org.jetbrains.annotations.Nullable;
@@ -122,7 +123,7 @@ public class SwapParams extends Params {
                 Menu.anyKeyToContinue(br);
                 return null;
             }
-            priKeyCipher = crypto.eccAes256K1.EccAes256K1P7.encryptWithSymKey(ecKey.getPrivKeyBytes(), initSymKey.clone());
+            priKeyCipher = EccAes256K1P7.encryptWithSymKey(ecKey.getPrivKeyBytes(), initSymKey.clone());
             setAddr(ecKey, true,gTick);
             setAddr(ecKey,false, mTick);
             Shower.printUnderline(10);

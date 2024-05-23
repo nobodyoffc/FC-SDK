@@ -2,7 +2,7 @@ package FCH;
 
 import NaSa.RPC.GetRawTx;
 import javaTools.BytesTools;
-import crypto.cryptoTools.KeyTools;
+import crypto.KeyTools;
 
 
 import org.bitcoinj.core.NetworkParameters;

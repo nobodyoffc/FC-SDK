@@ -1,7 +1,6 @@
 package appTools;
 
-import config.ApiProvider;
-import crypto.cryptoTools.KeyTools;
+import crypto.KeyTools;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.NumberTools;

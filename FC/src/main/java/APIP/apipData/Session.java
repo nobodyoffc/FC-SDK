@@ -2,10 +2,10 @@ package APIP.apipData;
 
 
 import constants.Strings;
-import crypto.cryptoTools.Hash;
-import crypto.eccAes256K1.EccAes256K1P7;
-import crypto.CryptoData;
-import crypto.eccAes256K1.EccAesType;
+import crypto.Hash;
+import crypto.old.EccAes256K1P7;
+import crypto.CryptoDataStr;
+import crypto.EncryptType;
 import javaTools.BytesTools;
 import javaTools.JsonTools;
 import redis.clients.jedis.Jedis;
@@ -34,14 +34,14 @@ public class Session {
     }
 
     public static String getSessionKeySign(byte[] sessionKeyBytes, byte[] dataBytes) {
-        return HexFormat.of().formatHex(Hash.Sha256x2(BytesTools.bytesMerger(dataBytes, sessionKeyBytes)));
+        return HexFormat.of().formatHex(Hash.sha256x2(BytesTools.bytesMerger(dataBytes, sessionKeyBytes)));
     }
 
     public String checkSign(String sign, byte[] requestBodyBytes) {
         if(sign==null)return "The sign is null.";
         if(requestBodyBytes==null)return "The byte array is null.";
         byte[] signBytes = BytesTools.bytesMerger(requestBodyBytes, BytesTools.hexToByteArray(sessionKey));
-        String doubleSha256Hash = HexFormat.of().formatHex(Hash.Sha256x2(signBytes));
+        String doubleSha256Hash = HexFormat.of().formatHex(Hash.sha256x2(signBytes));
 
         if(!sign.equals(doubleSha256Hash)){
             return "The sign of the request body should be: "+doubleSha256Hash;
@@ -100,12 +100,12 @@ public class Session {
 
     public static String encryptSessionKey(String sessionKey, String pubKey, String sign) throws Exception {
         EccAes256K1P7 ecc = new EccAes256K1P7();
-        CryptoData cryptoData = new CryptoData(EccAesType.AsyOneWay, sessionKey,pubKey);
-        ecc.encrypt(cryptoData);
-        if(cryptoData.getMessage()!=null){
-            return "Error:"+ cryptoData.getMessage();
+        CryptoDataStr cryptoDataStr = new CryptoDataStr(EncryptType.AsyOneWay, sessionKey,pubKey);
+        ecc.encrypt(cryptoDataStr);
+        if(cryptoDataStr.getMessage()!=null){
+            return "Error:"+ cryptoDataStr.getMessage();
         }
-        return cryptoData.toJson();
+        return cryptoDataStr.toJson();
     }
 
     public String getSessionName() {

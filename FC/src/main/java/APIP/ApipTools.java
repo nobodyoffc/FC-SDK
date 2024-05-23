@@ -12,7 +12,7 @@ import FEIP.feipData.Service;
 import com.google.gson.Gson;
 import constants.ApiNames;
 
-import crypto.cryptoTools.Hash;
+import crypto.Hash;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import org.jetbrains.annotations.Nullable;
@@ -62,7 +62,7 @@ public class ApipTools {
     public static boolean isGoodSign(byte[] bytes, String sign, byte[] symKey) {
         if (sign == null || bytes == null) return false;
         byte[] signBytes = BytesTools.bytesMerger(bytes, symKey);
-        byte[] hash = Hash.Sha256x2(signBytes);
+        byte[] hash = Hash.sha256x2(signBytes);
         String doubleSha256Hash = Hex.toHex(hash);
 
         return (sign.equals(doubleSha256Hash));

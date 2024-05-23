@@ -1,6 +1,6 @@
 package APIP.apipData;
 
-import crypto.cryptoTools.Hash;
+import crypto.Hash;
 import javaTools.BytesTools;
 
 import java.io.BufferedReader;
@@ -21,7 +21,7 @@ public class WebhookInfo {  //for webhook users to mark different webhook servic
     private Object response;
 
     private static String makeWebhookId(String url, String method) {
-        return HexFormat.of().formatHex(Hash.Sha256x2(BytesTools.bytesMerger(url.getBytes(), method.getBytes())));
+        return HexFormat.of().formatHex(Hash.sha256x2(BytesTools.bytesMerger(url.getBytes(), method.getBytes())));
     }
 
     public static void updateFromUserInput(BufferedReader br, WebhookInfo info) {

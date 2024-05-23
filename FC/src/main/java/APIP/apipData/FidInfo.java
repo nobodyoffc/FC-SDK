@@ -2,16 +2,16 @@ package APIP.apipData;
 
 
 import FCH.Inputer;
-import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.KeyTools;
+import crypto.old.EccAes256K1P7;
 import org.bitcoinj.core.ECKey;
 
 import java.io.BufferedReader;
 import java.util.HexFormat;
 import java.util.Map;
 
-import static crypto.cryptoTools.KeyTools.priKeyToFid;
-import static crypto.cryptoTools.KeyTools.priKeyToPubKey;
+import static crypto.KeyTools.priKeyToFid;
+import static crypto.KeyTools.priKeyToPubKey;
 
 public class FidInfo {
     private Map<String, String> addresses;
@@ -44,9 +44,7 @@ public class FidInfo {
         byte[] priKey32;
 
         while (true) {
-            ECKey eckey = Inputer.inputPriKey(br);
-            if (eckey == null) return null;
-            priKey32 = eckey.getPrivKeyBytes();
+            priKey32 = Inputer.inputPriKey(br);
             if (priKey32 == null) return null;
 
             FidInfo fidInfo = new FidInfo(priKey32, initSymKey);

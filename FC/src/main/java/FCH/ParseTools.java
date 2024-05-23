@@ -4,9 +4,8 @@ import com.google.gson.Gson;
 import constants.Constants;
 import javaTools.BytesTools;
 import javaTools.NumberTools;
-import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
-import crypto.cryptoTools.Hash;
+import crypto.Hash;
 
 
 import java.io.ByteArrayInputStream;
@@ -98,7 +97,7 @@ public class ParseTools {
     }
 
     public static String calcTxoIdFromBytes(byte[] b36PreTxIdAndIndex) {
-        String txoId = BytesTools.bytesToHexStringLE(Hash.Sha256x2(b36PreTxIdAndIndex));
+        String txoId = BytesTools.bytesToHexStringLE(Hash.sha256x2(b36PreTxIdAndIndex));
         return txoId;
     }
 
@@ -107,7 +106,7 @@ public class ParseTools {
         byte[] b4OutIndex = new byte[4];
         b4OutIndex = BytesTools.invertArray(BytesTools.intToByteArray(j));
         String outId = BytesTools.bytesToHexStringLE(
-                Hash.Sha256x2(
+                Hash.sha256x2(
                         BytesTools.bytesMerger(txIdBytes, b4OutIndex)
                 ));
         return outId;

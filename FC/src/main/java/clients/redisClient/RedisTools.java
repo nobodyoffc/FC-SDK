@@ -1,18 +1,11 @@
 package clients.redisClient;
 
-import FEIP.feipData.serviceParams.DiskParams;
-import FEIP.feipData.serviceParams.Params;
-import crypto.cryptoTools.KeyTools;
-import jakarta.json.Json;
-import javaTools.JsonTools;
-import org.junit.jupiter.api.Test;
+import crypto.KeyTools;
 import redis.clients.jedis.Jedis;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 

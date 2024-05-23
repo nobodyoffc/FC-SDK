@@ -1,7 +1,7 @@
 package APIP;
 
 import APIP.apipData.*;
-import crypto.cryptoTools.Hash;
+import crypto.Hash;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import constants.ApiNames;

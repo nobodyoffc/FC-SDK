@@ -13,9 +13,9 @@ import clients.apipClient.*;
 import config.ApiAccount;
 import constants.Constants;
 import constants.Strings;
-import crypto.cryptoTools.Hash;
-import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.Hash;
+import crypto.KeyTools;
+import crypto.old.EccAes256K1P7;
 import fcData.Signature;
 import javaTools.BytesTools;
 import javaTools.JsonTools;
@@ -35,8 +35,8 @@ import static constants.Constants.APIP_Account_JSON;
 import static constants.Constants.COIN_TO_SATOSHI;
 import static constants.Strings.newCashMapKey;
 import static constants.Strings.spendCashMapKey;
-import static crypto.cryptoTools.KeyTools.priKeyToFid;
-import static crypto.cryptoTools.KeyTools.priKeyToPubKey;
+import static crypto.KeyTools.priKeyToFid;
+import static crypto.KeyTools.priKeyToPubKey;
 
 
 public class startFchClient {
@@ -54,11 +54,11 @@ public class startFchClient {
             Shower.printUnderline(20);
             System.out.println("Confirm or set your password...");
             byte[] passwordBytes = Inputer.getPasswordBytes(br);
-            symKey = Hash.Sha256x2(passwordBytes);
+            symKey = Hash.sha256x2(passwordBytes);
             try {
                 initApiAccount = ApiAccount.checkApipAccount(br, passwordBytes);
                 if (initApiAccount == null) return;
-                sessionKey = ApiAccount.decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), Hash.Sha256x2(passwordBytes));
+                sessionKey = ApiAccount.decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), Hash.sha256x2(passwordBytes));
                 if (sessionKey == null) continue;
                 BytesTools.clearByteArray(passwordBytes);
                 break;
@@ -407,7 +407,7 @@ public class startFchClient {
         String input = Inputer.inputString(br);
         if ("y".equals(input)) {
             priKey = KeyTools.inputCipherGetPriKey(br);
-            if (priKey == null) return;
+            if (priKey== null) return;
         } else priKey = initApiAccount.decryptUserPriKey(initApiAccount.getUserPriKeyCipher(), symKey);
 
         if (priKey == null) return;
@@ -435,7 +435,7 @@ public class startFchClient {
         String input = Inputer.inputString(br);
         if ("i".equals(input)) {
             priKey = KeyTools.inputCipherGetPriKey(br);
-            if (priKey == null) return;
+            if (priKey== null) return;
         } else if ("g".equals(input)) {
             priKey = KeyTools.genNewFid(br).getPrivKeyBytes();
         }
@@ -507,7 +507,7 @@ public class startFchClient {
         String input = Inputer.inputString(br);
         if ("y".equals(input)) {
             priKey = KeyTools.inputCipherGetPriKey(br);
-            if (priKey == null) return;
+            if (priKey== null) return;
         } else priKey = initApiAccount.decryptUserPriKey(initApiAccount.getUserPriKeyCipher(), symKey);
 
         String signer = priKeyToFid(priKey);
@@ -558,7 +558,7 @@ public class startFchClient {
         String input = Inputer.inputString(br);
         if ("y".equals(input)) {
             priKey = KeyTools.inputCipherGetPriKey(br);
-            if (priKey == null) return;
+            if (priKey== null) return;
         } else priKey = initApiAccount.decryptUserPriKey(initApiAccount.getUserPriKeyCipher(), symKey);
 
         String signer = priKeyToFid(priKey);
@@ -634,7 +634,7 @@ public class startFchClient {
             System.out.print("Check password. ");
 
             passwordBytesOld = Inputer.getPasswordBytes(br);
-            byte[] sessionKey = ApiAccount.decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), Hash.Sha256x2(passwordBytesOld));
+            byte[] sessionKey = ApiAccount.decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), Hash.sha256x2(passwordBytesOld));
             if (sessionKey != null) break;
             System.out.println("Wrong password. Try again.");
         }
@@ -642,12 +642,12 @@ public class startFchClient {
         byte[] passwordBytesNew;
         passwordBytesNew = Inputer.inputAndCheckNewPassword(br);
 
-        byte[] symKeyOld = Hash.Sha256x2(passwordBytesOld);
+        byte[] symKeyOld = Hash.sha256x2(passwordBytesOld);
 
         byte[] sessionKey = ApiAccount.decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), symKeyOld);
         byte[] priKey = EccAes256K1P7.decryptJsonBytes(initApiAccount.getUserPriKeyCipher(), symKeyOld);
 
-        byte[] symKeyNew = Hash.Sha256x2(passwordBytesNew);
+        byte[] symKeyNew = Hash.sha256x2(passwordBytesNew);
         String buyerPriKeyCipherNew = EccAes256K1P7.encryptWithSymKey(priKey, symKeyNew);
         if (buyerPriKeyCipherNew == null) {
             System.out.println("Encrypt buyer's priKey with new password wrong.");

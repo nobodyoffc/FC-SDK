@@ -19,8 +19,8 @@ import co.elastic.clients.json.JsonData;
 import com.google.gson.Gson;
 
 import constants.*;
-import crypto.cryptoTools.KeyTools;
-import crypto.cryptoTools.Hash;
+import crypto.KeyTools;
+import crypto.Hash;
 import javaTools.JsonTools;
 import org.bitcoinj.core.ECKey;
 import org.junit.jupiter.api.Test;
@@ -612,14 +612,14 @@ public class WalletTools {
         ECKey ecKey = ECKey.fromPrivate(priKey);
         BigInteger priKeyBigInteger = ecKey.getPrivKey();
         byte[] pubKey = ecKey.getPubKey();
-        byte[] msgHash = Hash.Sha256x2(msg.getBytes());
+        byte[] msgHash = Hash.sha256x2(msg.getBytes());
         byte[] sign = SchnorrSignature.schnorr_sign(msgHash, priKeyBigInteger);
         byte[] pkSign = BytesTools.bytesMerger(pubKey, sign);
         return Base64.getEncoder().encodeToString(pkSign);
     }
 
     public static boolean schnorrMsgVerify(String msg, String pubSign, String fid) throws IOException {
-        byte[] msgHash = Hash.Sha256x2(msg.getBytes());
+        byte[] msgHash = Hash.sha256x2(msg.getBytes());
         byte[] pubSignBytes = Base64.getDecoder().decode(pubSign);
         byte[] pubKey = Arrays.copyOf(pubSignBytes, 33);
         if (!fid.equals(KeyTools.pubKeyToFchAddr(HexFormat.of().formatHex(pubKey)))) return false;

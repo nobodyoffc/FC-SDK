@@ -11,9 +11,9 @@ import clients.apipClient.WalletAPIs;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import constants.Constants;
-import crypto.cryptoTools.KeyTools;
+import crypto.KeyTools;
 import javaTools.Hex;
-import crypto.cryptoTools.Hash;
+import crypto.Hash;
 import FCH.fchData.Cash;
 import FCH.fchData.P2SH;
 import fcData.Signature;
@@ -35,7 +35,7 @@ import java.util.*;
 
 
 import static constants.Constants.COIN_TO_SATOSHI;
-import static crypto.cryptoTools.KeyTools.getPriKey32;
+import static crypto.KeyTools.getPriKey32;
 import static FCH.TxCreator.*;
 
 public class TxTest {
@@ -167,12 +167,12 @@ public class TxTest {
     private static byte[] getSessionKey(BufferedReader br) {
         System.out.println("Confirm or set your password...");
         byte[] passwordBytes = Inputer.getPasswordBytes(br);
-        byte[] symKey = Hash.Sha256x2(passwordBytes);
+        byte[] symKey = Hash.sha256x2(passwordBytes);
         byte[] sessionKey = new byte[0];
         try {
             ApiAccount apiAccount = ApiAccount.checkApipAccount(br, passwordBytes.clone());
             if (apiAccount == null) return null;
-            sessionKey = apiAccount.decryptSessionKey(apiAccount.getSession().getSessionKeyCipher(), Hash.Sha256x2(passwordBytes));
+            sessionKey = apiAccount.decryptSessionKey(apiAccount.getSession().getSessionKeyCipher(), Hash.sha256x2(passwordBytes));
             if (sessionKey == null) return null;
             BytesTools.clearByteArray(passwordBytes);
         } catch (Exception e) {

@@ -13,7 +13,7 @@ import clients.diskClient.DiskClient;
 import clients.diskClient.DiskDataInfo;
 import config.ApiAccount;
 import config.ApiType;
-import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.old.EccAes256K1P7;
 import config.Configure;
 import javaTools.*;
 import javaTools.http.AuthType;
@@ -123,7 +123,7 @@ public class StartDiskClient {
             break;
         }
         if(Inputer.askIfYes(br,"Encrypt it?")) {
-            fileName = DiskClient.encryptFile(fileName, symKey,diskClient.getApiAccount().getUserPriKeyCipher());
+            fileName = DiskClient.encryptFile(fileName, diskClient.getApiAccount().getUserPubKey());
             System.out.println("Encrypted to: "+fileName);
         }
         String dataResponse = diskClient.put(fileName);
@@ -142,7 +142,7 @@ public class StartDiskClient {
             break;
         }
         if(Inputer.askIfYes(br,"Encrypt it?")) {
-            fileName = DiskClient.encryptFile(fileName, symKey,diskClient.getApiAccount().getUserPriKeyCipher());
+            fileName = DiskClient.encryptFile(fileName, diskClient.getApiAccount().getUserPubKey());
             System.out.println("Encrypted to: "+fileName);
         }
         String dataResponse = diskClient.putFree(fileName);

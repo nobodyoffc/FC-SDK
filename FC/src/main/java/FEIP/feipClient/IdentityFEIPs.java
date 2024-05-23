@@ -4,12 +4,12 @@ import clients.apipClient.ApipClient;
 import FCH.TxCreator;
 import constants.Constants;
 import constants.UpStrings;
-import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.old.EccAes256K1P7;
 import FEIP.feipData.Feip;
 import FEIP.feipData.MasterData;
-import fcData.Algorithm;
+import fcData.AlgorithmType;
 import javaTools.JsonTools;
-import crypto.cryptoTools.KeyTools;
+import crypto.KeyTools;
 import FCH.fchData.SendTo;
 
 import java.util.ArrayList;
@@ -27,7 +27,7 @@ public class IdentityFEIPs {
 
         MasterData masterData = new MasterData();
         masterData.setMaster(KeyTools.pubKeyToFchAddr(masterPubKey));
-        masterData.setAlg(Algorithm.EccAes256K1P7_No1_NrC7.getName());
+        masterData.setAlg(AlgorithmType.EccAes256K1P7_No1_NrC7.getName());
         byte[] priKeyCipher = new EccAes256K1P7().encryptAsyOneWayBundle(priKey.clone(), HexFormat.of().parseHex(masterPubKey));
         masterData.setCipherPriKey(Base64.getEncoder().encodeToString(priKeyCipher));
         masterData.setPromise(promise);

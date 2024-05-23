@@ -13,11 +13,9 @@ import config.ApiType;
 import constants.ApiNames;
 import constants.Constants;
 import constants.ReplyInfo;
-import crypto.cryptoTools.Hash;
-import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1.EccAes256K1P7;
-import crypto.CryptoData;
-import fcData.Affair;
+import crypto.*;
+import crypto.Hash;
+import javaTools.FileTools;
 import javaTools.Hex;
 import javaTools.JsonTools;
 import javaTools.StringTools;
@@ -34,6 +32,7 @@ import java.util.Map;
 
 import static constants.FieldNames.*;
 import static constants.Strings.ASC;
+import static fcData.AlgorithmType.FC_EccK1AesCbc256_No1_NrC7;
 
 public class DiskClient extends Client {
 
@@ -42,66 +41,94 @@ public class DiskClient extends Client {
         this.signInUrlTailPath= ApiUrl.makeUrlTailPath(ApiNames.DiskApiType,ApiNames.SN_0,ApiNames.VersionV1);
     }
 
-    public static String encryptFile(String fileName, byte[] symKey,String priKeyCipher) {
+    public static String encryptFile(String fileName, String pubKeyHex) {
 
-        EccAes256K1P7 ecc = new EccAes256K1P7();
+        byte[] pubKey = Hex.fromHex(pubKeyHex);
+        EncryptorAsy encryptorAsy = new EncryptorAsy(FC_EccK1AesCbc256_No1_NrC7);
+        String tempFileName = FileTools.getTempFileName();
+        CryptoDataByte result1 = encryptorAsy.encryptFileByAsyOneWay(fileName, tempFileName, pubKey);
+        if(result1.getCode()!=0)return null;
+        String cipherFileName;
+        try {
+            cipherFileName = Hex.toHex(result1.getDid());
+            Files.move(Paths.get(tempFileName),Paths.get(cipherFileName));
+        } catch (IOException e) {
+            return null;
+        }
+        return cipherFileName;
 
-        byte[] priKey = EccAes256K1P7.decryptJsonBytes(priKeyCipher, symKey);
-        byte[] pubKey = KeyTools.priKeyToPubKey(priKey);
-        File file = new File(fileName);
-        ecc.encrypt(file, Hex.toHex(pubKey));
-        fileName = EccAes256K1P7.getEncryptedFileName(fileName);
-
-        return fileName;
+//        EccAes256K1P7 ecc = new EccAes256K1P7();
+//
+//        byte[] priKey = EccAes256K1P7.decryptJsonBytes(priKeyCipher, symKey);
+//        byte[] pubKey = KeyTools.priKeyToPubKey(priKey);
+//        File file = new File(fileName);
+//        ecc.encrypt(file, Hex.toHex(pubKey));
+//        fileName = EccAes256K1P7.getEncryptedFileName(fileName);
+//
+//        return fileName;
     }
 
     public static boolean decryptFile(String sourceFileName, String sourcePath, String destFileName, String destPath, byte[] symKey, String priKeyCipher) {
         try {
             Gson gson = new Gson();
-            Affair affair = JsonTools.readOneJsonFromFile(sourcePath, sourceFileName,Affair.class);
-            if (affair == null) {
-                return false;
-            }
-            System.out.println("Decrypting...");
-            if (affair.getData() == null){
-                System.out.println("Failed to decrypt. Affair.data is null.");
-                return false;
-            }
-            CryptoData cryptoData = gson.fromJson(gson.toJson(affair.getData()), CryptoData.class);
-            if (cryptoData == null){
-                System.out.println("Failed to decrypt. Got eccAesData null.");
+//            Affair affair = JsonTools.readOneJsonFromFile(sourcePath, sourceFileName,Affair.class);
+//            if (affair == null) {
+//                return false;
+//            }
+
+//            if (affair.getData() == null){
+//                System.out.println("Failed to decrypt. Affair.data is null.");
+//                return false;
+//            }
+            CryptoDataStr cryptoDataStr = JsonTools.readOneJsonFromFile(sourcePath, sourceFileName, CryptoDataStr.class);
+            if (cryptoDataStr == null){
                 return false;
             }
         } catch (IOException ignore) {
             return false;
         }
+        System.out.println("Decrypting...");
+        DecryptorSym decryptorSym = new DecryptorSym();
+        CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(priKeyCipher, symKey);
 
-        File file = new File(sourcePath, sourceFileName);
+        DecryptorAsy decryptorAsy = new DecryptorAsy();
+        byte[] priKey = cryptoDataByte.getData();
 
-        EccAes256K1P7 ecc = new EccAes256K1P7();
+        CryptoDataByte cryptoDataByte1 =
+                decryptorAsy.decryptFile(sourcePath, sourceFileName, destPath, destFileName, priKey);
 
-        byte[] priKey = EccAes256K1P7.decryptJsonBytes(priKeyCipher, symKey);
-        ecc.decrypt(file,priKey);
-        File encryptedFile = new File(sourcePath,EccAes256K1P7.getDecryptedFileName(destFileName));
-        String newDid;
-        try {
-            newDid = Hash.Sha256(encryptedFile);
-            System.out.println("Original DID:"+newDid);
-        } catch (IOException e) {
-            System.out.println("Failed to hash new file.");
+        if(cryptoDataByte1.getCode()!=0){
+            System.out.println(CryptoCodeMessage.getErrorStringCodeMsg(cryptoDataByte1.getCode()));
             return false;
         }
-        File dest = new File(destPath,newDid);
-        boolean done = encryptedFile.renameTo(dest);
-        if(done){
-            System.out.println("Decrypted to: "+dest.getAbsolutePath());
-            file.delete();
-        }
-        else{
-            System.out.println("Failed to rename the file.");
-            return false;
-        }
+        System.out.println("Original DID:"+Hex.toHex(cryptoDataByte1.getDid()));
         return true;
+//
+//        File file = new File(sourcePath, sourceFileName);
+//
+//        EccAes256K1P7 ecc = new EccAes256K1P7();
+//        byte[] priKey = EccAes256K1P7.decryptJsonBytes(priKeyCipher, symKey);
+//        ecc.decrypt(file,priKey);
+//        File encryptedFile = new File(sourcePath,EccAes256K1P7.getDecryptedFileName(destFileName));
+//        String newDid;
+//        try {
+//            newDid = Hash.sha256(encryptedFile);
+//            System.out.println("Original DID:"+newDid);
+//        } catch (IOException e) {
+//            System.out.println("Failed to hash new file.");
+//            return false;
+//        }
+//        File dest = new File(destPath,newDid);
+//        boolean done = encryptedFile.renameTo(dest);
+//        if(done){
+//            System.out.println("Decrypted to: "+dest.getAbsolutePath());
+//            file.delete();
+//        }
+//        else{
+//            System.out.println("Failed to rename the file.");
+//            return false;
+//        }
+//        return true;
     }
 
 
@@ -295,7 +322,7 @@ public class DiskClient extends Client {
         String respondDid = DataGetter.getStringMap(data).get(DID);
         String localDid;
         try {
-            localDid = Hash.Sha256x2(new File(fileName));
+            localDid = Hash.sha256x2(new File(fileName));
         } catch (IOException e) {
             clientTask.setCode(ReplyInfo.Code1020OtherError);
             clientTask.setMessage("Failed to hash local file.");
@@ -318,7 +345,7 @@ public class DiskClient extends Client {
             String respondDid = DataGetter.getStringMap(data).get(DID);
             String localDid;
             try {
-                localDid = Hash.Sha256x2(new File(fileName));
+                localDid = Hash.sha256x2(new File(fileName));
             } catch (IOException e) {
                 clientTask.setCode(ReplyInfo.Code1020OtherError);
                 clientTask.setMessage("Failed to hash local file.");

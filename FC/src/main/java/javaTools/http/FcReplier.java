@@ -2,7 +2,7 @@ package javaTools.http;
 
 import com.google.gson.Gson;
 import constants.ReplyInfo;
-import crypto.cryptoTools.Hash;
+import crypto.Hash;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.JsonTools;
@@ -26,7 +26,7 @@ public class FcReplier {
         byte[] replyJsonBytes = replyJson.getBytes();
         byte[] keyBytes = BytesTools.hexToByteArray(sessionKey);
         byte[] bytes = BytesTools.bytesMerger(replyJsonBytes,keyBytes);
-        byte[] signBytes = Hash.Sha256x2(bytes);
+        byte[] signBytes = Hash.sha256x2(bytes);
         return BytesTools.bytesToHexStringBE(signBytes);
     }
 
@@ -38,7 +38,7 @@ public class FcReplier {
         byte[] replyJsonBytes = json.getBytes();
         byte[] keyBytes = Hex.fromHex(sessionKey);
         byte[] bytes = BytesTools.bytesMerger(replyJsonBytes,keyBytes);
-        byte[] signBytes = Hash.Sha256x2(bytes);
+        byte[] signBytes = Hash.sha256x2(bytes);
         String sign = BytesTools.bytesToHexStringBE(signBytes);
         response.setHeader(ReplyInfo.SignInHeader,sign);
     }

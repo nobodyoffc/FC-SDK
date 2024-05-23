@@ -6,7 +6,7 @@ import constants.Strings;
 import FCH.fchData.Cash;
 import FCH.fchData.Tx;
 import javaTools.BytesTools;
-import crypto.cryptoTools.KeyTools;
+import crypto.KeyTools;
 import org.junit.jupiter.api.Test;
 import clients.esClient.EsTools;
 

@@ -17,8 +17,8 @@ import config.ApiProvider;
 import config.ApiType;
 import constants.ApiNames;
 import constants.FieldNames;
-import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.KeyTools;
+import crypto.old.EccAes256K1P7;
 import javaTools.Hex;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import static config.ApiAccount.decryptHexWithPriKey;
-import static crypto.cryptoTools.KeyTools.priKeyToFid;
+import static crypto.KeyTools.priKeyToFid;
 
 public class ApipClient extends Client {
 //    private static final Logger log = LoggerFactory.getLogger(ApipClient.class);

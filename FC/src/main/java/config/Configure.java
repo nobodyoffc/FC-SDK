@@ -10,9 +10,8 @@ import FEIP.feipData.Service;
 import appTools.Shower;
 import com.google.gson.Gson;
 import constants.FieldNames;
-import crypto.cryptoTools.Hash;
-import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.*;
+import fcData.AlgorithmType;
 import javaTools.BytesTools;
 import javaTools.FileTools;
 import javaTools.Hex;
@@ -81,19 +80,19 @@ public class Configure {
     }
 
     @Nullable
-    private ApiAccount checkApiClient(byte[] symKey, String initApiAccountId, ApiType type, ApipClient apiClient) {
-        ApiAccount initApiAccount = null;
-        if(initApiAccountId !=null){
-            initApiAccount = apiAccountMap.get(initApiAccountId);
-            if(!Inputer.askIfYes(br,"Current ID is: "+initApiAccount.getUserId()+".\nChange to another one?")) {
-                System.out.println("Connect by "+initApiAccount.getUserId()+"...");
-                apiClient = initApiAccount.connectApip(apiProviderMap.get(initApiAccount.getSid()), symKey, br);
+    private ApiAccount checkApiClient(byte[] symKey, String apiAccountId, ApiType type, ApipClient apiClient) {
+        ApiAccount apiAccount = null;
+        if(apiAccountId !=null){
+            apiAccount = apiAccountMap.get(apiAccountId);
+            if(!Inputer.askIfYes(br,"Current ID is: "+apiAccount.getUserId()+".\nChange to another one?")) {
+                System.out.println("Connect by "+apiAccount.getUserId()+"...");
+                apiAccount.connectApip(apiProviderMap.get(apiAccount.getSid()), symKey, br);
             }else {
                 System.out.println("Connect by other ID...");
                 List<String> accountUserIdUrlList = new ArrayList<>();
                 Map<String,String> map = new HashMap<>();
                 for(String id:apiAccountMap.keySet()){
-                    ApiAccount apiAccount = apiAccountMap.get(id);
+                    apiAccount = apiAccountMap.get(id);
                     ApiProvider apiProvider = apiProviderMap.get(apiAccount.getSid());
                     if(type.equals(apiProvider.getType())) {
                         String tempId = apiAccount.getUserId() + "@" + apiAccount.getApiUrl();
@@ -105,22 +104,28 @@ public class Configure {
                 if(!map.isEmpty()) {
                     String choice = (String) Inputer.chooseOne(accountUserIdUrlList.toArray(), "Choose your account", br);
                     if(choice!=null) {
-                        initApiAccountId = map.get(choice);
-                        initApiAccount=apiAccountMap.get(initApiAccountId);
-                        apiClient = initApiAccount.connectApip(apiProviderMap.get(initApiAccount.getSid()), symKey, br);
+                        apiAccountId = map.get(choice);
+                        apiAccount=apiAccountMap.get(apiAccountId);
+                        apiAccount.connectApip(apiProviderMap.get(apiAccount.getSid()), symKey, br);
                     }
                 }
 
-                if(Inputer.askIfYes(br,"Use current ID "+initApiAccount.getUserId()+"?")){
-                    apiClient = initApiAccount.connectApip(apiProviderMap.get(initApiAccount.getSid()), symKey, br);
+                if(Inputer.askIfYes(br,"Use current ID "+apiAccount.getUserId()+"?")){
+                    apiClient = apiAccount.connectApip(apiProviderMap.get(apiAccount.getSid()), symKey, br);
                 }else {
-                    initApiAccount = chooseApi(symKey, type);
+                    apiAccount = chooseApi(symKey, type);
                 }
             }
+        }else{
+            ApiProvider apiProvider = chooseApiProvider(apiProviderMap,type);
+            if(apiProvider==null)apiProvider = addApiProvider(type);
+            if(apiProvider==null) return null;
+            apiAccount = chooseApiProvidersAccount(apiProvider,symKey);
+            apiAccount.connectApi(apiProvider, symKey, br, initApipClient);
         }
-        if(initApiAccount!=null)
-            initApiAccount.setClient(apiClient);
-        return initApiAccount;
+        if(apiAccount!=null)
+            apiAccount.setClient(apiClient);
+        return apiAccount;
     }
 
     public Service getMyService(byte[] symKey, ApiType type){
@@ -653,6 +658,7 @@ public class Configure {
     }
 
     public ApiAccount initFcAccount(ApipClient initApipClient, ApiType apiType, byte[]symKey) {
+        this.setInitApipClient(initApipClient);
         ApiProvider apiProvider = selectFcApiProvider(initApipClient,apiType);
         if(apiProvider==null)return null;
         if(apiProviderMap==null)apiProviderMap=new HashMap<>();
@@ -688,6 +694,7 @@ public class Configure {
                     apiAccount = addApiAccount(apiProvider, symKey);
                 } else {
                     apiAccount = (ApiAccount) hitApiAccountMap.values().toArray()[input - 1];
+                    apiAccount.setApipClient(initApipClient);
                     if(apiAccount.getClient()==null)apiAccount.connectApi(apiProvider,symKey);
                 }
             }
@@ -743,34 +750,42 @@ public class Configure {
 
     public byte[] checkPassword(Configure configure){
         byte[] symKey;
-        byte[] randomBytes;
+        byte[] nonceBytes;
         byte[] passwordBytes;
 
-        if (getNonce() == null) {
+        if (nonce == null) {
             while (true) {
                 passwordBytes = Inputer.resetNewPassword(br);
                 if (passwordBytes == null){
                     System.out.println("Input wrong. Try again.");
                     continue;
                 }
-                randomBytes = BytesTools.getRandomBytes(16);
-                symKey = Hash.Sha256x2(BytesTools.bytesMerger(passwordBytes, randomBytes));
-                setNonce(Hex.toHex(randomBytes));
-                String nonceCipher = EccAes256K1P7.encryptWithSymKey(Hex.fromHex(getNonce()), symKey);
-                if (nonceCipher.contains("Error")) {
-                    System.out.println("Failed to encrypt the nonce with the symKey. Try again.");
-                    continue;
+                nonceBytes = BytesTools.getRandomBytes(16);
+                symKey = getSymKeyFromPasswordAndNonce(nonceBytes, passwordBytes);
+                nonce = Hex.toHex(nonceBytes);
+
+                EncryptorSym encryptorSym = new EncryptorSym(AlgorithmType.FC_Aes256Cbc_No1_NrC7);
+                CryptoDataByte cryptoDataByte = encryptorSym.encryptBySymKey(nonceBytes,symKey);
+                if(cryptoDataByte.getCode()!=0){
+                    System.out.println(cryptoDataByte.getMessage());
+                    return null;
                 }
-                setNonceCipher(nonceCipher);
+                nonceCipher = cryptoDataByte.toJson();
+
                 saveConfig();
                 return symKey;
             }
         } else {
             while(true) {
-                randomBytes = Hex.fromHex(getNonce());
                 passwordBytes = Inputer.getPasswordBytes(br);
-                symKey = Hash.Sha256x2(BytesTools.bytesMerger(passwordBytes, randomBytes));
-                byte[] result = EccAes256K1P7.decryptJsonBytes(getNonceCipher(), symKey);
+                symKey = getSymKeyFromPasswordAndNonce(Hex.fromHex(nonce), passwordBytes);
+                DecryptorSym decryptorSym = new DecryptorSym();
+                CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(getNonceCipher(),symKey);
+                if(cryptoDataByte.getCode()!=0){
+                    System.out.println(cryptoDataByte.getMessage());
+                    return null;
+                }
+                byte[] result = cryptoDataByte.getData();
                 if (result==null || ! getNonce().equals(Hex.toHex(result))) {
                     System.out.println("Password wrong. Input it again.");
                     continue;
@@ -780,6 +795,11 @@ public class Configure {
             }
         }
     }
+
+    public static byte[] getSymKeyFromPasswordAndNonce(byte[] nonce, byte[] passwordBytes) {
+        return Hash.sha256x2(BytesTools.bytesMerger(passwordBytes, nonce));
+    }
+
     public static  <T> T parseMyServiceParams(Service myService, Class<T> tClass){
         Gson gson = new Gson();
         T params = gson.fromJson(gson.toJson(myService.getParams()), tClass);

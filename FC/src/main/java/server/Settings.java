@@ -11,8 +11,8 @@ import config.Configure;
 import constants.FieldNames;
 import constants.Strings;
 import constants.Values;
-import crypto.cryptoTools.Hash;
-import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.Hash;
+import crypto.old.EccAes256K1P7;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.JsonTools;
@@ -196,7 +196,7 @@ public abstract class Settings {
         while(true) {
             oldPasswordBytes = Inputer.getPasswordBytes(br);
             oldNonceBytes = Hex.fromHex(config.getNonce());
-            oldSymKey = Hash.Sha256x2(BytesTools.bytesMerger(oldPasswordBytes, oldNonceBytes));
+            oldSymKey = Hash.sha256x2(BytesTools.bytesMerger(oldPasswordBytes, oldNonceBytes));
             byte[] oldNonce = EccAes256K1P7.decryptJsonBytes(config.getNonceCipher(), oldSymKey);
             if (oldNonce==null || ! config.getNonce().equals(Hex.toHex(oldNonce))) {
                 System.out.println("Password wrong. Reset it.");
@@ -207,7 +207,7 @@ public abstract class Settings {
             byte[] newPasswordBytes = Inputer.resetNewPassword(br);
             if(newPasswordBytes==null)return null;
             byte[] newNonce = BytesTools.getRandomBytes(16);
-            byte[] newSymKey = Hash.Sha256x2(BytesTools.bytesMerger(newPasswordBytes, newNonce));
+            byte[] newSymKey = Hash.sha256x2(BytesTools.bytesMerger(newPasswordBytes, newNonce));
 
             String newNonceCipher = EccAes256K1P7.encryptWithSymKey(newNonce, newSymKey);
             config.setNonce(Hex.toHex(newNonce));
@@ -224,6 +224,7 @@ public abstract class Settings {
                     String cipher = apiAccount.getUserPriKeyCipher();
                     String newCipher = replaceCipher(cipher,oldSymKey,newSymKey);
                     apiAccount.setUserPriKeyCipher(newCipher);
+                    apiAccount.setUserPubKey(ApiAccount.makePubKey(newCipher,newSymKey));
                 }
                 if(apiAccount.getSession().getSessionKeyCipher()!=null){
                     String cipher = apiAccount.getSession().getSessionKeyCipher();

@@ -12,9 +12,9 @@ import com.google.gson.GsonBuilder;
 import config.ApiAccount;
 import constants.ApiNames;
 import constants.IndicesNames;
-import crypto.cryptoTools.Hash;
-import crypto.cryptoTools.KeyTools;
-import crypto.eccAes256K1.EccAes256K1P7;
+import crypto.Hash;
+import crypto.KeyTools;
+import crypto.old.EccAes256K1P7;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.ImageTools;
@@ -49,7 +49,7 @@ public class StartApipClient {
             byte[] passwordBytes = Inputer.getPasswordBytes(br);
             BytesTools.clearByteArray(passwordBytes);
 
-            symKey = Hash.Sha256x2(passwordBytes);
+            symKey = Hash.sha256x2(passwordBytes);
             try {
                 initApiAccount = ApiAccount.checkApipAccount(br, symKey);
                 if (initApiAccount == null) return;
@@ -1601,7 +1601,7 @@ public class StartApipClient {
             System.out.print("Check password. ");
 
             passwordBytesOld = Inputer.getPasswordBytes(br);
-            byte[] sessionKey = decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), Hash.Sha256x2(passwordBytesOld));
+            byte[] sessionKey = decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), Hash.sha256x2(passwordBytesOld));
             if (sessionKey != null) break;
             System.out.println("Wrong password. Try again.");
         }
@@ -1609,12 +1609,12 @@ public class StartApipClient {
         byte[] passwordBytesNew;
         passwordBytesNew = Inputer.inputAndCheckNewPassword(br);
 
-        byte[] symKeyOld = Hash.Sha256x2(passwordBytesOld);
+        byte[] symKeyOld = Hash.sha256x2(passwordBytesOld);
 
         byte[] sessionKey = decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), symKeyOld);
         byte[] priKey = EccAes256K1P7.decryptJsonBytes(initApiAccount.getUserPriKeyCipher(), symKeyOld);
 
-        byte[] symKeyNew = Hash.Sha256x2(passwordBytesNew);
+        byte[] symKeyNew = Hash.sha256x2(passwordBytesNew);
         String buyerPriKeyCipherNew = EccAes256K1P7.encryptWithSymKey(priKey, symKeyNew);
         if(buyerPriKeyCipherNew.contains("Error"))return null;
 

@@ -14,7 +14,7 @@ import com.google.common.base.Preconditions;
 import config.ApiAccount;
 import constants.Constants;
 import constants.IndicesNames;
-import crypto.cryptoTools.KeyTools;
+import crypto.KeyTools;
 import javaTools.JsonTools;
 import org.bitcoinj.crypto.SchnorrSignature;
 import org.bitcoinj.fch.FchMainNetwork;
@@ -51,7 +51,7 @@ import java.security.Security;
 import java.util.*;
 
 import static constants.Constants.COIN_TO_SATOSHI;
-import static crypto.cryptoTools.KeyTools.priKeyToFid;
+import static crypto.KeyTools.priKeyToFid;
 import static org.bitcoinj.script.ScriptBuilder.createMultiSigInputScriptBytes;
 
 /**

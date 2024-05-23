@@ -1,6 +1,6 @@
 package javaTools;
 
-import crypto.cryptoTools.Hash;
+import crypto.Hash;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
@@ -87,7 +87,7 @@ public class FileTools {
     }
 
     public static String writeBytesToDisk(byte[] bytes, String storageDir) {
-        String did = Hex.toHex(Hash.Sha256x2(bytes));
+        String did = Hex.toHex(Hash.sha256x2(bytes));
         String subDir = getSubPathForFreeDisk(did);
         String path = storageDir+subDir;
 
@@ -152,7 +152,7 @@ public class FileTools {
 
         String existDid;
         try {
-            existDid = Hash.Sha256x2(file);
+            existDid = Hash.sha256x2(file);
         } catch (IOException e) {
             System.out.println("Failed to make sha256 of file "+did);
             return null;
