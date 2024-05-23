@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HexFormat;
 
-import static fcData.AlgorithmType.FC_Aes256Cbc_No1_NrC7;
+import static fcData.AlgorithmId.FC_Aes256Cbc_No1_NrC7;
 
 /*
     - provider
@@ -220,8 +220,8 @@ public class Client {
 
     public Session signIn(ApiAccount apiAccount, ApiType type, RequestBody.SignInMode mode, byte[] symKey) {
 
-        DecryptorSym decryptorSym = new DecryptorSym();
-        CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(apiAccount.getUserPriKeyCipher(),symKey);
+        Decryptor decryptor = new Decryptor();
+        CryptoDataByte cryptoDataByte = decryptor.decryptJsonBySymKey(apiAccount.getUserPriKeyCipher(),symKey);
         if(cryptoDataByte.getCode()!=0)return null;
         byte[] priKey = cryptoDataByte.getData();
 
@@ -234,8 +234,8 @@ public class Client {
 
         String sessionName = Session.makeSessionName(session.getSessionKey());
 
-        EncryptorSym encryptorSym = new EncryptorSym();
-        CryptoDataByte cryptoDataByte2 = encryptorSym.encryptBySymKey(sessionKey,symKey);
+        Encryptor encryptor = new Encryptor();
+        CryptoDataByte cryptoDataByte2 = encryptor.encryptBySymKey(sessionKey,symKey);
         if(cryptoDataByte2.getCode()!=0)return null;
         String sessionKeyCipher = cryptoDataByte2.toJson();
 //        String sessionKeyCipher=EccAes256K1P7.encryptWithSymKey(sessionKey,symKey);
@@ -253,7 +253,7 @@ public class Client {
 
     public Session signInEcc(ApiAccount apiAccount, ApiType type, RequestBody.SignInMode mode, byte[] symKey) {
 
-        DecryptorSym decryptorSym = new DecryptorSym();
+        Decryptor decryptorSym = new Decryptor();
         CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(apiAccount.getUserPriKeyCipher(),symKey);
         if(cryptoDataByte.getCode()!=0)return null;
         byte[] priKey = cryptoDataByte.getData();
@@ -263,9 +263,9 @@ public class Client {
         Session session = signInEcc(priKey, type,mode);
         String sessionKeyCipher1 = session.getSessionKeyCipher();
 
-        DecryptorAsy decryptorAsy = new DecryptorAsy();
+        Decryptor decryptor = new Decryptor();
         CryptoDataByte cryptoDataByte1 =
-                decryptorAsy.decryptByAscKey(sessionKeyCipher1,priKey);
+                decryptor.decryptByAsyOneWay(sessionKeyCipher1,priKey);
         if(cryptoDataByte1.getCode()!=0)return null;
         byte[] sessionKeyHexBytes = cryptoDataByte1.getData();
 //        byte[] sessionKeyHexBytes = EccAes256K1P7.decryptWithPriKey(sessionKeyCipher1,priKey);
@@ -274,8 +274,8 @@ public class Client {
         String sessionKeyHex =new String(sessionKeyHexBytes);
         sessionKey = Hex.fromHex(sessionKeyHex);
 
-        EncryptorSym encryptorSym = new EncryptorSym(FC_Aes256Cbc_No1_NrC7);
-        CryptoDataByte cryptoDataByte2 = encryptorSym.encryptBySymKey(sessionKey,symKey);
+        Encryptor encryptor = new Encryptor(FC_Aes256Cbc_No1_NrC7);
+        CryptoDataByte cryptoDataByte2 = encryptor.encryptBySymKey(sessionKey,symKey);
         if(cryptoDataByte2.getCode()!=0)return null;
         String newCipher = cryptoDataByte2.toJson();
 //        String newCipher = EccAes256K1P7.encryptWithSymKey(sessionKey,symKey);

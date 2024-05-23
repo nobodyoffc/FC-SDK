@@ -1,9 +1,8 @@
 package crypto;
 
-import fcData.AlgorithmType;
+import fcData.AlgorithmId;
 import javaTools.BytesTools;
 import javaTools.Hex;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -18,7 +17,7 @@ import static javaTools.JsonTools.readOneJsonFromFile;
 public class CryptoDataByte {
 
     private EncryptType type;
-    private AlgorithmType alg;
+    private AlgorithmId alg;
     private transient byte[] data;
     private transient byte[] did;
     private transient byte[] symKey;
@@ -214,11 +213,11 @@ public class CryptoDataByte {
         this.message = message;
     }
 
-    public AlgorithmType getAlg() {
+    public AlgorithmId getAlg() {
         return alg;
     }
 
-    public void setAlg(AlgorithmType alg) {
+    public void setAlg(AlgorithmId alg) {
         this.alg = alg;
     }
 

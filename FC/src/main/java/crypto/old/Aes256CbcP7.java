@@ -11,7 +11,7 @@ import crypto.Algorithm.aesCbc256.CipherInputStreamWithHash;
 import crypto.EncryptType;
 import crypto.Hash;
 import fcData.Affair;
-import fcData.AlgorithmType;
+import fcData.AlgorithmId;
 import fcData.Op;
 import javaTools.BytesTools;
 import javaTools.JsonTools;
@@ -160,7 +160,7 @@ public class Aes256CbcP7 {
 
         CryptoDataByte cryptoDataByte = new CryptoDataByte();
         cryptoDataByte.setType(EncryptType.SymKey);
-        cryptoDataByte.setAlg(AlgorithmType.EccAes256K1P7_No1_NrC7);
+        cryptoDataByte.setAlg(AlgorithmId.EccAes256K1P7_No1_NrC7);
         byte[] iv = BytesTools.getRandomBytes(16);
         cryptoDataByte.setIv(iv);
         CryptoDataStr cryptoDataStr = CryptoDataStr.fromCryptoDataByte(cryptoDataByte);
@@ -231,7 +231,7 @@ public class Aes256CbcP7 {
         String msgId = javaTools.Hex.toHex(Hash.sha256(hasherSrc.hash().asBytes()));
         CryptoDataByte cryptoDataByte = new CryptoDataByte();
         cryptoDataByte.setType(EncryptType.SymKey);
-        cryptoDataByte.setAlg(AlgorithmType.FC_Aes256Cbc_No1_NrC7);
+        cryptoDataByte.setAlg(AlgorithmId.FC_Aes256Cbc_No1_NrC7);
         cryptoDataByte.setIv(iv);
 
         CryptoDataStr cryptoDataStr = CryptoDataStr.fromCryptoDataByte(cryptoDataByte);

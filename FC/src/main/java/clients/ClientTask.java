@@ -15,7 +15,7 @@ import constants.Constants;
 import constants.ReplyInfo;
 import constants.UpStrings;
 import crypto.Hash;
-import fcData.AlgorithmType;
+import fcData.AlgorithmId;
 import fcData.Signature;
 import javaTools.Hex;
 import javaTools.StringTools;
@@ -609,7 +609,7 @@ public class ClientTask {
         String sign = ecKey.signMessage(requestBodyStr);
         String fid = ecKey.toAddress(FchMainNetwork.MAINNETWORK).toBase58();
 
-        signatureOfRequest = new Signature(fid, requestBodyStr, sign, AlgorithmType.EccAes256K1P7_No1_NrC7.name());
+        signatureOfRequest = new Signature(fid, requestBodyStr, sign, AlgorithmId.EccAes256K1P7_No1_NrC7.name());
         requestHeaderMap.put(UpStrings.FID, fid);
         requestHeaderMap.put(UpStrings.SIGN, signatureOfRequest.getSign());
     }

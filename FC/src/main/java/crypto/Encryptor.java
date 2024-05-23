@@ -2,11 +2,16 @@ package crypto;
 
 import com.google.common.hash.Hashing;
 import crypto.Algorithm.AesCbc256;
+import crypto.Algorithm.Ecc256K1;
 import crypto.Algorithm.aesCbc256.CipherInputStreamWithHash;
-import fcData.AlgorithmType;
+import crypto.old.EccAes256K1P7;
+import fcData.AlgorithmId;
 import javaTools.BytesTools;
 import javaTools.FileTools;
+import javaTools.Hex;
+import org.bitcoinj.core.ECKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import javax.crypto.Cipher;
@@ -19,17 +24,21 @@ import java.nio.file.*;
 import java.security.*;
 import java.util.HexFormat;
 
-import static fcData.AlgorithmType.*;
+import static fcData.AlgorithmId.*;
 
-public class EncryptorSym {
-    AlgorithmType algorithmType;
+public class Encryptor {
+    AlgorithmId algorithmId;
 
-    public EncryptorSym() {
-        this.algorithmType = FC_Aes256Cbc_No1_NrC7;
+    public Encryptor() {
+        this.algorithmId = FC_Aes256Cbc_No1_NrC7;
     }
 
-    public EncryptorSym(AlgorithmType algorithmType) {
-        this.algorithmType = algorithmType;
+    public Encryptor(AlgorithmId algorithmId) {
+        this.algorithmId = algorithmId;
+    }
+
+    public static byte[] sha512(byte[] b) {
+        return Hashing.sha512().hashBytes(b).asBytes();
     }
 
     public CryptoDataByte encryptByPassword(byte[] msg, char[] password){
@@ -80,7 +89,7 @@ public class EncryptorSym {
         CryptoDataByte cryptoDataByte = new CryptoDataByte();
         if(iv==null)iv = BytesTools.getRandomBytes(16);
         cryptoDataByte.setType(EncryptType.SymKey);
-        cryptoDataByte.setAlg(algorithmType);
+        cryptoDataByte.setAlg(algorithmId);
         cryptoDataByte.setIv(iv);
         cryptoDataByte.setSymKey(key);
 
@@ -144,7 +153,7 @@ public class EncryptorSym {
         try(ByteArrayInputStream bisMsg = new ByteArrayInputStream(msg);
             ByteArrayOutputStream bosCipher = new ByteArrayOutputStream()) {
 
-            switch (algorithmType){
+            switch (algorithmId){
                 case FC_Aes256Cbc_No1_NrC7 ->  cryptoDataByte = AesCbc256.encrypt(bisMsg, bosCipher, key,iv, cryptoDataByte);
             }
 
@@ -161,8 +170,8 @@ public class EncryptorSym {
     }
 
     public CryptoDataByte encryptStreamBySymKey(InputStream inputStream, OutputStream outputStream, byte[] key, byte[] iv, CryptoDataByte cryptoDataByte) {
-        switch (algorithmType){
-            case FC_Aes256Cbc_No1_NrC7 -> {
+        switch (algorithmId){
+            case FC_Aes256Cbc_No1_NrC7,FC_EccK1AesCbc256_No1_NrC7-> {
                 return AesCbc256.encrypt(inputStream,outputStream,key,iv,cryptoDataByte);
             }
         }
@@ -172,7 +181,7 @@ public class EncryptorSym {
     }
 
     public static CryptoDataByte encryptBySymKeyBase(String algo, String transformation, String provider, InputStream inputStream, OutputStream outputStream, CryptoDataByte cryptoDataByte) {
-        AlgorithmType alg = null;
+        AlgorithmId alg = null;
         if(cryptoDataByte.getAlg()!=null){
             alg = cryptoDataByte.getAlg();
         }
@@ -218,8 +227,8 @@ public class EncryptorSym {
             cryptoDataByte.setCodeMessage(5,e.getMessage());
             return cryptoDataByte;
         }
-        byte[] cipherId = DecryptorSym.sha256(hasherOut.hash().asBytes());
-        byte[] did = DecryptorSym.sha256(hasherIn.hash().asBytes());
+        byte[] cipherId = Decryptor.sha256(hasherOut.hash().asBytes());
+        byte[] did = Decryptor.sha256(hasherIn.hash().asBytes());
         cryptoDataByte.setCipherId(cipherId);
         cryptoDataByte.setDid(did);
         if(cryptoDataByte.getType()==null)
@@ -231,15 +240,185 @@ public class EncryptorSym {
         cryptoDataByte.set0CodeMessage();
         return cryptoDataByte;
     }
-    public static byte[] passwordToSymKey(char[] password, byte[] iv) {
-        byte[] passwordBytes = BytesTools.charArrayToByteArray(password, StandardCharsets.UTF_8);
-        return DecryptorSym.sha256(BytesTools.addByteArray(DecryptorSym.sha256(passwordBytes), iv));
-    }
-    public AlgorithmType getAlgorithmType() {
-        return algorithmType;
+
+    public CryptoDataByte encryptStrByAsyOneWay(String data, String pubKeyBHex){
+        return encryptByAsyOneWay(data.getBytes(), Hex.fromHex(pubKeyBHex));
     }
 
-    public void setAlgorithmType(AlgorithmType algorithmType) {
-        this.algorithmType = algorithmType;
+    public CryptoDataByte encryptByAsyOneWay(byte[] data, byte[] pubKeyB){
+        return encryptByAsyTwoWay(data, null, pubKeyB);
+    }
+
+    public CryptoDataByte encryptByAsyTwoWay(byte[] data, byte[]priKeyA, byte[] pubKeyB){
+        CryptoDataByte cryptoDataByte;
+        if(priKeyA==null){
+            cryptoDataByte = new CryptoDataByte();
+            cryptoDataByte.setCodeMessage(15);
+            return cryptoDataByte;
+        }
+        if(pubKeyB==null){
+            cryptoDataByte = new CryptoDataByte();
+            cryptoDataByte.setCodeMessage(16);
+            return cryptoDataByte;
+        }
+
+        try(ByteArrayInputStream bis = new ByteArrayInputStream(data);
+            ByteArrayOutputStream bos = new ByteArrayOutputStream()){
+            cryptoDataByte
+                    = encryptStreamByAsyTwoWay(bis, bos, priKeyA, pubKeyB);
+            cryptoDataByte.setCipher(bos.toByteArray());
+            cryptoDataByte.makeSum4();
+            cryptoDataByte.setType(EncryptType.AsyTwoWay);
+
+            return cryptoDataByte;
+        } catch (IOException e) {
+            cryptoDataByte = new CryptoDataByte();
+            cryptoDataByte.setCodeMessage(6);
+            return cryptoDataByte;
+        }
+    }
+
+    public CryptoDataByte encryptFileByAsyOneWay(String dataFileName, String cipherFileName, @NotNull byte[] pubKeyB){
+        CryptoDataByte cryptoDataByte = encryptFileByAsyTwoWay(dataFileName, cipherFileName, pubKeyB, null);
+        cryptoDataByte.setType(EncryptType.AsyOneWay);
+        return cryptoDataByte;
+    }
+    public CryptoDataByte encryptFileByAsyTwoWay(String dataFileName, String cipherFileName, @NotNull byte[] pubKeyB,byte[]priKeyA){
+        FileTools.createFileWithDirectories(cipherFileName);
+
+        CryptoDataByte cryptoDataByte = new CryptoDataByte();
+        cryptoDataByte.setAlg(algorithmId);
+
+        checkKeysMakeType(pubKeyB, priKeyA, cryptoDataByte);
+
+        byte[] iv = BytesTools.getRandomBytes(16);
+        cryptoDataByte.setIv(iv);
+
+        String tempFile = FileTools.getTempFileName();
+        try(FileInputStream fis = new FileInputStream(dataFileName);
+            FileOutputStream fos = new FileOutputStream(tempFile)){
+
+            encryptStreamByAsy(fis, fos, cryptoDataByte);
+
+        } catch (FileNotFoundException e) {
+            cryptoDataByte = new CryptoDataByte();
+            cryptoDataByte.setCodeMessage(11);
+            return cryptoDataByte;
+        } catch (IOException e) {
+            cryptoDataByte = new CryptoDataByte();
+            cryptoDataByte.setCodeMessage(6);
+            return cryptoDataByte;
+        }
+
+        try (FileInputStream fis = new FileInputStream(tempFile);
+             FileOutputStream fos = new FileOutputStream(cipherFileName)) {
+            fos.write(cryptoDataByte.toJson().getBytes());
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                fos.write(buffer, 0, bytesRead);
+            }
+            fis.close();
+            Files.delete(Paths.get(tempFile));
+        } catch (IOException e) {
+            cryptoDataByte.setCodeMessage(6);
+        }
+        //            fos.write(cryptoDataStr.toJson().getBytes());
+
+
+        return cryptoDataByte;
+    }
+    public CryptoDataByte encryptStreamByAsyTwoWay(InputStream is, OutputStream os, @NotNull byte[]priKeyX, @NotNull byte[]pubKeyY){
+        return encryptStreamByAsy(is,os,priKeyX,pubKeyY,null);
+    }
+    public CryptoDataByte encryptStreamByAsyOneWay(InputStream is, OutputStream os, byte[]pubKeyY){
+        return encryptStreamByAsy(is,os,null,pubKeyY,null);
+    }
+
+    public CryptoDataByte encryptStreamByAsy(InputStream is, OutputStream os,CryptoDataByte cryptoDataByte){
+        return encryptStreamByAsy(is,os,null,null,cryptoDataByte);
+    }
+    private CryptoDataByte encryptStreamByAsy(InputStream is, OutputStream os, byte[]priKeyX, byte[]pubKeyY, CryptoDataByte cryptoDataByte){
+        if(cryptoDataByte==null)cryptoDataByte = new CryptoDataByte();
+        cryptoDataByte.setAlg(algorithmId);
+        checkKeysMakeType(pubKeyY, priKeyX, cryptoDataByte);
+
+        EncryptType type = cryptoDataByte.getType();
+
+        priKeyX = cryptoDataByte.getPriKeyA();
+        if(priKeyX==null){
+            cryptoDataByte.setCodeMessage(15);
+            return cryptoDataByte;
+        }
+
+        pubKeyY = cryptoDataByte.getPubKeyB();
+        if(pubKeyY==null) {
+            cryptoDataByte.setCodeMessage(16);
+            return cryptoDataByte;
+        }
+
+        byte[] iv;
+        if(cryptoDataByte.getIv()!=null){
+            iv = cryptoDataByte.getIv();
+        }else {
+            iv = BytesTools.getRandomBytes(16);
+            cryptoDataByte.setIv(iv);
+        }
+
+        byte[] symKey;
+        switch (algorithmId) {
+            case EccAes256K1P7_No1_NrC7 -> {
+                symKey = EccAes256K1P7.asyKeyToSymKey(priKeyX, pubKeyY,cryptoDataByte.getIv());
+                cryptoDataByte.setSymKey(symKey);
+                EccAes256K1P7 ecc = new EccAes256K1P7();
+                ecc.aesEncrypt(cryptoDataByte);
+            }
+            default -> {
+                symKey = Ecc256K1.asyKeyToSymKey(priKeyX, pubKeyY, iv);
+                cryptoDataByte.setSymKey(symKey);
+                encryptStreamBySymKey(is,os,symKey,iv,cryptoDataByte);
+            }
+        }
+
+        cryptoDataByte.setAlg(algorithmId);
+
+        cryptoDataByte.setType(type);
+
+        cryptoDataByte.set0CodeMessage();
+
+        return cryptoDataByte;
+    }
+
+    public void checkKeysMakeType(byte[] pubKeyB, byte[] priKeyA, CryptoDataByte cryptoDataByte) {
+        byte[] pubKeyA;
+        if(priKeyA !=null || cryptoDataByte.getPriKeyA()!=null){
+            cryptoDataByte.setType(EncryptType.AsyTwoWay);
+            if(cryptoDataByte.getPriKeyA()==null)
+                cryptoDataByte.setPriKeyA(priKeyA);
+            if(pubKeyB!=null)
+                cryptoDataByte.setPubKeyB(pubKeyB);
+        }else {
+            cryptoDataByte.setType(EncryptType.AsyOneWay);
+            ECKey ecKey = new ECKey();
+            priKeyA = ecKey.getPrivKeyBytes();
+            pubKeyA = ecKey.getPubKey();
+            cryptoDataByte.setPubKeyA(pubKeyA);
+            cryptoDataByte.setPriKeyA(priKeyA);
+            if(pubKeyB!=null)
+                cryptoDataByte.setPubKeyB(pubKeyB);
+        }
+    }
+
+
+    public static byte[] passwordToSymKey(char[] password, byte[] iv) {
+        byte[] passwordBytes = BytesTools.charArrayToByteArray(password, StandardCharsets.UTF_8);
+        return Decryptor.sha256(BytesTools.addByteArray(Decryptor.sha256(passwordBytes), iv));
+    }
+    public AlgorithmId getAlgorithmType() {
+        return algorithmId;
+    }
+
+    public void setAlgorithmType(AlgorithmId algorithmId) {
+        this.algorithmId = algorithmId;
     }
 }

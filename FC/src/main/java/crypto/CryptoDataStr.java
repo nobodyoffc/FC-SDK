@@ -3,7 +3,7 @@ package crypto;
 import com.google.gson.GsonBuilder;
 import com.google.gson.Gson;
 import crypto.old.EccAes256K1P7;
-import fcData.AlgorithmType;
+import fcData.AlgorithmId;
 import javaTools.BytesTools;
 import javaTools.Hex;
 
@@ -23,7 +23,7 @@ import static javaTools.JsonTools.readOneJsonFromFile;
 
 public class CryptoDataStr {
     private EncryptType type;
-    private AlgorithmType alg;
+    private AlgorithmId alg;
     private String data;
     private transient String did;
     private String cipher;
@@ -68,18 +68,18 @@ public class CryptoDataStr {
     public CryptoDataStr(EncryptType asyOneWay, String data, String pubKeyB) {
         if (asyOneWay == EncryptType.AsyOneWay) {
             this.type = asyOneWay;
-            this.alg = AlgorithmType.EccAes256K1P7_No1_NrC7;
+            this.alg = AlgorithmId.EccAes256K1P7_No1_NrC7;
             this.data = data;
             this.pubKeyB = pubKeyB;
         } else {
             this.message = "Constructing wrong. " + EncryptType.AsyOneWay + " is required for this constructor. ";
         }
     }
-    public CryptoDataStr(AlgorithmType alg, EncryptType asyOneWay, String data, String pubKeyB) {
+    public CryptoDataStr(AlgorithmId alg, EncryptType asyOneWay, String data, String pubKeyB) {
         if (asyOneWay == EncryptType.AsyOneWay) {
             this.type = asyOneWay;
             if(alg!=null)this.alg = alg;
-            else this.alg = AlgorithmType.EccAes256K1P7_No1_NrC7;
+            else this.alg = AlgorithmId.EccAes256K1P7_No1_NrC7;
             this.data = data;
             this.pubKeyB = pubKeyB;
         } else {
@@ -93,7 +93,7 @@ public class CryptoDataStr {
     public CryptoDataStr(EncryptType asyTwoWay, String data, String pubKeyB, char[] priKeyA) {
         if (asyTwoWay == EncryptType.AsyTwoWay) {
             this.type = asyTwoWay;
-            this.alg = AlgorithmType.EccAes256K1P7_No1_NrC7;
+            this.alg = AlgorithmId.EccAes256K1P7_No1_NrC7;
             this.data = data;
             this.pubKeyB = pubKeyB;
             this.priKeyA = priKeyA;
@@ -101,11 +101,11 @@ public class CryptoDataStr {
             this.message = "Constructing wrong. " + EncryptType.AsyTwoWay + " is needed for this constructor. ";
         }
     }
-    public CryptoDataStr(AlgorithmType alg, EncryptType asyTwoWay, String data, String pubKeyB, char[] priKeyA) {
+    public CryptoDataStr(AlgorithmId alg, EncryptType asyTwoWay, String data, String pubKeyB, char[] priKeyA) {
         if (asyTwoWay == EncryptType.AsyTwoWay) {
             this.type = asyTwoWay;
             if(alg!=null)this.alg = alg;
-            else this.alg = AlgorithmType.EccAes256K1P7_No1_NrC7;
+            else this.alg = AlgorithmId.EccAes256K1P7_No1_NrC7;
             this.data = data;
             this.pubKeyB = pubKeyB;
             this.priKeyA = priKeyA;
@@ -125,10 +125,10 @@ public class CryptoDataStr {
             default ->
                     this.message = "Constructing wrong. " + EncryptType.SymKey + " or " + EncryptType.Password + " is required for this constructor. ";
         }
-        this.alg = AlgorithmType.EccAes256K1P7_No1_NrC7;
+        this.alg = AlgorithmId.EccAes256K1P7_No1_NrC7;
         this.data = data;
     }
-    public CryptoDataStr(AlgorithmType alg, EncryptType symKeyOrPasswordType, String data, char[] symKeyOrPassword) {
+    public CryptoDataStr(AlgorithmId alg, EncryptType symKeyOrPasswordType, String data, char[] symKeyOrPassword) {
         this.type = symKeyOrPasswordType;
         switch (symKeyOrPasswordType) {
             case SymKey -> symKey = symKeyOrPassword;
@@ -137,7 +137,7 @@ public class CryptoDataStr {
                     this.message = "Constructing wrong. " + EncryptType.SymKey + " or " + EncryptType.Password + " is required for this constructor. ";
         }
         if(alg!=null)this.alg=alg;
-        else this.alg = AlgorithmType.EccAes256K1P7_No1_NrC7;
+        else this.alg = AlgorithmId.EccAes256K1P7_No1_NrC7;
         this.data = data;
     }
 
@@ -149,7 +149,7 @@ public class CryptoDataStr {
             byte[] pubKeyBytesA = HexFormat.of().parseHex(pubKeyA);
             byte[] pubKeyBytesB = HexFormat.of().parseHex(pubKeyB);
             byte[] priKeyBytes = BytesTools.hexCharArrayToByteArray(priKey);
-            this.alg = AlgorithmType.EccAes256K1P7_No1_NrC7;
+            this.alg = AlgorithmId.EccAes256K1P7_No1_NrC7;
             this.type = asyOneWayOrAsyTwoWayType;
             this.iv = iv;
             this.cipher = cipher;
@@ -165,13 +165,13 @@ public class CryptoDataStr {
             this.message = "Constructing wrong. " + EncryptType.AsyOneWay + " or" + EncryptType.AsyTwoWay + " is required for this constructor. ";
 
     }
-    public CryptoDataStr(AlgorithmType alg, EncryptType asyOneWayOrAsyTwoWayType, String pubKeyA, String pubKeyB, String iv, String cipher, @Nullable String sum, char[] priKey) {
+    public CryptoDataStr(AlgorithmId alg, EncryptType asyOneWayOrAsyTwoWayType, String pubKeyA, String pubKeyB, String iv, String cipher, @Nullable String sum, char[] priKey) {
         if (asyOneWayOrAsyTwoWayType == EncryptType.AsyOneWay || asyOneWayOrAsyTwoWayType == EncryptType.AsyTwoWay) {
             byte[] pubKeyBytesA = HexFormat.of().parseHex(pubKeyA);
             byte[] pubKeyBytesB = HexFormat.of().parseHex(pubKeyB);
             byte[] priKeyBytes = BytesTools.hexCharArrayToByteArray(priKey);
             if(alg!=null)this.alg=alg;
-            else this.alg = AlgorithmType.EccAes256K1P7_No1_NrC7;
+            else this.alg = AlgorithmId.EccAes256K1P7_No1_NrC7;
             this.type = asyOneWayOrAsyTwoWayType;
             this.iv = iv;
             this.cipher = cipher;
@@ -189,7 +189,7 @@ public class CryptoDataStr {
     }
 
     public CryptoDataStr(EncryptType symKeyOrPasswordType, String iv, String cipher, @Nullable String sum, char[] symKeyOrPassword) {
-        this.alg = AlgorithmType.EccAes256K1P7_No1_NrC7;
+        this.alg = AlgorithmId.EccAes256K1P7_No1_NrC7;
         this.type = symKeyOrPasswordType;
         this.iv = iv;
         this.cipher = cipher;
@@ -202,9 +202,9 @@ public class CryptoDataStr {
             this.message = "Constructing wrong. " + EncryptType.SymKey + " or" + EncryptType.Password + " is required for this constructor. ";
         }
     }
-    public CryptoDataStr(AlgorithmType alg, EncryptType symKeyOrPasswordType, String iv, String cipher, @Nullable String sum, char[] symKeyOrPassword) {
+    public CryptoDataStr(AlgorithmId alg, EncryptType symKeyOrPasswordType, String iv, String cipher, @Nullable String sum, char[] symKeyOrPassword) {
         if(alg!=null)this.alg =alg;
-        else this.alg = AlgorithmType.EccAes256K1P7_No1_NrC7;
+        else this.alg = AlgorithmId.EccAes256K1P7_No1_NrC7;
         this.type = symKeyOrPasswordType;
         this.iv = iv;
         this.cipher = cipher;
@@ -310,7 +310,7 @@ public class CryptoDataStr {
 
     public String toJson() {
         Gson gson = new GsonBuilder()
-                .registerTypeAdapter(AlgorithmType.class, new AlgorithmType.AlgorithmTypeSerializer())
+                .registerTypeAdapter(AlgorithmId.class, new AlgorithmId.AlgorithmTypeSerializer())
                 .create();
         return gson.toJson(this);
     }
@@ -323,7 +323,7 @@ public class CryptoDataStr {
 
     public String toNiceJson() {
         Gson gson = new GsonBuilder()
-                .registerTypeAdapter(AlgorithmType.class, new AlgorithmType.AlgorithmTypeSerializer())
+                .registerTypeAdapter(AlgorithmId.class, new AlgorithmId.AlgorithmTypeSerializer())
                 .setPrettyPrinting()
                 .create();
         return gson.toJson(this);
@@ -331,7 +331,7 @@ public class CryptoDataStr {
 
     public static CryptoDataStr fromJson(String json) {
         Gson gson = new GsonBuilder()
-                .registerTypeAdapter(AlgorithmType.class, new AlgorithmType.AlgorithmTypeDeserializer())
+                .registerTypeAdapter(AlgorithmId.class, new AlgorithmId.AlgorithmTypeDeserializer())
                 .create();
         return gson.fromJson(json, CryptoDataStr.class);
     }
@@ -370,11 +370,11 @@ public class CryptoDataStr {
         this.type = type;
     }
 
-    public AlgorithmType getAlg() {
+    public AlgorithmId getAlg() {
         return alg;
     }
 
-    public void setAlg(AlgorithmType alg) {
+    public void setAlg(AlgorithmId alg) {
         this.alg = alg;
     }
 

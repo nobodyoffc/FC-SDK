@@ -32,7 +32,7 @@ import java.util.Map;
 
 import static constants.FieldNames.*;
 import static constants.Strings.ASC;
-import static fcData.AlgorithmType.FC_EccK1AesCbc256_No1_NrC7;
+import static fcData.AlgorithmId.FC_EccK1AesCbc256_No1_NrC7;
 
 public class DiskClient extends Client {
 
@@ -44,9 +44,9 @@ public class DiskClient extends Client {
     public static String encryptFile(String fileName, String pubKeyHex) {
 
         byte[] pubKey = Hex.fromHex(pubKeyHex);
-        EncryptorAsy encryptorAsy = new EncryptorAsy(FC_EccK1AesCbc256_No1_NrC7);
+        Encryptor encryptor = new Encryptor(FC_EccK1AesCbc256_No1_NrC7);
         String tempFileName = FileTools.getTempFileName();
-        CryptoDataByte result1 = encryptorAsy.encryptFileByAsyOneWay(fileName, tempFileName, pubKey);
+        CryptoDataByte result1 = encryptor.encryptFileByAsyOneWay(fileName, tempFileName, pubKey);
         if(result1.getCode()!=0)return null;
         String cipherFileName;
         try {
@@ -88,14 +88,14 @@ public class DiskClient extends Client {
             return false;
         }
         System.out.println("Decrypting...");
-        DecryptorSym decryptorSym = new DecryptorSym();
+        Decryptor decryptorSym = new Decryptor();
         CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(priKeyCipher, symKey);
 
-        DecryptorAsy decryptorAsy = new DecryptorAsy();
+        Decryptor decryptor = new Decryptor();
         byte[] priKey = cryptoDataByte.getData();
 
         CryptoDataByte cryptoDataByte1 =
-                decryptorAsy.decryptFile(sourcePath, sourceFileName, destPath, destFileName, priKey);
+                decryptor.decryptFile(sourcePath, sourceFileName, destPath, destFileName, priKey);
 
         if(cryptoDataByte1.getCode()!=0){
             System.out.println(CryptoCodeMessage.getErrorStringCodeMsg(cryptoDataByte1.getCode()));

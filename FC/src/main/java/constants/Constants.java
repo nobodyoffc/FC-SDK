@@ -1,6 +1,6 @@
 package constants;
 
-import fcData.AlgorithmType;
+import fcData.AlgorithmId;
 
 public class Constants {
     public static final Long COIN_TO_SATOSHI = 100000000L;
@@ -55,7 +55,7 @@ public class Constants {
     public static final String FEIP = "FEIP";
     public static final double Dust = 0.00001;
 
-    public static final AlgorithmType ECC_AES_256_K1_P7 = AlgorithmType.EccAes256K1P7_No1_NrC7;//"EccAes256K1P7@No1_NrC7";
+    public static final AlgorithmId ECC_AES_256_K1_P7 = AlgorithmId.EccAes256K1P7_No1_NrC7;//"EccAes256K1P7@No1_NrC7";
     public static final String ALG_SIGN_TX_BY_CRYPTO_SIGN = "SignTxByCryptoSign@No1_NrC7";
     public static final String CONFIG_JSON = "config.json";
     public static final long DAY_TO_MIL_SEC = 24*60*60*1000;

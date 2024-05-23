@@ -158,9 +158,9 @@ public class KeyTools {
                     String ask = "Input the password to decrypt this priKey:";
                     char[] userPassword = Inputer.inputPassword(br, ask);
 
-                    DecryptorSym decryptorSym = new DecryptorSym();
+                    Decryptor decryptor = new Decryptor();
 
-                    CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonByPassword(cipher,userPassword);
+                    CryptoDataByte cryptoDataByte = decryptor.decryptJsonByPassword(cipher,userPassword);
 
                     BytesTools.clearCharArray(userPassword);
 

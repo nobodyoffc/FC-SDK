@@ -4,7 +4,7 @@ import crypto.CryptoDataStr;
 import crypto.CryptoDataByte;
 import crypto.EncryptType;
 import fcData.Affair;
-import fcData.AlgorithmType;
+import fcData.AlgorithmId;
 import fcData.Op;
 import constants.Constants;
 import crypto.Hash;
@@ -46,8 +46,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.HexFormat;
 
-import static fcData.AlgorithmType.EccAes256K1P7_No1_NrC7;
-import static fcData.AlgorithmType.FC_EccK1AesCbc256_No1_NrC7;
+import static fcData.AlgorithmId.EccAes256K1P7_No1_NrC7;
+import static fcData.AlgorithmId.FC_EccK1AesCbc256_No1_NrC7;
 
 /**
  * * ECDH<p>
@@ -624,7 +624,7 @@ public class EccAes256K1P7 {
 
     public static CryptoDataByte makeIvCipherToCryptoDataByte(byte[] ivCipherBytes) {
         CryptoDataByte cryptoDataByte = new CryptoDataByte();
-        cryptoDataByte.setAlg(AlgorithmType.FC_Aes256Cbc_No1_NrC7);
+        cryptoDataByte.setAlg(AlgorithmId.FC_Aes256Cbc_No1_NrC7);
         cryptoDataByte.setType(EncryptType.SymKey);
         byte[] iv = Arrays.copyOfRange(ivCipherBytes, 0, 16);
         byte[] cipher = Arrays.copyOfRange(ivCipherBytes, 16, ivCipherBytes.length);

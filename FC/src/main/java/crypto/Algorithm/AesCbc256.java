@@ -1,7 +1,7 @@
 package crypto.Algorithm;
 
 import crypto.*;
-import fcData.AlgorithmType;
+import fcData.AlgorithmId;
 
 import java.io.*;
 
@@ -14,11 +14,11 @@ public class AesCbc256 {
             cryptoDataByte = new CryptoDataByte();
             cryptoDataByte.setSymKey(key);
             cryptoDataByte.setIv(iv);
-            if(cryptoDataByte.getAlg()==null) cryptoDataByte.setAlg(AlgorithmType.FC_Aes256Cbc_No1_NrC7);
+            if(cryptoDataByte.getAlg()==null) cryptoDataByte.setAlg(AlgorithmId.FC_Aes256Cbc_No1_NrC7);
         }else if(cryptoDataByte.getSymKey()==null)cryptoDataByte.setSymKey(key);
         else if(cryptoDataByte.getIv()==null)cryptoDataByte.setIv(iv);
-        if(cryptoDataByte.getAlg()==null) cryptoDataByte.setAlg(AlgorithmType.FC_Aes256Cbc_No1_NrC7);
-        return EncryptorSym.encryptBySymKeyBase(algorithm,transformation,provider,inputStream,outputStream,cryptoDataByte);
+        if(cryptoDataByte.getAlg()==null) cryptoDataByte.setAlg(AlgorithmId.FC_Aes256Cbc_No1_NrC7);
+        return Encryptor.encryptBySymKeyBase(algorithm,transformation,provider,inputStream,outputStream,cryptoDataByte);
     }
     public static CryptoDataByte encrypt(InputStream inputStream, OutputStream outputStream,CryptoDataByte cryptoDataByte) {
         return encrypt(inputStream,outputStream,null,null,cryptoDataByte);
@@ -45,14 +45,14 @@ public class AesCbc256 {
         String algorithm = "AES";
         String transformation = "AES/CBC/PKCS7Padding";
         String provider = "BC";
-        DecryptorSym.decryptBySymKeyBase(algorithm,transformation,provider,inputStream,outputStream,cryptoDataByte);
+        Decryptor.decryptBySymKeyBase(algorithm,transformation,provider,inputStream,outputStream,cryptoDataByte);
     }
     public static CryptoDataByte decryptStream(InputStream inputStream, OutputStream outputStream, byte[] key, byte[] iv ){
         CryptoDataByte cryptoDataByte = new CryptoDataByte();
         cryptoDataByte.setSymKey(key);
         cryptoDataByte.setIv(iv);
         cryptoDataByte.setType(EncryptType.SymKey);
-        cryptoDataByte.setAlg(AlgorithmType.FC_Aes256Cbc_No1_NrC7);
+        cryptoDataByte.setAlg(AlgorithmId.FC_Aes256Cbc_No1_NrC7);
         decryptStream(inputStream,outputStream,cryptoDataByte);
         return cryptoDataByte;
     }

@@ -14,15 +14,15 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HexFormat;
 
-import static fcData.AlgorithmType.FC_Aes256Cbc_No1_NrC7;
-import static fcData.AlgorithmType.FC_EccK1AesCbc256_No1_NrC7;
+import static fcData.AlgorithmId.FC_Aes256Cbc_No1_NrC7;
+import static fcData.AlgorithmId.FC_EccK1AesCbc256_No1_NrC7;
 
 public class Tester {
 
     @Test
     public void test() throws IOException {
 
-        System.out.println("String did:"+Hex.toHex(DecryptorSym.sha256(DecryptorSym.sha256("hello world!".getBytes()))));
+        System.out.println("String did:"+Hex.toHex(Decryptor.sha256(Decryptor.sha256("hello world!".getBytes()))));
         System.out.println(Hash.sha256x2(new File("/Users/liuchangyong/Desktop/c.md")));
 //        CryptoDataByte encryptor = new CryptoDataByte();
 //        encryptor.setAlg(FC_EccK1AesCbc256_No1_NrC7);
@@ -91,18 +91,18 @@ public class Tester {
         String dataStr = "hello world!";
         byte[] data = dataStr.getBytes();
         System.out.println("Data:"+dataStr);
-        System.out.println("DID:"+Hex.toHex(DecryptorSym.sha256(DecryptorSym.sha256(data))));
+        System.out.println("DID:"+Hex.toHex(Decryptor.sha256(Decryptor.sha256(data))));
 
         String cipherJson;
-        EncryptorSym encryptorSym = new EncryptorSym(FC_Aes256Cbc_No1_NrC7);
-        DecryptorSym decryptorSym = new DecryptorSym();
+        crypto.Encryptor encryptor = new crypto.Encryptor(FC_Aes256Cbc_No1_NrC7);
+        Decryptor decryptor = new Decryptor();
         //Basic encrypt
         System.out.println("\n# Basic encrypt");
         CryptoDataByte cryptoDataByte;
         try(ByteArrayInputStream bis = new ByteArrayInputStream(data); ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
             long start = System.currentTimeMillis();
             byte[] iv = BytesTools.getRandomBytes(16);
-            cryptoDataByte = encryptorSym.encryptStreamBySymKey(bis,bos,key, iv, null);
+            cryptoDataByte = encryptor.encryptStreamBySymKey(bis,bos,key, iv, null);
             System.out.println("Encrypt time:"+(System.currentTimeMillis()-start)+" milliSec");
             byte[] cipher = bos.toByteArray();
             cryptoDataByte.setCipher(cipher);
@@ -143,22 +143,22 @@ public class Tester {
         }
         System.out.println("\n# Json");
         //Json
-        System.out.println("Encrypt, String to Json:"+ encryptorSym.encryptStrToJsonBySymKey(dataStr,keyHex));
-        System.out.println("Decrypt json:"+ decryptorSym.decryptJsonBySymKey(cipherJson,keyHex));
+        System.out.println("Encrypt, String to Json:"+ encryptor.encryptStrToJsonBySymKey(dataStr,keyHex));
+        System.out.println("Decrypt json:"+ decryptor.decryptJsonBySymKey(cipherJson,keyHex));
 
         //Bundle
         System.out.println("\n# Bundle");
-        byte[] bundle = encryptorSym.encryptToBundleBySymKey(data, key);
+        byte[] bundle = encryptor.encryptToBundleBySymKey(data, key);
         System.out.println("Encrypt, bytes to Bundle:"+Hex.toHex(bundle));
-        System.out.println("Encrypt, String to bundle:"+Hex.toHex(encryptorSym.encryptStrToBundleBySymKey(dataStr,keyHex)));
-        System.out.println("Decrypt bundle:"+new String(decryptorSym.decryptBundleBySymKey(bundle,key,FC_Aes256Cbc_No1_NrC7)));
+        System.out.println("Encrypt, String to bundle:"+Hex.toHex(encryptor.encryptStrToBundleBySymKey(dataStr,keyHex)));
+        System.out.println("Decrypt bundle:"+new String(decryptor.decryptBundleBySymKey(bundle,key,FC_Aes256Cbc_No1_NrC7)));
 
         //password
         System.out.println("\n# Password");
         String password = "password";
-        String paCipher = encryptorSym.encryptStrByPassword(dataStr,password.toCharArray()).toNiceJson();
+        String paCipher = encryptor.encryptStrByPassword(dataStr,password.toCharArray()).toNiceJson();
         System.out.println("cipher by password:"+paCipher);
-        CryptoDataByte cryptoDataByte1 = decryptorSym.decryptJsonByPassword(paCipher,password.toCharArray());
+        CryptoDataByte cryptoDataByte1 = decryptor.decryptJsonByPassword(paCipher,password.toCharArray());
         System.out.println("Decrypt by password:"+ new String(cryptoDataByte1.getData()));
         System.out.println(cryptoDataByte1.toNiceJson());
 
@@ -166,17 +166,17 @@ public class Tester {
         System.out.println("\n# File");
         String fileDataPath = "/Users/liuchangyong/Desktop/a.md";
         String fileCipherPath = "/Users/liuchangyong/Desktop/f.cipher";
-        CryptoDataByte cryptoDataByteFile = encryptorSym.encryptFileBySymKey(fileDataPath,fileCipherPath,key);
+        CryptoDataByte cryptoDataByteFile = encryptor.encryptFileBySymKey(fileDataPath,fileCipherPath,key);
         System.out.println("File encrypted:"+cryptoDataByteFile.getMessage()+"\n"+cryptoDataByteFile.toNiceJson());
         cryptoDataByteFile.setSymKey(key);
         String fileNewDataPath = "/Users/liuchangyong/Desktop/c.md";
-        CryptoDataByte cryptoDataByteFile1 = decryptorSym.decryptFileBySymKey(fileCipherPath, fileNewDataPath, key);
+        CryptoDataByte cryptoDataByteFile1 = decryptor.decryptFileBySymKey(fileCipherPath, fileNewDataPath, key);
         System.out.println("File decrypted:"+cryptoDataByteFile1.getMessage()+"\n"+cryptoDataByteFile1.toNiceJson());
-        CryptoDataByte cryptoDataByteFile2 = encryptorSym.encryptFileByPassword(fileDataPath,fileCipherPath,password.toCharArray());
+        CryptoDataByte cryptoDataByteFile2 = encryptor.encryptFileByPassword(fileDataPath,fileCipherPath,password.toCharArray());
         System.out.println("File encrypted by password:"+cryptoDataByteFile2.getMessage()+"\n"+cryptoDataByteFile2.toNiceJson());
         cryptoDataByteFile.setSymKey(key);
         String fileNewDataPath1 = "/Users/liuchangyong/Desktop/cPass.md";
-        CryptoDataByte cryptoDataByteFile3 = decryptorSym.decryptFileByPassword(fileCipherPath, fileNewDataPath1, password.toCharArray());
+        CryptoDataByte cryptoDataByteFile3 = decryptor.decryptFileByPassword(fileCipherPath, fileNewDataPath1, password.toCharArray());
         System.out.println("File decrypted by password:"+cryptoDataByteFile3.getMessage()+"\n"+cryptoDataByteFile3.toNiceJson());
     }
 
@@ -201,16 +201,16 @@ public class Tester {
 
         byte[] symKey;
         String symKeyHex;
-        EncryptorAsy encryptorAsy = new EncryptorAsy(FC_EccK1AesCbc256_No1_NrC7);
-        DecryptorAsy decryptorAsy = new DecryptorAsy();
+        crypto.Encryptor encryptor = new crypto.Encryptor(FC_EccK1AesCbc256_No1_NrC7);
+        Decryptor decryptor = new Decryptor();
         //Basic test
-        //By key
+        //Two way
         System.out.println();
         System.out.println("# Encrypt");
         CryptoDataByte cryptoDataByte;
         try(ByteArrayInputStream bis = new ByteArrayInputStream(data);
         ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-            cryptoDataByte = encryptorAsy.encryptStreamByAsyTwoWay(bis, bos, priKeyA, pubKeyB);
+            cryptoDataByte = encryptor.encryptStreamByAsyTwoWay(bis, bos, priKeyA, pubKeyB);
             cryptoDataByte.setCipher(bos.toByteArray());
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -221,7 +221,7 @@ public class Tester {
         CryptoDataByte cryptoDataByte9;
         try(ByteArrayInputStream bis9 = new ByteArrayInputStream(data);
         ByteArrayOutputStream bos9 = new ByteArrayOutputStream()) {
-            cryptoDataByte9 = encryptorAsy.encryptStreamByAsyOneWay(bis9, bos9, pubKeyB);
+            cryptoDataByte9 = encryptor.encryptStreamByAsyOneWay(bis9, bos9, pubKeyB);
             cryptoDataByte9.setCipher(bos9.toByteArray());
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -236,7 +236,7 @@ public class Tester {
             cryptoDataByte0 = new CryptoDataByte();
             cryptoDataByte0.setPubKeyB(pubKeyB);
             cryptoDataByte0
-                    = encryptorAsy.encryptStreamByAsy(bis0, bos0, cryptoDataByte0);
+                    = encryptor.encryptStreamByAsy(bis0, bos0, cryptoDataByte0);
             cryptoDataByte0.setCipher(bos0.toByteArray());
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -245,13 +245,14 @@ public class Tester {
         symKey = cryptoDataByte0.getSymKey();
         symKeyHex = Hex.toHex(symKey);
         System.out.println("symKey:" + symKeyHex);
+
         //Decrypt
         System.out.println("# Decrypt");
         cryptoDataByte.setSymKey(null);
         CryptoDataByte cryptoDataByte1;
         try(ByteArrayInputStream bis1 = new ByteArrayInputStream(cryptoDataByte.getCipher());
         ByteArrayOutputStream bos1 = new ByteArrayOutputStream()) {
-            cryptoDataByte1 = decryptorAsy.decryptStreamByAsy(bis1, bos1, priKeyB, pubKeyA, cryptoDataByte.getIv(), cryptoDataByte.getSum());
+            cryptoDataByte1 = decryptor.decryptStreamByAsy(bis1, bos1, priKeyB, pubKeyA, cryptoDataByte.getIv(), cryptoDataByte.getSum());
             cryptoDataByte1.setData(bos1.toByteArray());
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -275,7 +276,7 @@ public class Tester {
 
         try(ByteArrayInputStream bis2 = new ByteArrayInputStream(cryptoDataByte2.getCipher());
         ByteArrayOutputStream bos2 = new ByteArrayOutputStream()) {
-            decryptorAsy.decryptStreamByAsy(bis2, bos2, cryptoDataByte2);
+            decryptor.decryptStreamByAsy(bis2, bos2, cryptoDataByte2);
             cryptoDataByte2.setData(bos2.toByteArray());
             cryptoDataByte2.makeDid();
             cryptoDataByte2.checkSum(cryptoDataByte2.getDid());
@@ -302,15 +303,15 @@ public class Tester {
 
         //One way
         CryptoDataByte cryptoDataByte8
-                = decryptorAsy.decryptBundle(bundleOneWay, priKeyB, FC_EccK1AesCbc256_No1_NrC7);
+                = decryptor.decryptBundle(bundleOneWay, priKeyB, FC_EccK1AesCbc256_No1_NrC7);
         System.out.println("Data from bundle oneway:" + cryptoDataByte8.toNiceJson());
 
         //two-way
         CryptoDataByte cryptoDataByte10
-                = decryptorAsy.decryptBundle(bundleTwoWay, priKeyB,pubKeyA, FC_EccK1AesCbc256_No1_NrC7);
+                = decryptor.decryptBundle(bundleTwoWay, priKeyB,pubKeyA, FC_EccK1AesCbc256_No1_NrC7);
         System.out.println("Data from bundle two way BA:" + cryptoDataByte10.toNiceJson());
         CryptoDataByte cryptoDataByte11
-                = decryptorAsy.decryptBundle(bundleTwoWay, priKeyA,pubKeyB, FC_EccK1AesCbc256_No1_NrC7);
+                = decryptor.decryptBundle(bundleTwoWay, priKeyA,pubKeyB, FC_EccK1AesCbc256_No1_NrC7);
         System.out.println("Data from bundle two way AB:" + cryptoDataByte11.toNiceJson());
 
         //File
@@ -321,14 +322,14 @@ public class Tester {
         System.out.println("FileHash:"+Hash.sha256x2(new File(dataFilePath)));
 
         //One way
-        CryptoDataByte cryptoDataByte3 = encryptorAsy.encryptFileByAsyOneWay(dataFilePath, cipherFilePath1, pubKeyB);
+        CryptoDataByte cryptoDataByte3 = encryptor.encryptFileByAsyOneWay(dataFilePath, cipherFilePath1, pubKeyB);
         System.out.println("Encrypt file one way:" + cryptoDataByte3.getMessage() + "\n" + cryptoDataByte3.toNiceJson());
         System.out.println("symKey:" + Hex.toHex(cryptoDataByte3.getSymKey()));
         System.out.println("Did:"+Hex.toHex(cryptoDataByte3.getDid()));
         System.out.println("CipherId:"+Hex.toHex(cryptoDataByte3.getCipherId()));
         System.out.println();
 
-        CryptoDataByte cryptoDataByte4 = decryptorAsy.decryptFileByAsyOneWay(cipherFilePath1, dataFilePath+"1", priKeyB);
+        CryptoDataByte cryptoDataByte4 = decryptor.decryptFileByAsyOneWay(cipherFilePath1, dataFilePath+"1", priKeyB);
         System.out.println("Decrypt file AsyOneWay: " + cryptoDataByte4.getMessage() + "\n" + cryptoDataByte4.toNiceJson());
         System.out.println("symKey:" + Hex.toHex(cryptoDataByte4.getSymKey()));
         System.out.println("Did:"+Hex.toHex(cryptoDataByte4.getDid()));
@@ -336,21 +337,21 @@ public class Tester {
         System.out.println();
 
         //Two way
-        CryptoDataByte cryptoDataByte5 = encryptorAsy.encryptFileByAsyTwoWay(dataFilePath, cipherFilePath2, pubKeyB, priKeyA);
+        CryptoDataByte cryptoDataByte5 = encryptor.encryptFileByAsyTwoWay(dataFilePath, cipherFilePath2, pubKeyB, priKeyA);
         System.out.println("Encrypt file two way:" + cryptoDataByte5.getMessage() + ":" + cryptoDataByte5.toNiceJson());
         System.out.println("symKey:" + Hex.toHex(cryptoDataByte5.getSymKey()));
         System.out.println("Did:"+Hex.toHex(cryptoDataByte5.getDid()));
         System.out.println("CipherId:"+Hex.toHex(cryptoDataByte5.getCipherId()));
         System.out.println();
 
-        CryptoDataByte cryptoDataByte6 = decryptorAsy.decryptFileByAsyTwoWay(cipherFilePath2, dataFilePath+"AB", priKeyA, pubKeyB);
+        CryptoDataByte cryptoDataByte6 = decryptor.decryptFileByAsyTwoWay(cipherFilePath2, dataFilePath+"AB", priKeyA, pubKeyB);
         System.out.println("Decrypt file AB. " + cryptoDataByte6.getMessage() + ":" + cryptoDataByte6.toNiceJson());
         System.out.println("symKey:" + Hex.toHex(cryptoDataByte6.getSymKey()));
         System.out.println("Did:"+Hex.toHex(cryptoDataByte6.getDid()));
         System.out.println("CipherId:"+Hex.toHex(cryptoDataByte6.getCipherId()));
         System.out.println();
 
-        CryptoDataByte cryptoDataByte7 = decryptorAsy.decryptFileByAsyTwoWay(cipherFilePath2, dataFilePath + "BA", priKeyB, pubKeyA);
+        CryptoDataByte cryptoDataByte7 = decryptor.decryptFileByAsyTwoWay(cipherFilePath2, dataFilePath + "BA", priKeyB, pubKeyA);
         System.out.println("Decrypt file BA. " + cryptoDataByte7.getMessage() + ":" + cryptoDataByte7.toNiceJson());
         System.out.println("symKey:" + Hex.toHex(cryptoDataByte7.getSymKey()));
         System.out.println("Did:"+Hex.toHex(cryptoDataByte7.getDid()));

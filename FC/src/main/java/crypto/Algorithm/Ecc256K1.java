@@ -1,6 +1,6 @@
 package crypto.Algorithm;
 
-import crypto.EncryptorAsy;
+import crypto.Encryptor;
 import crypto.KeyTools;
 import org.bouncycastle.crypto.agreement.ECDHBasicAgreement;
 import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
@@ -23,7 +23,7 @@ public class Ecc256K1 {
         byte[] secretHashWithNonce = new byte[sharedSecret.length+ nonce.length];
         System.arraycopy(nonce, 0, secretHashWithNonce, 0, nonce.length);
         System.arraycopy(sharedSecret, 0, secretHashWithNonce, nonce.length, sharedSecret.length);
-        byte[] hash = EncryptorAsy.sha512(secretHashWithNonce);
+        byte[] hash = Encryptor.sha512(secretHashWithNonce);
 
         symKey = new byte[32];
         System.arraycopy(hash,0,symKey,0,32);

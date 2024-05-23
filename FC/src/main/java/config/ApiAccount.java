@@ -50,7 +50,7 @@ import static appTools.Inputer.promptAndUpdate;
 import static constants.Constants.APIP_Account_JSON;
 import static constants.Constants.COIN_TO_SATOSHI;
 import static crypto.KeyTools.priKeyToFid;
-import static fcData.AlgorithmType.FC_Aes256Cbc_No1_NrC7;
+import static fcData.AlgorithmId.FC_Aes256Cbc_No1_NrC7;
 
 public class ApiAccount {
     private static final Logger log = LoggerFactory.getLogger(ApiAccount.class);
@@ -377,8 +377,8 @@ public class ApiAccount {
             userId = priKeyToFid(priKey32);
             System.out.println("The FID is: \n" + userId);
 
-            EncryptorSym encryptorSym = new EncryptorSym(FC_Aes256Cbc_No1_NrC7);
-            CryptoDataByte cryptoDataByte = encryptorSym.encryptBySymKey(priKey32,symKey);//EccAes256K1P7.encryptWithSymKey(priKey32, symKey);
+            Encryptor encryptor = new Encryptor(FC_Aes256Cbc_No1_NrC7);
+            CryptoDataByte cryptoDataByte = encryptor.encryptBySymKey(priKey32,symKey);//EccAes256K1P7.encryptWithSymKey(priKey32, symKey);
             if(cryptoDataByte.getCode() !=0){
                 System.out.println(cryptoDataByte.getMessage());
                 return null;
@@ -634,8 +634,8 @@ public class ApiAccount {
     }
 
     public static String makePubKey(String userPriKeyCipher, byte[] symKey) {
-        DecryptorSym decryptorSym = new DecryptorSym();
-        CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(userPriKeyCipher,symKey);
+        Decryptor decryptor = new Decryptor();
+        CryptoDataByte cryptoDataByte = decryptor.decryptJsonBySymKey(userPriKeyCipher,symKey);
         if(cryptoDataByte.getCode()!=0)return null;
         byte[] pubKey = KeyTools.priKeyToPubKey(cryptoDataByte.getData());
         return Hex.toHex(pubKey);
@@ -1240,8 +1240,8 @@ public class ApiAccount {
 //    }
 
     public static byte[] decryptSessionKey(String sessionKeyCipher, byte[] symKey) {
-        DecryptorSym decryptorSym = new DecryptorSym();
-        CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(sessionKeyCipher,symKey);
+        Decryptor decryptor = new Decryptor();
+        CryptoDataByte cryptoDataByte = decryptor.decryptJsonBySymKey(sessionKeyCipher,symKey);
         if(cryptoDataByte.getCode()!=0)return null;
         return cryptoDataByte.getData();
 //        return EccAes256K1P7.decryptJsonBytes(sessionKeyCipher,symKey);

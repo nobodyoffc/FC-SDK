@@ -11,7 +11,7 @@ import appTools.Shower;
 import com.google.gson.Gson;
 import constants.FieldNames;
 import crypto.*;
-import fcData.AlgorithmType;
+import fcData.AlgorithmId;
 import javaTools.BytesTools;
 import javaTools.FileTools;
 import javaTools.Hex;
@@ -764,8 +764,8 @@ public class Configure {
                 symKey = getSymKeyFromPasswordAndNonce(nonceBytes, passwordBytes);
                 nonce = Hex.toHex(nonceBytes);
 
-                EncryptorSym encryptorSym = new EncryptorSym(AlgorithmType.FC_Aes256Cbc_No1_NrC7);
-                CryptoDataByte cryptoDataByte = encryptorSym.encryptBySymKey(nonceBytes,symKey);
+                Encryptor encryptor = new Encryptor(AlgorithmId.FC_Aes256Cbc_No1_NrC7);
+                CryptoDataByte cryptoDataByte = encryptor.encryptBySymKey(nonceBytes,symKey);
                 if(cryptoDataByte.getCode()!=0){
                     System.out.println(cryptoDataByte.getMessage());
                     return null;
@@ -779,8 +779,8 @@ public class Configure {
             while(true) {
                 passwordBytes = Inputer.getPasswordBytes(br);
                 symKey = getSymKeyFromPasswordAndNonce(Hex.fromHex(nonce), passwordBytes);
-                DecryptorSym decryptorSym = new DecryptorSym();
-                CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(getNonceCipher(),symKey);
+                Decryptor decryptor = new Decryptor();
+                CryptoDataByte cryptoDataByte = decryptor.decryptJsonBySymKey(getNonceCipher(),symKey);
                 if(cryptoDataByte.getCode()!=0){
                     System.out.println(cryptoDataByte.getMessage());
                     return null;
