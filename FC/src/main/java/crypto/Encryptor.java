@@ -37,10 +37,6 @@ public class Encryptor {
         this.algorithmId = algorithmId;
     }
 
-    public static byte[] sha512(byte[] b) {
-        return Hashing.sha512().hashBytes(b).asBytes();
-    }
-
     public CryptoDataByte encryptByPassword(byte[] msg, char[] password){
         byte[] iv = BytesTools.getRandomBytes(16);
         byte[] symKey = passwordToSymKey(password, iv);
@@ -413,6 +409,9 @@ public class Encryptor {
     public static byte[] passwordToSymKey(char[] password, byte[] iv) {
         byte[] passwordBytes = BytesTools.charArrayToByteArray(password, StandardCharsets.UTF_8);
         return Decryptor.sha256(BytesTools.addByteArray(Decryptor.sha256(passwordBytes), iv));
+    }
+    public static byte[] sha512(byte[] b) {
+        return Hashing.sha512().hashBytes(b).asBytes();
     }
     public AlgorithmId getAlgorithmType() {
         return algorithmId;

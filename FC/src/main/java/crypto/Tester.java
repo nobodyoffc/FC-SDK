@@ -1,86 +1,19 @@
 package crypto;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import crypto.Algorithm.AesCbc256;
 import javaTools.BytesTools;
 import javaTools.Hex;
-import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.Date;
 import java.util.HexFormat;
 
 import static fcData.AlgorithmId.FC_Aes256Cbc_No1_NrC7;
 import static fcData.AlgorithmId.FC_EccK1AesCbc256_No1_NrC7;
 
 public class Tester {
-
-    @Test
-    public void test() throws IOException {
-
-        System.out.println("String did:"+Hex.toHex(Decryptor.sha256(Decryptor.sha256("hello world!".getBytes()))));
-        System.out.println(Hash.sha256x2(new File("/Users/liuchangyong/Desktop/c.md")));
-//        CryptoDataByte encryptor = new CryptoDataByte();
-//        encryptor.setAlg(FC_EccK1AesCbc256_No1_NrC7);
-//        encryptor.setDid("did:example:123".getBytes());
-
-
-//        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-//        String json = gson.toJson(encryptor);
-//        System.out.println(encryptor.toJson());
-//        CryptoDataByte cryptoDataByte = new CryptoDataByte();
-//        cryptoDataByte.setDid(BytesTools.getRandomBytes(16));
-//        cryptoDataByte.setAlg(FC_EccK1AesCbc256_No1_NrC7);
-//
-//        System.out.println(cryptoDataByte.toNiceJson());
-//        System.out.println(JsonTools.getNiceString(cryptoDataByte));
-
-
-//        String sourcePath = null;
-//        String sourceFileName = "a.md";
-//        String srcFile = Paths.get(sourcePath,sourceFileName).toString();
-//        System.out.println(srcFile);
-    }
-
-    public class Encryptor {
-        public AlgorithmType algo;
-        public String did;
-        public Date date;
-
-        public enum AlgorithmType {
-            FC_EccK1AesCbc256_No1_NrC7("FC/EccK1AesCbc256K1@No1_NrC7"),
-            BTC_EcdsaSignMsg_No1_NrC7("BTC/EcdsaSignMsg@No1_NrC7"),
-            FC_SchnorrSignTx_No1_NrC7("FC/SchnorrSignTx@No1_NrC7"),
-            FC_Aes256Cbc_No1_NrC7("Aes256Cbc@No1_NrC7");
-
-            private final String displayName;
-
-            AlgorithmType(String displayName) {
-                this.displayName = displayName;
-            }
-
-            @Override
-            public String toString() {
-                return this.displayName;
-            }
-        }
-
-        public static void main(String[] args) {
-            CryptoDataStr encryptor = new CryptoDataStr();
-            encryptor.setAlg(FC_EccK1AesCbc256_No1_NrC7);
-            encryptor.setDid("did:example:123");
-
-
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            String json = gson.toJson(encryptor);
-            System.out.println(json);
-        }
-    }
-
 
     @org.junit.jupiter.api.Test
     public void testSym() throws InterruptedException {

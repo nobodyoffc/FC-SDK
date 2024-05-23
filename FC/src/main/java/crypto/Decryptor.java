@@ -297,8 +297,8 @@ public class Decryptor {
     }
 
 
-    public CryptoDataByte decryptByAsyOneWay(String cryptoDataJson, byte[]priKey){
-        return decryptByAsyTwoWay(cryptoDataJson,priKey,null);
+    public CryptoDataByte decryptJsonByAsyOneWay(String cryptoDataJson, byte[]priKey){
+        return decryptJsonByAsyTwoWay(cryptoDataJson,priKey,null);
     }
 
     public CryptoDataByte decryptBundle(byte[] bundle, byte[]priKey, AlgorithmId algorithm){
@@ -349,7 +349,7 @@ public class Decryptor {
         }
     }
 
-    public CryptoDataByte decryptByAsyTwoWay(String cryptoDataJson, byte[]priKey, byte[] pubKey){
+    public CryptoDataByte decryptJsonByAsyTwoWay(String cryptoDataJson, byte[]priKey, byte[] pubKey){
         CryptoDataByte cryptoDataByte = CryptoDataByte.fromJson(cryptoDataJson);
         if(cryptoDataByte.getType().equals(EncryptType.AsyTwoWay)&& pubKey==null){
             cryptoDataByte.setCodeMessage(12);
@@ -375,17 +375,17 @@ public class Decryptor {
         }
     }
     public CryptoDataByte decryptFileByAsyOneWay(@NotNull String cipherFile, String dataFile, @NotNull byte[]priKeyX){
-        CryptoDataByte cryptoDataByte = decryptFile(null, cipherFile, null, dataFile, priKeyX, null);
+        CryptoDataByte cryptoDataByte = decryptFileByAsyTwoWay(null, cipherFile, null, dataFile, priKeyX, null);
         cryptoDataByte.setType(EncryptType.AsyOneWay);
         return cryptoDataByte;
     }
     public CryptoDataByte decryptFileByAsyTwoWay(@NotNull String cipherFile, String dataFile, @NotNull byte[]priKeyX, @NotNull byte[] pubKeyY){
-        return decryptFile(null, cipherFile, null, dataFile, priKeyX,pubKeyY);
+        return decryptFileByAsyTwoWay(null, cipherFile, null, dataFile, priKeyX,pubKeyY);
     }
-    public CryptoDataByte decryptFile(String srcPath, String srcFileName, String destPath, String destFileName, byte[]priKeyX){
-        return decryptFile(srcPath, srcFileName, destPath, destFileName, priKeyX,null);
+    public CryptoDataByte decryptFileByAsyOneWay(String srcPath, String srcFileName, String destPath, String destFileName, @NotNull byte[]priKeyX){
+        return decryptFileByAsyTwoWay(srcPath, srcFileName, destPath, destFileName, priKeyX,null);
     }
-    public CryptoDataByte decryptFile(String srcPath, String srcFileName, String destPath, String destFileName, byte[]priKeyX, byte[] pubKeyY){
+    public CryptoDataByte decryptFileByAsyTwoWay(String srcPath, String srcFileName, String destPath, String destFileName, byte[]priKeyX, byte[] pubKeyY){
         CryptoDataByte cryptoDataByte;
         String srcFullName = getFileFullName(srcPath, srcFileName);
         String destFullName = getFileFullName(destPath, destFileName);

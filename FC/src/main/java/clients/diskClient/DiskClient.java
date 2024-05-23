@@ -95,7 +95,7 @@ public class DiskClient extends Client {
         byte[] priKey = cryptoDataByte.getData();
 
         CryptoDataByte cryptoDataByte1 =
-                decryptor.decryptFile(sourcePath, sourceFileName, destPath, destFileName, priKey);
+                decryptor.decryptFileByAsyOneWay(sourcePath, sourceFileName, destPath, destFileName, priKey);
 
         if(cryptoDataByte1.getCode()!=0){
             System.out.println(CryptoCodeMessage.getErrorStringCodeMsg(cryptoDataByte1.getCode()));

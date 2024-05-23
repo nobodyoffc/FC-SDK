@@ -265,7 +265,7 @@ public class Client {
 
         Decryptor decryptor = new Decryptor();
         CryptoDataByte cryptoDataByte1 =
-                decryptor.decryptByAsyOneWay(sessionKeyCipher1,priKey);
+                decryptor.decryptJsonByAsyOneWay(sessionKeyCipher1,priKey);
         if(cryptoDataByte1.getCode()!=0)return null;
         byte[] sessionKeyHexBytes = cryptoDataByte1.getData();
 //        byte[] sessionKeyHexBytes = EccAes256K1P7.decryptWithPriKey(sessionKeyCipher1,priKey);
