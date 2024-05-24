@@ -1,5 +1,6 @@
 package crypto;
 
+import crypto.old.EccAes256K1P7;
 import fcData.AlgorithmId;
 import javaTools.BytesTools;
 import javaTools.Hex;
@@ -396,9 +397,25 @@ public class CryptoDataByte {
             this.did = Hash.sha256x2(data);
         }
     }
-
+    public boolean checkSum(AlgorithmId algorithmId) {
+        byte[] newSum;
+        switch (algorithmId){
+            case EccAes256K1P7_No1_NrC7 ->
+                newSum = EccAes256K1P7.getSum4(symKey,iv,cipher);
+            default -> newSum = makeSum4(symKey,iv,did);
+        }
+        String sumHex = Hex.toHex(sum);
+        String newSumHex = Hex.toHex(newSum);
+        if(!newSumHex.equals(sumHex)){
+            setCodeMessage(20);
+            return false;
+        }
+        return true;
+    }
     public boolean checkSum(byte[] did) {
-        byte[] newSum = CryptoDataByte.makeSum4(symKey,iv,did);
+        byte[] newSum;
+        newSum = CryptoDataByte.makeSum4(symKey,iv,did);
+
         String sumHex = Hex.toHex(sum);
         String newSumHex = Hex.toHex(newSum);
         if(!newSumHex.equals(sumHex)){

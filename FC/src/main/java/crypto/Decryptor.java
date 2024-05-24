@@ -28,16 +28,14 @@ import java.util.HexFormat;
 
 public class Decryptor {
 
-    AlgorithmId algorithmId;
+//    AlgorithmId algorithmId;
 
 
-    public Decryptor() {
+    public Decryptor() {}
 
-    }
-
-    public Decryptor(AlgorithmId algorithmId) {
-        this.algorithmId = algorithmId;
-    }
+//    public Decryptor(AlgorithmId algorithmId) {
+//        this.algorithmId = algorithmId;
+//    }
     public String decryptJsonBySymKey(String cryptoDataJson, String symKeyHex) {
         byte[] key;
         try {
@@ -82,12 +80,11 @@ public class Decryptor {
             byte[] data = bosData.toByteArray();
             cryptoDataByte.setData(data);
             cryptoDataByte.makeDid();
-            if(cryptoDataByte.checkSum(cryptoDataByte.getDid()))
-                return cryptoDataByte.getData();
-            else {
+            if(!cryptoDataByte.checkSum(alg)) {
                 cryptoDataByte.setCodeMessage(20);
                 return null;
             }
+            return cryptoDataByte.getData();
         } catch (IOException e) {
             System.out.println(e.getMessage());
             return null;
@@ -208,7 +205,8 @@ public class Decryptor {
                 return cryptoDataByte;
             }
             cryptoDataByte.setDid(did);
-            cryptoDataByte.checkSum(did);
+
+            cryptoDataByte.checkSum(cryptoDataByte.getAlg());
             return cryptoDataByte;
         }
         return cryptoDataByte;
@@ -218,6 +216,9 @@ public class Decryptor {
         if(cryptoDataByte==null)cryptoDataByte = new CryptoDataByte();
         if(key!=null)cryptoDataByte.setSymKey(key);
         if(iv!=null)cryptoDataByte.setIv(iv);
+        AlgorithmId algorithmId;
+        if(cryptoDataByte.getAlg()!= null)algorithmId = cryptoDataByte.getAlg();
+        else algorithmId = AlgorithmId.FC_Aes256Cbc_No1_NrC7;
         switch (algorithmId){
             case FC_Aes256Cbc_No1_NrC7 -> {
                 AesCbc256.decryptStream(inputStream,outputStream,cryptoDataByte);
@@ -566,11 +567,4 @@ public class Decryptor {
         return Hashing.sha256().hashBytes(b).asBytes();
     }
 
-    public AlgorithmId getAlgorithmType() {
-        return algorithmId;
-    }
-
-    public void setAlgorithmType(AlgorithmId algorithmId) {
-        this.algorithmId = algorithmId;
-    }
 }

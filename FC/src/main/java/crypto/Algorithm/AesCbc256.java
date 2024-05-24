@@ -65,7 +65,7 @@ public class AesCbc256 {
             byte[] did = Hash.sha256x2(data);
 
             cryptoDataByte.setDid(did);
-            if(cryptoDataByte.checkSum(did)) {
+            if(cryptoDataByte.checkSum(AlgorithmId.FC_Aes256Cbc_No1_NrC7)) {
                 cryptoDataByte.setData(data);
                 cryptoDataByte.set0CodeMessage();
             }

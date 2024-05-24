@@ -25,7 +25,7 @@ import co.elastic.clients.elasticsearch.cat.IndicesResponse;
 import com.google.gson.Gson;
 import constants.ApiNames;
 import crypto.*;
-import crypto.old.EccAes256K1P7;
+//import crypto.old.EccAes256K1P7;
 import clients.esClient.EsClientMaker;
 import clients.diskClient.DiskClient;
 import javaTools.BytesTools;
@@ -51,6 +51,7 @@ import static constants.Constants.APIP_Account_JSON;
 import static constants.Constants.COIN_TO_SATOSHI;
 import static crypto.KeyTools.priKeyToFid;
 import static fcData.AlgorithmId.FC_Aes256Cbc_No1_NrC7;
+import static fcData.AlgorithmId.FC_EccK1AesCbc256_No1_NrC7;
 
 public class ApiAccount {
     private static final Logger log = LoggerFactory.getLogger(ApiAccount.class);
@@ -78,7 +79,7 @@ public class ApiAccount {
     private transient ApipClient apipClient;
 
     public static void updateSession(ApiAccount apipAccount, byte[] symKey, Session session, byte[] newSessionKey) {
-        String newSessionKeyCipher = EccAes256K1P7.encryptWithSymKey(newSessionKey, symKey);
+        String newSessionKeyCipher = new Encryptor(FC_EccK1AesCbc256_No1_NrC7).encryptToJsonBySymKey(newSessionKey, symKey);
         if(newSessionKeyCipher.contains("Error"))return;
         session.setSessionKeyCipher(newSessionKeyCipher);
         apipAccount.session.setSessionKeyCipher(newSessionKeyCipher);
@@ -225,7 +226,7 @@ public class ApiAccount {
             System.out.println("The password of the API is necessary.");
             return null;
         }
-        password = EccAes256K1P7.decryptJsonBytes(passwordCipher,symKey);
+        password = new Decryptor().decryptJsonBySymKey(passwordCipher,symKey).getData();
         if(password==null)return null;
 
         NaSaRpcClient naSaRpcClient = new NaSaRpcClient(apiUrl,userName,password);
@@ -491,17 +492,16 @@ public class ApiAccount {
             return null;
         }
 
-        symKeyCipher = EccAes256K1P7.encryptWithSymKey(sessionKey, symKey);
-        if (symKeyCipher.contains("Error")) {
-            System.out.println("Get sessionKey wrong:" + symKeyCipher);
-        }
-        return symKeyCipher;
+        CryptoDataByte cryptoDataByte = new Encryptor(FC_EccK1AesCbc256_No1_NrC7).encryptBySymKey(sessionKey, symKey);
+        if(cryptoDataByte.getCode()==0)
+            return cryptoDataByte.toJson();
+        else return null;
     }
 
     public static byte[] decryptHexWithPriKey(String cipher, byte[] priKey) {
-        EccAes256K1P7 ecc = new EccAes256K1P7();
-        CryptoDataByte cryptoDataBytes = ecc.decrypt(cipher, priKey);
-        if (cryptoDataBytes.getMessage() != null) {
+
+        CryptoDataByte cryptoDataBytes = new Decryptor().decryptJsonByAsyOneWay(cipher, priKey);
+        if (cryptoDataBytes.getCode() != 0) {
             System.out.println("Failed to decrypt: " + cryptoDataBytes.getMessage());
             BytesTools.clearByteArray(priKey);
             return null;
@@ -574,7 +574,7 @@ public class ApiAccount {
                     inputPriKeyCipher(symKey, br);
                     while(userName==null) {
                         if(userPriKeyCipher==null)return;
-                        byte[] userPriKey = EccAes256K1P7.decryptJsonBytes(userPriKeyCipher, symKey);
+                        byte[] userPriKey = new Decryptor().decryptJsonBySymKey(userPriKeyCipher, symKey).getData();
                         userName = KeyTools.priKeyToFid(userPriKey);
                         userId = userName;
                         BytesTools.clearByteArray(userPriKey);
@@ -668,7 +668,7 @@ public class ApiAccount {
         while (true) {
             if (Inputer.askIfYes(br, "Input the password?")) {
                 char[] password = Inputer.inputPassword(br, "Input the password:");
-                this.passwordCipher = EccAes256K1P7.encryptWithSymKey(BytesTools.utf8CharArrayToByteArray(password), symKey);
+                this.passwordCipher = new Encryptor(FC_Aes256Cbc_No1_NrC7).encryptToJsonBySymKey(BytesTools.utf8CharArrayToByteArray(password), symKey);
                 return;
             }
             if (Inputer.askIfYes(br, "Input the password cipher?")) {
@@ -685,7 +685,12 @@ public class ApiAccount {
         if(Inputer.askIfYes(br,"Set the API buyer priKey?"))
             while(true) {
                 try {
-                    this.userPriKeyCipher = EccAes256K1P7.inputPriKeyCipher(br, symKey);
+                    String cipherJson = FCH.Inputer.inputPriKeyCipher(br, symKey);
+                    if(cipherJson==null){
+                        System.out.println("Wrong input. Try again.");
+                        continue;
+                    }
+                    this.userPriKeyCipher = cipherJson;
                     this.userPubKey=makePubKey(this.userPriKeyCipher,symKey);
                     break;
                 }catch (Exception e){
@@ -715,13 +720,18 @@ public class ApiAccount {
                 return null;
             }
             try {
-                password = EccAes256K1P7.decryptJsonBytes(str, Inputer.getPasswordBytes(br));
-                if(password!=null)break;
+                CryptoDataByte cryptoDataByte = new Decryptor().decryptJsonByPassword(str, BytesTools.byteArrayToUtf8CharArray(Inputer.getPasswordBytes(br)));
+                if(cryptoDataByte.getCode()!=0){
+                    System.out.println("Something wrong. Try again.");
+                    continue;
+                }
+                password = cryptoDataByte.getData();
+                break;
             }catch (Exception e){
                 System.out.println("Something wrong. Try again.");
             }
         }
-        return EccAes256K1P7.encryptWithSymKey(password,symKey);
+        return new Encryptor(FC_EccK1AesCbc256_No1_NrC7).encryptToJsonBySymKey(password,symKey);
     }
 
     public double buyService(Params params,String sid, ApipClient apipClient, byte[] symKey) {
@@ -755,8 +765,12 @@ public class ApiAccount {
         sendTo.setAmount(payValue);
         sendToList.add(sendTo);
 
-        byte[] priKey = EccAes256K1P7.decryptJsonBytes(userPriKeyCipher, symKey);
-
+        CryptoDataByte cryptoDataByte = new Decryptor().decryptJsonBySymKey(userPriKeyCipher, symKey);
+        if(cryptoDataByte.getCode()!=0){
+            System.out.println("Failed to decrypt the priKey.");
+            return 0;
+        }
+        byte[] priKey = cryptoDataByte.getData();
         String txHex = TxCreator.createTransactionSignFch(cashList, priKey, sendToList, null);
 
         String result = apipClient.broadcastRawTx(txHex);
@@ -1197,7 +1211,7 @@ public class ApiAccount {
 
     public void inputVia(BufferedReader br) {
         String input;
-        String ask = "Input the FID by whom you knew this service. Default: 'FJYN3D7x4yiLF692WUAe7Vfo2nQpYDNrC7':";
+        String ask = "Input the FID by whom you knew this service. Default: 'FJYN3D7x4yiLF692WUAe7Vfo2nQpYDNrC7'";
         input = FCH.Inputer.inputString(br,ask);
         while(true) {
             if ("".equals(input)) {
@@ -1215,8 +1229,7 @@ public class ApiAccount {
 
     public byte[] decryptUserPriKey(String cipher, byte[] symKey) {
         System.out.println("Decrypt APIP buyer private key...");
-        EccAes256K1P7 ecc = new EccAes256K1P7();
-        CryptoDataByte cryptoDataByte = ecc.decrypt(cipher, symKey);
+        CryptoDataByte cryptoDataByte = new Decryptor().decryptJsonBySymKey(cipher, symKey);
 
         if (cryptoDataByte.getMessage() != null) {
             System.out.println("Error: " + cryptoDataByte.getMessage());

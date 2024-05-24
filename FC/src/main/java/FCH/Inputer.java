@@ -1,12 +1,13 @@
 package FCH;
 
 import clients.apipClient.ApipClient;
+import crypto.Base58;
+import crypto.CryptoDataByte;
+import crypto.Encryptor;
 import crypto.KeyTools;
-import crypto.old.EccAes256K1P7;
+import fcData.AlgorithmId;
 import org.bitcoinj.core.ECKey;
 import org.jetbrains.annotations.Nullable;
-import crypto.Base58;
-
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -47,7 +48,7 @@ public class Inputer extends appTools.Inputer {
                 fid = ecKey.toAddress(FchMainNetwork.MAINNETWORK).toBase58();
 
                 if(apipClient!=null){
-                    String priKeyCipher = EccAes256K1P7.encryptWithSymKey(priKey,symKey);
+                    String priKeyCipher = new Encryptor(AlgorithmId.FC_EccK1AesCbc256_No1_NrC7).encryptToJsonBySymKey(priKey,symKey);
                     apipClient.checkMaster(priKeyCipher,br);
                 }
                 return fid;
@@ -177,5 +178,15 @@ public class Inputer extends appTools.Inputer {
             if (priKey32 != null) return priKey32;
         }
         return null;
+    }
+
+    public static String inputPriKeyCipher(BufferedReader br, byte[] initSymKey) {
+
+        byte[] priKeyBytes =  inputPriKey(br);
+        if (priKeyBytes == null) return null;
+        Encryptor encryptor = new Encryptor(AlgorithmId.FC_Aes256Cbc_No1_NrC7);
+        CryptoDataByte cryptoDataByte = encryptor.encryptBySymKey(priKeyBytes,initSymKey);
+        if(cryptoDataByte.getCode()==0)return cryptoDataByte.toJson();
+        else return null;
     }
 }

@@ -13,7 +13,6 @@ import javaTools.BytesTools;
 import javaTools.JsonTools;
 
 import com.google.gson.Gson;
-import FCH.Inputer;
 import javaTools.FileTools;
 
 import org.bouncycastle.asn1.x9.X9ECParameters;
@@ -599,13 +598,6 @@ public class EccAes256K1P7 {
             return null;
         }
         return result.getData();
-    }
-
-    public static String inputPriKeyCipher(BufferedReader br, byte[] initSymKey) {
-
-        byte[] priKeyBytes =  Inputer.inputPriKey(br);
-        if (priKeyBytes == null) return null;
-        return encryptWithSymKey(priKeyBytes, initSymKey);
     }
 
     public static CryptoDataByte encryptWithPassword(byte[] initSymKey, byte[] passwordBytes) {
@@ -1581,7 +1573,7 @@ public class EccAes256K1P7 {
         return HexFormat.of().parseHex(priKeyToHex(privateKey));//Hex.decode(priKeyToHex(privateKey));
     }
 
-    public byte[] getPartOfBytes(byte[] original, int offset, int length) {
+    public static byte[] getPartOfBytes(byte[] original, int offset, int length) {
         byte[] part = new byte[length];
         System.arraycopy(original, offset, part, 0, part.length);
         return part;
@@ -1818,7 +1810,7 @@ public class EccAes256K1P7 {
         return true;
     }
 
-    private boolean isGoodAesSum(CryptoDataByte cryptoDataByte) {
+    public boolean isGoodAesSum(CryptoDataByte cryptoDataByte) {
 
         MessageDigest sha256;
         try {
@@ -1999,7 +1991,7 @@ public class EccAes256K1P7 {
         return getPartOfBytes(sum32, 0, 4);
     }
 
-    private byte[] getSum4(byte[] symKey, byte[] iv, byte[] cipher) {
+    public static byte[] getSum4(byte[] symKey, byte[] iv, byte[] cipher) {
         byte[] sum32 = Hash.sha256(BytesTools.addByteArray(symKey, BytesTools.addByteArray(iv, cipher)));
         return getPartOfBytes(sum32, 0, 4);
     }

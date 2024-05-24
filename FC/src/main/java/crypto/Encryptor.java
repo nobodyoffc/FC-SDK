@@ -276,7 +276,7 @@ public class Encryptor {
 
     public CryptoDataByte encryptFileByAsyOneWay(String dataFileName, String cipherFileName, @NotNull byte[] pubKeyB){
         CryptoDataByte cryptoDataByte = encryptFileByAsyTwoWay(dataFileName, cipherFileName, pubKeyB, null);
-        cryptoDataByte.setType(EncryptType.AsyOneWay);
+
         return cryptoDataByte;
     }
     public CryptoDataByte encryptFileByAsyTwoWay(String dataFileName, String cipherFileName, @NotNull byte[] pubKeyB,byte[]priKeyA){
@@ -308,6 +308,8 @@ public class Encryptor {
 
         try (FileInputStream fis = new FileInputStream(tempFile);
              FileOutputStream fos = new FileOutputStream(cipherFileName)) {
+            if(priKeyA==null)
+                cryptoDataByte.setType(EncryptType.AsyOneWay);
             fos.write(cryptoDataByte.toJson().getBytes());
             byte[] buffer = new byte[4096];
             int bytesRead;

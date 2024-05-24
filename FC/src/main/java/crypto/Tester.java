@@ -63,7 +63,7 @@ public class Tester {
             byte[] decryptedData = bos.toByteArray();
             cryptoDataByte.setData(decryptedData);
             cryptoDataByte.makeDid();
-            if(!cryptoDataByte.checkSum(cryptoDataByte.getDid()))
+            if(!cryptoDataByte.checkSum(FC_Aes256Cbc_No1_NrC7))
                 System.out.println("Bad Sum.");
             else System.out.println("Good sum.");
 
@@ -195,7 +195,7 @@ public class Tester {
         cryptoDataByte1.makeDid();
         cryptoDataByte1.setCipher(cryptoDataByte.getCipher());
         cryptoDataByte1.setType(cryptoDataByte.getType());
-        if(cryptoDataByte1.checkSum(cryptoDataByte1.getDid()))
+        if(cryptoDataByte1.checkSum(FC_EccK1AesCbc256_No1_NrC7))
             System.out.println("Basic decrypt:"+cryptoDataByte1.getMessage()+"\n"+ cryptoDataByte1.toNiceJson());
         else System.out.println("Basic decrypt failed.");
 
@@ -214,7 +214,7 @@ public class Tester {
             decryptor.decryptStreamByAsy(bis2, bos2, cryptoDataByte2);
             cryptoDataByte2.setData(bos2.toByteArray());
             cryptoDataByte2.makeDid();
-            cryptoDataByte2.checkSum(cryptoDataByte2.getDid());
+            cryptoDataByte2.checkSum(cryptoDataByte2.getAlg());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
