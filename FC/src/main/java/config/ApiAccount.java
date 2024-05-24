@@ -1231,7 +1231,7 @@ public class ApiAccount {
         System.out.println("Decrypt APIP buyer private key...");
         CryptoDataByte cryptoDataByte = new Decryptor().decryptJsonBySymKey(cipher, symKey);
 
-        if (cryptoDataByte.getMessage() != null) {
+        if (cryptoDataByte.getCode() != 0) {
             System.out.println("Error: " + cryptoDataByte.getMessage());
             return null;
         }

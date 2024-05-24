@@ -253,8 +253,8 @@ public class Client {
 
     public Session signInEcc(ApiAccount apiAccount, ApiType type, RequestBody.SignInMode mode, byte[] symKey) {
 
-        Decryptor decryptorSym = new Decryptor();
-        CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(apiAccount.getUserPriKeyCipher(),symKey);
+        Decryptor decryptor = new Decryptor();
+        CryptoDataByte cryptoDataByte = decryptor.decryptJsonBySymKey(apiAccount.getUserPriKeyCipher(),symKey);
         if(cryptoDataByte.getCode()!=0)return null;
         byte[] priKey = cryptoDataByte.getData();
 
@@ -263,7 +263,7 @@ public class Client {
         Session session = signInEcc(priKey, type,mode);
         String sessionKeyCipher1 = session.getSessionKeyCipher();
 
-        Decryptor decryptor = new Decryptor();
+//        Decryptor decryptor = new Decryptor();
         CryptoDataByte cryptoDataByte1 =
                 decryptor.decryptJsonByAsyOneWay(sessionKeyCipher1,priKey);
         if(cryptoDataByte1.getCode()!=0)return null;

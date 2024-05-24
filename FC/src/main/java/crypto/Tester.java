@@ -238,15 +238,15 @@ public class Tester {
 
         //One way
         CryptoDataByte cryptoDataByte8
-                = decryptor.decryptBundle(bundleOneWay, priKeyB, FC_EccK1AesCbc256_No1_NrC7);
+                = decryptor.decryptBundleAsyOneWay(bundleOneWay, priKeyB, FC_EccK1AesCbc256_No1_NrC7);
         System.out.println("Data from bundle oneway:" + cryptoDataByte8.toNiceJson());
 
         //two-way
         CryptoDataByte cryptoDataByte10
-                = decryptor.decryptBundle(bundleTwoWay, priKeyB,pubKeyA, FC_EccK1AesCbc256_No1_NrC7);
+                = decryptor.decryptBundleAsyTwoWay(bundleTwoWay, priKeyB,pubKeyA, FC_EccK1AesCbc256_No1_NrC7);
         System.out.println("Data from bundle two way BA:" + cryptoDataByte10.toNiceJson());
         CryptoDataByte cryptoDataByte11
-                = decryptor.decryptBundle(bundleTwoWay, priKeyA,pubKeyB, FC_EccK1AesCbc256_No1_NrC7);
+                = decryptor.decryptBundleAsyTwoWay(bundleTwoWay, priKeyA,pubKeyB, FC_EccK1AesCbc256_No1_NrC7);
         System.out.println("Data from bundle two way AB:" + cryptoDataByte11.toNiceJson());
 
         //File

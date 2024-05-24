@@ -65,7 +65,7 @@ public class Configure {
         if(apiAccountMap == null)apiAccountMap = new HashMap<>();
 
         ApiAccount initApipAccount;
-        initApipAccount = checkApiClient(symKey, initApipAccountId, ApiType.APIP, initApipClient);
+        initApipAccount = checkApiClient(symKey, initApipAccountId, ApiType.APIP);
 
         if(initApipAccount==null) {
             System.out.println("Failed to initiate APIP service.");
@@ -80,8 +80,9 @@ public class Configure {
     }
 
     @Nullable
-    private ApiAccount checkApiClient(byte[] symKey, String apiAccountId, ApiType type, ApipClient apiClient) {
-        ApiAccount apiAccount = null;
+    private ApiAccount checkApiClient(byte[] symKey, String apiAccountId, ApiType type) {
+        ApiAccount apiAccount;
+        ApipClient apiClient = null;
         if(apiAccountId !=null){
             apiAccount = apiAccountMap.get(apiAccountId);
             if(!Inputer.askIfYes(br,"Current ID is: "+apiAccount.getUserId()+".\nChange to another one?")) {
@@ -123,7 +124,7 @@ public class Configure {
             apiAccount = chooseApiProvidersAccount(apiProvider,symKey);
             apiAccount.connectApi(apiProvider, symKey, br, initApipClient);
         }
-        if(apiAccount!=null)
+        if(apiAccount!=null && apiClient!=null)
             apiAccount.setClient(apiClient);
         return apiAccount;
     }

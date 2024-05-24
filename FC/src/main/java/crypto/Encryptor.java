@@ -37,18 +37,18 @@ public class Encryptor {
         this.algorithmId = algorithmId;
     }
 
-    public CryptoDataByte encryptByPassword(byte[] msg, char[] password){
+    public CryptoDataByte encryptByPassword(@NotNull byte[] msg, @NotNull char[] password){
         byte[] iv = BytesTools.getRandomBytes(16);
         byte[] symKey = passwordToSymKey(password, iv);
         CryptoDataByte cryptoDataByte = encryptBySymKey(msg,symKey,iv);
         cryptoDataByte.setType(EncryptType.Password);
         return cryptoDataByte;
     }
-    public CryptoDataByte encryptStrByPassword(String msgStr, char[] password){
+    public CryptoDataByte encryptStrByPassword(@NotNull String msgStr, @NotNull char[] password){
         byte[] msg = msgStr.getBytes(StandardCharsets.UTF_8);
         return encryptByPassword(msg,password);
     }
-    public String encryptStrToJsonBySymKey(String msgStr, String symKeyHex){
+    public String encryptStrToJsonBySymKey(@NotNull String msgStr, @NotNull String symKeyHex){
         byte[] msg = msgStr.getBytes(StandardCharsets.UTF_8);
         byte[] key;
         try {
@@ -61,12 +61,12 @@ public class Encryptor {
 
         return encryptToJsonBySymKey(msg,key);
     }
-    public String encryptToJsonBySymKey(byte[] msg, byte[] key){
+    public String encryptToJsonBySymKey(@NotNull byte[] msg, @NotNull byte[] key){
         byte[] iv = BytesTools.getRandomBytes(16);
         CryptoDataByte cryptoDataByte = encryptBySymKey(msg,key, iv);
         return cryptoDataByte.toNiceJson();
     }
-    public CryptoDataByte encryptFileByPassword(String dataFileName, String cipherFileName, char[]password){
+    public CryptoDataByte encryptFileByPassword(@NotNull String dataFileName, @NotNull String cipherFileName, @NotNull char[]password){
         FileTools.createFileWithDirectories(cipherFileName);
         byte[] iv = BytesTools.getRandomBytes(16);
         byte[] key = passwordToSymKey(password, iv);
@@ -78,10 +78,10 @@ public class Encryptor {
 
         return cryptoDataByte;
     }
-    public CryptoDataByte encryptFileBySymKey(String dataFileName, String cipherFileName, byte[]key){
+    public CryptoDataByte encryptFileBySymKey(@NotNull String dataFileName, @NotNull String cipherFileName, @NotNull byte[]key){
         return encryptFileBySymKey(dataFileName,cipherFileName,key,null);
     }
-    public CryptoDataByte encryptFileBySymKey(String dataFileName, String cipherFileName, byte[]key, byte[] iv){
+    public CryptoDataByte encryptFileBySymKey(@NotNull String dataFileName, @NotNull String cipherFileName, @NotNull byte[]key, byte[] iv){
         CryptoDataByte cryptoDataByte = new CryptoDataByte();
         if(iv==null)iv = BytesTools.getRandomBytes(16);
         cryptoDataByte.setType(EncryptType.SymKey);
@@ -119,7 +119,7 @@ public class Encryptor {
 
         return cryptoDataByte;
     }
-    public byte[] encryptStrToBundleBySymKey(String msgStr, String keyHex){
+    public byte[] encryptStrToBundleBySymKey(@NotNull String msgStr, @NotNull String keyHex){
         byte[] msg = msgStr.getBytes(StandardCharsets.UTF_8);
         byte[] key;
         try {
@@ -131,21 +131,21 @@ public class Encryptor {
         }
         return encryptToBundleBySymKey(msg,key);
     }
-    public byte[] encryptToBundleBySymKey(byte[] msg, byte[] key){
+    public byte[] encryptToBundleBySymKey(@NotNull byte[] msg, @NotNull byte[] key){
         byte[] iv = BytesTools.getRandomBytes(16);
         CryptoDataByte cryptoDataByte = encryptBySymKey(msg,key, iv);
         if(cryptoDataByte.getCode()!=0)return null;
         return cryptoDataByte.toBundle();
     }
-    public CryptoDataByte encryptBySymKey(byte[] msg, byte[] symKey){
+    public CryptoDataByte encryptBySymKey(@NotNull byte[] msg, @NotNull byte[] symKey){
         byte[] iv = BytesTools.getRandomBytes(16);
         return encryptBySymKey(msg,symKey,iv,null);
     }
-    public CryptoDataByte encryptBySymKey(byte[] msg, byte[] symKey, byte[] iv){
+    public CryptoDataByte encryptBySymKey(@NotNull byte[] msg, @NotNull byte[] symKey, byte[] iv){
         return encryptBySymKey(msg,symKey,iv,null);
     }
 
-    private CryptoDataByte encryptBySymKey(byte[] msg, byte[] key, byte[] iv, @Nullable CryptoDataByte cryptoDataByte){
+    private CryptoDataByte encryptBySymKey(@NotNull byte[] msg, @Nullable  byte[] key, @Nullable  byte[] iv, @Nullable CryptoDataByte cryptoDataByte){
         try(ByteArrayInputStream bisMsg = new ByteArrayInputStream(msg);
             ByteArrayOutputStream bosCipher = new ByteArrayOutputStream()) {
 
@@ -165,7 +165,7 @@ public class Encryptor {
         }
     }
 
-    public CryptoDataByte encryptStreamBySymKey(InputStream inputStream, OutputStream outputStream, byte[] key, byte[] iv, CryptoDataByte cryptoDataByte) {
+    public CryptoDataByte encryptStreamBySymKey(@NotNull InputStream inputStream, @NotNull OutputStream outputStream, byte[] key, byte[] iv, CryptoDataByte cryptoDataByte) {
         switch (algorithmId){
             case FC_Aes256Cbc_No1_NrC7,FC_EccK1AesCbc256_No1_NrC7-> {
                 return AesCbc256.encrypt(inputStream,outputStream,key,iv,cryptoDataByte);
@@ -237,15 +237,18 @@ public class Encryptor {
         return cryptoDataByte;
     }
 
-    public CryptoDataByte encryptStrByAsyOneWay(String data, String pubKeyBHex){
+    public CryptoDataByte encryptStrByAsyOneWay(@NotNull String data,@NotNull  String pubKeyBHex){
         return encryptByAsyOneWay(data.getBytes(), Hex.fromHex(pubKeyBHex));
     }
 
-    public CryptoDataByte encryptByAsyOneWay(byte[] data, byte[] pubKeyB){
-        return encryptByAsyTwoWay(data, null, pubKeyB);
+    public CryptoDataByte encryptByAsyOneWay(@NotNull byte[] data, @NotNull byte[] pubKeyB){
+        return encryptByAsy(data, null, pubKeyB);
     }
 
-    public CryptoDataByte encryptByAsyTwoWay(byte[] data, byte[]priKeyA, byte[] pubKeyB){
+    public CryptoDataByte encryptByAsyTwoWay(@NotNull byte[] data, @NotNull byte[]priKeyA, @NotNull byte[] pubKeyB){
+        return encryptByAsy(data, priKeyA, pubKeyB);
+    }
+    private CryptoDataByte encryptByAsy(@NotNull byte[] data, byte[]priKeyA, byte[] pubKeyB){
         CryptoDataByte cryptoDataByte;
         if(priKeyA==null){
             cryptoDataByte = new CryptoDataByte();
@@ -274,12 +277,13 @@ public class Encryptor {
         }
     }
 
-    public CryptoDataByte encryptFileByAsyOneWay(String dataFileName, String cipherFileName, @NotNull byte[] pubKeyB){
-        CryptoDataByte cryptoDataByte = encryptFileByAsyTwoWay(dataFileName, cipherFileName, pubKeyB, null);
-
-        return cryptoDataByte;
+    public CryptoDataByte encryptFileByAsyOneWay(@NotNull String dataFileName, @NotNull String cipherFileName, @NotNull byte[] pubKeyB){
+        return encryptFileByAsy(dataFileName, cipherFileName, pubKeyB, null);
     }
-    public CryptoDataByte encryptFileByAsyTwoWay(String dataFileName, String cipherFileName, @NotNull byte[] pubKeyB,byte[]priKeyA){
+    public CryptoDataByte encryptFileByAsyTwoWay(@NotNull String dataFileName, @NotNull String cipherFileName, @NotNull byte[] pubKeyB,@NotNull byte[]priKeyA){
+        return encryptFileByAsy(dataFileName, cipherFileName, pubKeyB, priKeyA);
+    }
+    private CryptoDataByte encryptFileByAsy(@NotNull String dataFileName, @NotNull String cipherFileName, @NotNull byte[] pubKeyB,byte[]priKeyA){
         FileTools.createFileWithDirectories(cipherFileName);
 
         CryptoDataByte cryptoDataByte = new CryptoDataByte();
@@ -326,17 +330,17 @@ public class Encryptor {
 
         return cryptoDataByte;
     }
-    public CryptoDataByte encryptStreamByAsyTwoWay(InputStream is, OutputStream os, @NotNull byte[]priKeyX, @NotNull byte[]pubKeyY){
+    public CryptoDataByte encryptStreamByAsyTwoWay(@NotNull InputStream is, @NotNull OutputStream os, @NotNull byte[]priKeyX, @NotNull byte[]pubKeyY){
         return encryptStreamByAsy(is,os,priKeyX,pubKeyY,null);
     }
-    public CryptoDataByte encryptStreamByAsyOneWay(InputStream is, OutputStream os, byte[]pubKeyY){
+    public CryptoDataByte encryptStreamByAsyOneWay(@NotNull InputStream is, @NotNull OutputStream os, @NotNull byte[]pubKeyY){
         return encryptStreamByAsy(is,os,null,pubKeyY,null);
     }
 
-    public CryptoDataByte encryptStreamByAsy(InputStream is, OutputStream os,CryptoDataByte cryptoDataByte){
+    public CryptoDataByte encryptStreamByAsy(@NotNull InputStream is, @NotNull OutputStream os,@NotNull CryptoDataByte cryptoDataByte){
         return encryptStreamByAsy(is,os,null,null,cryptoDataByte);
     }
-    private CryptoDataByte encryptStreamByAsy(InputStream is, OutputStream os, byte[]priKeyX, byte[]pubKeyY, CryptoDataByte cryptoDataByte){
+    private CryptoDataByte encryptStreamByAsy(@NotNull InputStream is, @NotNull OutputStream os, byte[]priKeyX, byte[]pubKeyY, CryptoDataByte cryptoDataByte){
         if(cryptoDataByte==null)cryptoDataByte = new CryptoDataByte();
         cryptoDataByte.setAlg(algorithmId);
         checkKeysMakeType(pubKeyY, priKeyX, cryptoDataByte);

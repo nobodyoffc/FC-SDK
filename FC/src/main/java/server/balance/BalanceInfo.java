@@ -175,18 +175,13 @@ public class BalanceInfo {
             log.error("Read ES wrong.", e);
         }
 
-//        File file = new File(BALANCE_BACKUP_JSON);
-//        if(!file.exists())file.createNewFile();
-//        JsonTools.writeObjectToJsonFile(balanceInfo, BALANCE_BACKUP_JSON,false);
-//        System.out.println("User balance backed up to file:"+BALANCE_BACKUP_JSON);
-
         if (result != null) {
-            log.debug("User balance backup: " + result.result().toString());
+            log.debug("User balance backup to ElasticSearch: " + result.result().toString());
         }
-        log.debug(result.result().jsonValue());
     }
 
     private static void backupBalanceToFile(BalanceInfo balanceInfo, String filename) {
+        String finalFileName = null;
         for(int i=0;i<30;i++){
             File file = new File(filename +i+DOT_JSON);
             if(file.exists()) {
@@ -198,15 +193,18 @@ public class BalanceInfo {
                         file.renameTo(new File(filename + (i - 1) + DOT_JSON));
                         if(i==29){
                             JsonTools.writeObjectToJsonFile(balanceInfo, filename +i+DOT_JSON,false);
+                            finalFileName = filename +i+DOT_JSON;
                             break;
                         }
                     }
                 }
             }else {
                 JsonTools.writeObjectToJsonFile(balanceInfo, filename +i+DOT_JSON,false);
+                finalFileName = filename +i+DOT_JSON;
                 break;
             }
         }
+        log.debug("User balance is backed up to "+ finalFileName);
     }
 
     public long getBestHeight() {

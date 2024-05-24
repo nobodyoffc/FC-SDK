@@ -36,7 +36,7 @@ public class Decryptor {
 //    public Decryptor(AlgorithmId algorithmId) {
 //        this.algorithmId = algorithmId;
 //    }
-    public String decryptJsonBySymKey(String cryptoDataJson, String symKeyHex) {
+    public String decryptJsonBySymKey(@NotNull String cryptoDataJson, @NotNull String symKeyHex) {
         byte[] key;
         try {
             key = HexFormat.of().parseHex(symKeyHex);
@@ -52,18 +52,7 @@ public class Decryptor {
         return new String(cryptoDataByte.getData());
     }
 
-    public byte[] decryptBundleBySymKey(byte[]bundle, byte[]key, AlgorithmId alg) {
-        byte[] iv = new byte[16];
-        byte[] sum = new byte[4];
-        System.arraycopy(bundle,0,iv,0,16);
-        int cipherLength = bundle.length - 16 - 4;
-        byte[] cipher = new byte[cipherLength];
-        System.arraycopy(bundle,16,cipher,0,cipherLength);
-        System.arraycopy(bundle,16+cipher.length,sum,0,4);
-        return decryptBySymKey(cipher,iv,key,sum,alg);
-    }
-
-    public byte[] decryptBySymKey(byte[]cipher, byte[]iv, byte[]key, byte[] sum, AlgorithmId alg) {
+    private byte[] decryptBySymKey(@NotNull byte[]cipher, @NotNull byte[]iv, @NotNull byte[]key, @NotNull byte[] sum, AlgorithmId alg) {
         try(ByteArrayInputStream bisCipher = new ByteArrayInputStream(cipher);
             ByteArrayOutputStream bosData = new ByteArrayOutputStream()) {
             CryptoDataByte cryptoDataByte = new CryptoDataByte();
@@ -90,7 +79,7 @@ public class Decryptor {
             return null;
         }
     }
-    public CryptoDataByte decryptJsonByPassword(String cryptoDataJson, char[]password) {
+    public CryptoDataByte decryptJsonByPassword(@NotNull String cryptoDataJson, @NotNull char[]password) {
         CryptoDataByte cryptoDataByte;
         try {
             cryptoDataByte = CryptoDataByte.fromJson(cryptoDataJson);
@@ -103,7 +92,7 @@ public class Decryptor {
     }
 
     @NotNull
-    private static CryptoDataByte decryptByPassword(CryptoDataByte cryptoDataByte, char[] password) {
+    private static CryptoDataByte decryptByPassword(@NotNull CryptoDataByte cryptoDataByte, @NotNull char[] password) {
         byte[] symKey = Encryptor.passwordToSymKey(password, cryptoDataByte.getIv());
         cryptoDataByte.setType(EncryptType.SymKey);
         cryptoDataByte.setSymKey(symKey);
@@ -112,7 +101,7 @@ public class Decryptor {
         return cryptoDataByte;
     }
 
-    public CryptoDataByte decryptJsonBySymKey(String cryptoDataJson, byte[]symKey) {
+    public CryptoDataByte decryptJsonBySymKey(@NotNull String cryptoDataJson, @NotNull byte[]symKey) {
         CryptoDataByte cryptoDataByte;
         try {
             cryptoDataByte = CryptoDataByte.fromJson(cryptoDataJson);
@@ -126,7 +115,7 @@ public class Decryptor {
     }
 
     @NotNull
-    private static CryptoDataByte decryptBySymKey(CryptoDataByte cryptoDataByte) {
+    private static CryptoDataByte decryptBySymKey(@NotNull CryptoDataByte cryptoDataByte) {
         if(cryptoDataByte==null)return null;
         switch (cryptoDataByte.getAlg()) {
             case FC_Aes256Cbc_No1_NrC7 -> AesCbc256.decrypt(cryptoDataByte);
@@ -135,7 +124,7 @@ public class Decryptor {
         return cryptoDataByte;
     }
 
-    public CryptoDataByte decryptFileByPassword(String cipherFileName, String dataFileName, char[] password){
+    public CryptoDataByte decryptFileByPassword(@NotNull String cipherFileName, @NotNull String dataFileName, @NotNull char[] password){
         FileTools.createFileWithDirectories(dataFileName);
 
 
@@ -146,12 +135,12 @@ public class Decryptor {
         return cryptoDataByte;
     }
 
-    public CryptoDataByte decryptFileBySymKey(String cipherFileName, String dataFileName, byte[]key){
+    public CryptoDataByte decryptFileBySymKey(@NotNull String cipherFileName, @NotNull String dataFileName, @NotNull byte[]key){
         FileTools.createFileWithDirectories(dataFileName);
         return decryptFileBySymKey(new File(cipherFileName),new File(dataFileName),key, null);
     }
 
-    private CryptoDataByte decryptFileBySymKey(File cipherFile, File dataFile, byte[]key, char[] password){
+    private CryptoDataByte decryptFileBySymKey(@NotNull File cipherFile, @NotNull File dataFile,  byte[]key, char[] password){
 
         CryptoDataByte cryptoDataByte;
         try(FileOutputStream fos = new FileOutputStream(dataFile);
@@ -212,7 +201,7 @@ public class Decryptor {
         return cryptoDataByte;
     }
 
-    public CryptoDataByte decryptStreamBySymKey(InputStream inputStream, OutputStream outputStream, byte[] key, byte[] iv, @Nullable CryptoDataByte cryptoDataByte) {
+    public CryptoDataByte decryptStreamBySymKey(@NotNull InputStream inputStream, @NotNull OutputStream outputStream, @NotNull byte[] key, @NotNull byte[] iv, @Nullable CryptoDataByte cryptoDataByte) {
         if(cryptoDataByte==null)cryptoDataByte = new CryptoDataByte();
         if(key!=null)cryptoDataByte.setSymKey(key);
         if(iv!=null)cryptoDataByte.setIv(iv);
@@ -297,34 +286,29 @@ public class Decryptor {
             cryptoDataByte.set0CodeMessage();
     }
 
-
-    public CryptoDataByte decryptJsonByAsyOneWay(String cryptoDataJson, byte[]priKey){
-        return decryptJsonByAsyTwoWay(cryptoDataJson,priKey,null);
+    public byte[] decryptBundleBySymKey(@NotNull byte[]bundle, @NotNull byte[]key, AlgorithmId alg) {
+        byte[] iv = new byte[16];
+        byte[] sum = new byte[4];
+        System.arraycopy(bundle,0,iv,0,16);
+        int cipherLength = bundle.length - 16 - 4;
+        byte[] cipher = new byte[cipherLength];
+        System.arraycopy(bundle,16,cipher,0,cipherLength);
+        System.arraycopy(bundle,16+cipher.length,sum,0,4);
+        return decryptBySymKey(cipher,iv,key,sum,alg);
     }
-
-    public CryptoDataByte decryptBundle(byte[] bundle, byte[]priKey, AlgorithmId algorithm){
+    public CryptoDataByte decryptBundleAsyOneWay(@NotNull byte[] bundle, @NotNull byte[]priKey, AlgorithmId algorithm){
         return decryptBundle(bundle,priKey,null,algorithm );
     }
-
-    public CryptoDataByte decryptBundle(byte[] bundle, byte[]priKeyX, byte[]pubKeyY, AlgorithmId algorithm){
+    public CryptoDataByte decryptBundleAsyTwoWay(@NotNull byte[] bundle, @NotNull byte[]priKeyX, @NotNull byte[]pubKeyY, AlgorithmId algorithm){
+        return decryptBundle(bundle,priKeyX,pubKeyY,algorithm);
+    }
+    private CryptoDataByte decryptBundle(@NotNull byte[] bundle, @NotNull byte[]priKeyX, byte[]pubKeyY, AlgorithmId algorithm){
 
         CryptoDataByte cryptoDataByte;
-
-        if(bundle==null){
-            cryptoDataByte = new CryptoDataByte();
-            cryptoDataByte.setCodeMessage(18);
-            return cryptoDataByte;
-        }
-        if(priKeyX==null){
-            cryptoDataByte = new CryptoDataByte();
-            cryptoDataByte.setCodeMessage(18);
-            return cryptoDataByte;
-        }
 
         boolean isTwoWay = false;
 //        byte[] pubKey=null;
         if(pubKeyY!=null){
-//            pubKey=pubKeyY;
             isTwoWay=true;
         }
 
@@ -340,8 +324,6 @@ public class Decryptor {
             if(cryptoDataByte.getCode()==0) {
                 cryptoDataByte.setData(bos.toByteArray());
             }
-//            if(pubKeyY==null)cryptoDataByte.setType(EncryptType.AsyOneWay);
-//            else cryptoDataByte.setType(EncryptType.AsyTwoWay);
             return cryptoDataByte;
         } catch (IOException e) {
             cryptoDataByte=new CryptoDataByte();
@@ -349,8 +331,13 @@ public class Decryptor {
             return cryptoDataByte;
         }
     }
-
-    public CryptoDataByte decryptJsonByAsyTwoWay(String cryptoDataJson, byte[]priKey, byte[] pubKey){
+    public CryptoDataByte decryptJsonByAsyOneWay(@NotNull String cryptoDataJson, @NotNull byte[]priKey){
+        return decryptJsonByAsy(cryptoDataJson,priKey,null);
+    }
+    public CryptoDataByte decryptJsonByAsyTwoWay(@NotNull String cryptoDataJson, @NotNull byte[]priKey, @NotNull byte[] pubKey){
+        return decryptJsonByAsy(cryptoDataJson,priKey,priKey);
+    }
+    private CryptoDataByte decryptJsonByAsy(@NotNull String cryptoDataJson, @NotNull byte[]priKey, byte[] pubKey){
         CryptoDataByte cryptoDataByte = CryptoDataByte.fromJson(cryptoDataJson);
         if(cryptoDataByte.getType().equals(EncryptType.AsyTwoWay)&& pubKey==null){
             cryptoDataByte.setCodeMessage(12);
