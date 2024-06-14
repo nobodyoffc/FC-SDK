@@ -1,8 +1,8 @@
 package server.rollback;
 
 import clients.apipClient.ApipClient;
-import APIP.apipData.BlockInfo;
-import FCH.fchData.Block;
+import apip.apipData.BlockInfo;
+import fch.fchData.Block;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import constants.Strings;
 import clients.esClient.EsTools;
@@ -15,7 +15,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 
-import static FCH.BlockFileTools.getBlockByHeight;
+import static fch.BlockFileTools.getBlockByHeight;
+import static constants.IndicesNames.BLOCK;
 import static constants.IndicesNames.ORDER;
 import static constants.Strings.ORDER_LAST_HEIGHT;
 import static server.Settings.addSidBriefToName;
@@ -36,6 +37,22 @@ public class Rollbacker {
 
         BlockInfo blockInfo = heightBlockInfoMap.get(String.valueOf(lastHeight));
         return !blockInfo.getBlockId().equals(lastBlockId);
+    }
+
+    public static boolean isRolledBack(ElasticsearchClient esClient,long lastHeight,String lastBlockId) throws IOException {
+        if(esClient==null) {
+            System.out.println("Failed to check rollback. Start a ES client first.");
+            return false;
+        }
+
+        if (lastHeight==0 || lastBlockId ==null)return false;
+        Block block =null;
+        try {
+            block = EsTools.getById(esClient, BLOCK, lastBlockId, Block.class);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return block == null;
     }
 
     public static void rollback(String sid,long height, ElasticsearchClient esClient, JedisPool jedisPool)  {

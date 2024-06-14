@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>Disk</artifactId>
+    <packaging>pom</packaging>
 
     <modules>
         <module>DiskManager</module>

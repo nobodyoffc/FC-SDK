@@ -1,7 +1,7 @@
 package config;
 
 public enum ApiType {
-    NASARPC,
+    NASA_RPC,
     APIP,
     ES,
     REDIS,

@@ -6,8 +6,8 @@ import appTools.Shower;
 
 
 import javaTools.BytesTools;
-import FCH.FchMainNetwork;
-import FCH.Inputer;
+import fch.FchMainNetwork;
+import fch.Inputer;
 import org.bitcoinj.core.Address;
 import org.bitcoinj.core.Base58;
 import org.bitcoinj.core.ECKey;

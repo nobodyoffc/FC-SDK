@@ -1,6 +1,6 @@
 package server;
 
-import APIP.apipData.*;
+import apip.apipData.*;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.*;
@@ -12,8 +12,9 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.TrackHits;
 import co.elastic.clients.json.JsonData;
 import constants.Constants;
-import constants.ReplyInfo;
-import javaTools.http.FcReplier;
+import constants.ReplyCodeMessage;
+import fcData.FcReplier;
+import redis.clients.jedis.Jedis;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -32,7 +33,7 @@ public class FcdslRequestHandler {
         this.replier = replier;
     }
 
-    public <T> List<T> doRequest(String index, ArrayList<Sort> defaultSortList, Class<T> tClass, String sessionKey) {
+    public <T> List<T> doRequest(String index, ArrayList<Sort> defaultSortList, Class<T> tClass, Jedis jedis) {
         if(index==null||tClass==null)return null;
 
         SearchRequest.Builder searchBuilder = new SearchRequest.Builder();
@@ -48,7 +49,7 @@ public class FcdslRequestHandler {
             fcdsl = dataRequestBody.getFcdsl();
 
             if(fcdsl.getIds()!=null)
-                return doIdsRequest(index,tClass,sessionKey);
+                return doIdsRequest(index,tClass, jedis);
 
             if(fcdsl.getQuery() == null && fcdsl.getExcept()==null && fcdsl.getFilter()==null){
                 MatchAllQuery matchAllQuery = getMatchAllQuery();
@@ -57,19 +58,19 @@ public class FcdslRequestHandler {
                 List<Query> queryList = null;
                 if(fcdsl.getQuery()!=null) {
                     FcQuery fcQuery = fcdsl.getQuery();
-                    queryList = getQueryList(fcQuery,sessionKey);
+                    queryList = getQueryList(fcQuery,jedis);
                 }
                 
                 List<Query> filterList = null;
                 if(fcdsl.getFilter()!=null) {
                     Filter fcFilter = fcdsl.getFilter();
-                    filterList = getQueryList(fcFilter, sessionKey);
+                    filterList = getQueryList(fcFilter, jedis);
                 }
                 
                 List<Query> exceptList = null;
                 if(fcdsl.getExcept()!=null) {
                     Except fcExcept = fcdsl.getExcept();
-                    exceptList = getQueryList(fcExcept, sessionKey);
+                    exceptList = getQueryList(fcExcept, jedis);
                 }
 
                 BoolQuery.Builder bBuilder = QueryBuilders.bool();
@@ -90,7 +91,7 @@ public class FcdslRequestHandler {
                 }
             }catch(Exception e){
                 e.printStackTrace();
-                replier.replyWithCodeAndMessage(response,ReplyInfo.Code1012BadQuery,ReplyInfo.Msg1012BadQuery,null, sessionKey);
+                replier.reply(ReplyCodeMessage.Code1012BadQuery, e.getMessage(), jedis);
                 return null;
             }
             if(size==0 || size> Constants.MaxRequestSize) size= Constants.DefaultSize;
@@ -120,12 +121,12 @@ public class FcdslRequestHandler {
             result = esClient.search(searchRequest, tClass);
         }catch(Exception e){
             e.printStackTrace();
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1012BadQuery,ReplyInfo.Msg1012BadQuery,null,sessionKey );
+            replier.reply(ReplyCodeMessage.Code1012BadQuery, e.getMessage(),jedis);
             return null;
         }
 
         if(result==null){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1012BadQuery,ReplyInfo.Msg1012BadQuery,null, sessionKey);
+            replier.reply(ReplyCodeMessage.Code1012BadQuery, null, jedis);
             return null;
         }
 
@@ -134,7 +135,7 @@ public class FcdslRequestHandler {
 
         List<Hit<T>> hitList = result.hits().hits();
         if(hitList.size()==0){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1011DataNotFound,ReplyInfo.Msg1011DataNotFound,null,sessionKey );
+            replier.reply(ReplyCodeMessage.Code1011DataNotFound, null,jedis);
             return null;
         }
 
@@ -145,14 +146,12 @@ public class FcdslRequestHandler {
 
         List<String> sortList = hitList.get(hitList.size()-1).sort();
 
-        String[] last = new String[sortList.size()];
-        last = sortList.toArray(last);
-        if(last.length>0)
-            replier.setLast(last);
+        if(sortList.size()>0)
+            replier.setLast(sortList);
         return tList;
     }
 
-    private List<Query> getQueryList(FcQuery query, String sessionKey) {
+    private List<Query> getQueryList(FcQuery query, Jedis jedis) {
         BoolQuery termsQuery;
         BoolQuery partQuery;
         BoolQuery matchQuery;
@@ -169,7 +168,7 @@ public class FcdslRequestHandler {
         }
 
         if(query.getPart()!=null){
-            partQuery = getPartQuery(query.getPart(),sessionKey);
+            partQuery = getPartQuery(query.getPart(), jedis);
             Query q = new Query.Builder().bool(partQuery).build();
             if(q!=null)queryList.add(q);
         }
@@ -193,7 +192,7 @@ public class FcdslRequestHandler {
         }
 
         if(query.getEquals()!=null){
-            equalsQuery = getEqualQuery(query.getEquals(),sessionKey);
+            equalsQuery = getEqualQuery(query.getEquals(),jedis);
             Query q = new Query.Builder().bool(equalsQuery).build();
             if(q!=null)queryList.add(q);
         }
@@ -211,12 +210,12 @@ public class FcdslRequestHandler {
         return queryList;
     }
 
-    private <T> List<T> doIdsRequest(String index, Class<T> clazz, String sessionKey) {
+    private <T> List<T> doIdsRequest(String index, Class<T> clazz, Jedis jedis) {
 
         ArrayList<String> idList = new ArrayList<>(Arrays.asList(dataRequestBody.getFcdsl().getIds()));
         if(idList.size()> Constants.MaxRequestSize) {
             Integer data = new HashMap<String, Integer>().put("maxSize", Constants.MaxRequestSize);
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1010TooMuchData,ReplyInfo.Msg1010TooMuchData,data,sessionKey );
+            replier.reply(ReplyCodeMessage.Code1010TooMuchData, data,jedis);
             return null;
         }
 
@@ -224,7 +223,7 @@ public class FcdslRequestHandler {
         try {
             result = esClient.mget(m -> m.index(index).ids(idList), clazz);
         }catch(Exception e){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1012BadQuery,ReplyInfo.Msg1012BadQuery,null, sessionKey);
+            replier.reply(ReplyCodeMessage.Code1012BadQuery, null, jedis);
             return null;
         }
         List<MultiGetResponseItem<T>> items = result.docs();
@@ -239,7 +238,7 @@ public class FcdslRequestHandler {
         }
 
         if(meetList.size()==0) {
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1011DataNotFound,ReplyInfo.Msg1011DataNotFound,null, sessionKey);
+            replier.reply(ReplyCodeMessage.Code1011DataNotFound, null, jedis);
             return null;
         }else return meetList;
     }
@@ -290,7 +289,7 @@ public class FcdslRequestHandler {
         return ueBuilder.mustNot(queryList).build();
     }
 
-    private BoolQuery getEqualQuery(Equals equals, String sessionKey) {
+    private BoolQuery getEqualQuery(Equals equals, Jedis jedis) {
         if(equals.getValues()==null|| equals.getFields()==null)return null;
 
         BoolQuery.Builder boolBuilder;
@@ -302,14 +301,14 @@ public class FcdslRequestHandler {
                 try {
                     valueList.add(FieldValue.of(Double.parseDouble(str)));
                 }catch(Exception e){
-                    replier.replyWithCodeAndMessage(response,ReplyInfo.Code1012BadQuery,ReplyInfo.Msg1012BadQuery,null,sessionKey );
+                    replier.reply(ReplyCodeMessage.Code1012BadQuery, null,jedis);
                     return null;
                 }
             }else{
                 try {
                     valueList.add(FieldValue.of(Long.parseLong(str)));
                 }catch(Exception e){
-                    replier.replyWithCodeAndMessage(response,ReplyInfo.Code1012BadQuery,ReplyInfo.Msg1012BadQuery,null, sessionKey);
+                    replier.reply(ReplyCodeMessage.Code1012BadQuery, null, jedis);
                     return null;
                 }
             }
@@ -364,13 +363,13 @@ public class FcdslRequestHandler {
         return bBuilder.build();
     }
 
-    private BoolQuery getPartQuery(Part part, String sessionKey) {
+    private BoolQuery getPartQuery(Part part, Jedis jedis) {
         BoolQuery.Builder partBoolBuilder = new BoolQuery.Builder();
         boolean isCaseInSensitive;
         try{
            isCaseInSensitive = Boolean.parseBoolean(part.getIsCaseInsensitive());
         }catch(Exception e){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1012BadQuery,ReplyInfo.Msg1012BadQuery,null,sessionKey );
+            replier.reply(ReplyCodeMessage.Code1012BadQuery, e.getMessage(), jedis);
             return null;
         }
 

@@ -1,7 +1,7 @@
 package server.order;
 
-import FCH.ParseTools;
-import FEIP.feipData.Service;
+import fch.ParseTools;
+import feip.feipData.Service;
 import appTools.Inputer;
 import appTools.Menu;
 import appTools.Shower;
@@ -9,7 +9,6 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import constants.IndicesNames;
 import constants.Strings;
 import constants.Values;
@@ -40,19 +39,21 @@ public class OrderManager {
     private final JedisPool jedisPool;
     private final Counter counter;
     private static String sid;
+    private Service service;
 
-    public OrderManager(String sid,ElasticsearchClient esClient, BufferedReader br, JedisPool jedisPool, Counter counter) {
+    public OrderManager(Service service, Counter counter, BufferedReader br, ElasticsearchClient esClient, JedisPool jedisPool) {
         this.esClient = esClient;
         this.br = br;
         this.jedisPool = jedisPool;
         this.counter = counter;
-        OrderManager.sid =sid;
+        this.service = service;
+        OrderManager.sid =service.getSid();
     }
 
     public void menu(){
 
         Menu menu = new Menu();
-
+        menu.setName("Order Manager");
         ArrayList<String> menuItemList = new ArrayList<>();
 
         menuItemList.add("How to buy this service?");
@@ -67,7 +68,7 @@ public class OrderManager {
             menu.show();
             int choice = menu.choose(br);
             switch (choice) {
-                case 1-> howToBuyService(br,jedisPool);
+                case 1-> howToBuyService(br);
                 case 2 -> recreateIndexAndResetOrderHeight(sid,br, esClient,  IndicesNames.ORDER, orderMappingJsonStr);
                 case 3 -> switchScanOpReturn(br);
                 case 4 -> switchOrderScanner(counter);
@@ -154,7 +155,7 @@ public class OrderManager {
             int totalLength =FCH_LENGTH +2+DATE_TIME_LENGTH+2+FID_LENGTH+2+HEX256_LENGTH+2;
             System.out.println("Orders of "+fid+" : ");
             Shower.printUnderline(totalLength);
-            System.out.print(Shower.formatString("FCH",20));
+            System.out.print(Shower.formatString("fch",20));
             System.out.print(Shower.formatString("Time",22));
             System.out.print(Shower.formatString("Via",38));
             System.out.print(Shower.formatString("TxId",66));
@@ -206,26 +207,43 @@ public class OrderManager {
         Menu.anyKeyToContinue(br);
     }
 
-    private static void howToBuyService(BufferedReader br,JedisPool jedisPool) {
+    private static void howToBuyService(BufferedReader br) {
         System.out.println("Anyone can send a freecash TX with following json in Op_Return to buy your service:" +
                 "\n--------");
-        try(Jedis jedis = jedisPool.getResource()) {
-            String sidStr = jedis.get(Settings.addSidBriefToName(sid,SERVICE));
-            if (sidStr == null) {
-                System.out.println("No service yet.");
-                return;
-            }
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            Service service = gson.fromJson(sidStr, Service.class);
+        System.out.println(new Gson().toJson(Order.getJsonBuyOrder(sid)) +
+                "\n--------" +
+                "\nMake sure the 'sid' is your service id. " );
+        Menu.anyKeyToContinue(br);
+//        try(Jedis jedis = jedisPool.getResource()) {
+//            String sidStr = jedis.get(Settings.addSidBriefToName(sid,SERVICE));
+//            if (sidStr == null) {
+//                System.out.println("No service yet.");
+//                return;
+//            }
+//            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//            Service service = gson.fromJson(sidStr, Service.class);
+//
+//
+//            try {
+//                br.readLine();
+//            } catch (IOException ignored) {
+//            }
+//        }
+    }
 
-            System.out.println(gson.toJson(Order.getJsonBuyOrder(service.getSid())) +
-                    "\n--------" +
-                    "\nMake sure the 'sid' is your service id. " +
-                    "\nAny key to continue...");
-            try {
-                br.readLine();
-            } catch (IOException ignored) {
-            }
-        }
+    public static String getSid() {
+        return sid;
+    }
+
+    public static void setSid(String sid) {
+        OrderManager.sid = sid;
+    }
+
+    public Service getService() {
+        return service;
+    }
+
+    public void setService(Service service) {
+        this.service = service;
     }
 }

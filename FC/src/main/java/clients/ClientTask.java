@@ -1,18 +1,18 @@
 package clients;
 
-import APIP.ApipTools;
-import APIP.apipData.Session;
-import APIP.apipData.Fcdsl;
-import APIP.apipData.RequestBody;
-import APIP.apipData.ResponseBody;
-import FCH.FchMainNetwork;
+import apip.ApipTools;
+import apip.apipData.Session;
+import apip.apipData.Fcdsl;
+import apip.apipData.RequestBody;
+import fcData.FcReplier;
+import fch.FchMainNetwork;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import constants.Constants;
-import constants.ReplyInfo;
+import constants.ReplyCodeMessage;
 import constants.UpStrings;
 import crypto.Hash;
 import fcData.AlgorithmId;
@@ -20,6 +20,7 @@ import fcData.Signature;
 import javaTools.Hex;
 import javaTools.StringTools;
 import javaTools.http.AuthType;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -45,7 +46,9 @@ import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 
-import static APIP.ApipTools.isGoodSign;
+import static apip.ApipTools.isGoodSign;
+import static constants.UpStrings.SESSION_NAME;
+import static constants.UpStrings.SIGN;
 
 public class ClientTask {
 
@@ -59,7 +62,7 @@ public class ClientTask {
     protected String requestBodyStr;
     protected byte[] requestBodyBytes;
     protected Map<String, String> responseHeaderMap;
-    protected ResponseBody responseBody;
+    protected FcReplier responseBody;
     protected String responseBodyStr;
     protected byte[] responseBodyBytes;
     protected Signature signatureOfResponse;
@@ -137,8 +140,8 @@ public class ClientTask {
 
     public int checkResponse() {
         if (responseBody == null) {
-            code = ReplyInfo.Code3001ResponseIsNull;
-            message = ReplyInfo.Msg3001ResponseIsNull;
+            code = ReplyCodeMessage.Code3001ResponseIsNull;
+            message = ReplyCodeMessage.Msg3001ResponseIsNull;
             return code;
         }
 
@@ -149,8 +152,8 @@ public class ClientTask {
         }
 
         if (responseBody.getData() == null) {
-            code = ReplyInfo.Code3005ResponseDataIsNull;
-            message = ReplyInfo.Msg3005ResponseDataIsNull;
+            code = ReplyCodeMessage.Code3005ResponseDataIsNull;
+            message = ReplyCodeMessage.Msg3005ResponseDataIsNull;
             return code;
         }
         return 0;
@@ -189,8 +192,8 @@ public class ClientTask {
     public boolean get(byte[] sessionKey, ResponseBodyType responseBodyType, String responseFileName, String responseFilePath){
         if(responseBodyType==null)responseBodyType=ResponseBodyType.STRING;
         if (apiUrl.getUrl() == null) {
-            code = ReplyInfo.Code3004RequestUrlIsAbsent;
-            message = ReplyInfo.Msg3004RequestUrlIsAbsent;
+            code = ReplyCodeMessage.Code3004RequestUrlIsAbsent;
+            message = ReplyCodeMessage.Msg3004RequestUrlIsAbsent;
             System.out.println(message);
             return false;
         }
@@ -208,58 +211,68 @@ public class ClientTask {
             httpResponse = httpClient.execute(request);
 
             if(httpResponse==null){
-                code= ReplyInfo.Code3002GetRequestFailed;
-                message = ReplyInfo.Msg3002GetRequestFailed;
+                code= ReplyCodeMessage.Code3002GetRequestFailed;
+                message = ReplyCodeMessage.Msg3002GetRequestFailed;
                 return false;
             }
+
+            parseResponseHeader();
 
             switch (responseBodyType){
                 case STRING ->{
                     responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
                     responseBodyStr = new String(responseBodyBytes);
-                    boolean done = parseFcResponse(httpResponse);
-                    if(!done)return false;
+                    parseFcResponse(httpResponse);
+                    try {
+                        this.responseBody = new Gson().fromJson(responseBodyStr, FcReplier.class);
+                    } catch (JsonSyntaxException ignore) {
+                        log.debug("Failed to parse responseBody json.");
+                        return false;
+                    }
+//                    if(!done)return false;
                 }
                 case BYTES -> {
+//                    this.responseHeaderMap = getHeaders(httpResponse);
                     responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
 
                 }
                 case FILE -> {
+//                    this.responseHeaderMap = getHeaders(httpResponse);
                     String fileName;
                     if(responseFileName==null)fileName= StringTools.getTempName();
                     else fileName=responseFileName;
                     String gotDid = downloadFileFromHttpResponse(fileName, responseFilePath);
                     if(gotDid==null){
-                        code= ReplyInfo.Code1020OtherError;
+                        code= ReplyCodeMessage.Code1020OtherError;
                         message = "Failed to download file from HttpResponse.";
                         return false;
                     }
                     if(responseFileName==null){
                         Files.move(Paths.get(fileName),Paths.get(gotDid), StandardCopyOption.REPLACE_EXISTING);
                     }
-                    if(responseBody==null)responseBody=new ResponseBody();
-                    responseBody.setCode(ReplyInfo.Code0Success);
-                    responseBody.setMessage(ReplyInfo.Msg0Success);
+                    if(responseBody==null)responseBody=new FcReplier();
+                    responseBody.setCode(ReplyCodeMessage.Code0Success);
+                    responseBody.setMessage(ReplyCodeMessage.Msg0Success);
                     responseBody.setData(gotDid);
 
                 }
                 default -> {
-                    code = ReplyInfo.Code1020OtherError;
+                    code = ReplyCodeMessage.Code1020OtherError;
                     message = "ResponseBodyType is null.";
                     return false;
                 }
             }
         } catch (IOException e) {
             log.error("Error when requesting post.", e);
-            code = ReplyInfo.Code3007ErrorWhenRequestingPost;
-            message = ReplyInfo.Msg3007ErrorWhenRequestingPost+":"+e.getMessage();
+            code = ReplyCodeMessage.Code3007ErrorWhenRequestingPost;
+            message = ReplyCodeMessage.Msg3007ErrorWhenRequestingPost+":"+e.getMessage();
             return false;
         }
 
-        if (responseHeaderMap != null && responseHeaderMap.get(UpStrings.SIGN) != null) {
+        if (responseHeaderMap != null && responseHeaderMap.get(SIGN) != null) {
             if (sessionKey==null || !checkResponseSign(sessionKey)) {
-                code = ReplyInfo.Code1008BadSign;
-                message = ReplyInfo.Msg1008BadSign;
+                code = ReplyCodeMessage.Code1008BadSign;
+                message = ReplyCodeMessage.Msg1008BadSign;
                 return false;
             }
         }
@@ -325,7 +338,7 @@ public class ClientTask {
         try {
             inputStream = httpResponse.getEntity().getContent();
         } catch (IOException e) {
-            code=ReplyInfo.Code1020OtherError;
+            code= ReplyCodeMessage.Code1020OtherError;
             message="Failed to get inputStream from http response.";
             return null;
         }
@@ -336,13 +349,13 @@ public class ClientTask {
                 try {
                     boolean done = file.createNewFile();
                     if (!done) {
-                        code = ReplyInfo.Code1020OtherError;
+                        code = ReplyCodeMessage.Code1020OtherError;
                         message = "Failed to create file " + finalFileName;
                         return null;
                     }
                     break;
                 } catch (IOException e) {
-                    code = ReplyInfo.Code1020OtherError;
+                    code = ReplyCodeMessage.Code1020OtherError;
                     message = "Failed to create file " + finalFileName;
                     return null;
                 }
@@ -373,7 +386,7 @@ public class ClientTask {
             }
             inputStream.close();
         } catch (IOException e) {
-            code=ReplyInfo.Code1020OtherError;
+            code= ReplyCodeMessage.Code1020OtherError;
             message="Failed to read buffer.";
             return null;
         }
@@ -381,7 +394,7 @@ public class ClientTask {
         String didFromResponse = Hex.toHex(Hash.sha256(hasher.hash().asBytes()));
 
         if(!did.equals(didFromResponse)){
-            code=ReplyInfo.Code1020OtherError;
+            code= ReplyCodeMessage.Code1020OtherError;
             message="The DID of the file from response is not equal to the requested DID.";
             return null;
         }
@@ -390,7 +403,7 @@ public class ClientTask {
             try {
                 Files.move(Paths.get(responseFilePath,finalFileName), Paths.get(responseFilePath,did), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
-                code=ReplyInfo.Code1020OtherError;
+                code= ReplyCodeMessage.Code1020OtherError;
                 message="Failed to replace the old file.";
                 return null;
             }
@@ -425,8 +438,8 @@ public class ClientTask {
         if(responseBodyType==null)responseBodyType=ResponseBodyType.STRING;
 
         if (apiUrl.getUrl() == null) {
-            code = ReplyInfo.Code3004RequestUrlIsAbsent;
-            message = ReplyInfo.Msg3004RequestUrlIsAbsent;
+            code = ReplyCodeMessage.Code3004RequestUrlIsAbsent;
+            message = ReplyCodeMessage.Msg3004RequestUrlIsAbsent;
             System.out.println(message);
             return false;
         }
@@ -452,7 +465,7 @@ public class ClientTask {
                 case FILE -> {
                     File file = new File(requestFileName);
                     if(!file.exists()){
-                        code = ReplyInfo.Code1020OtherError;
+                        code = ReplyCodeMessage.Code1020OtherError;
                         message = "File "+requestFileName+" doesn't exist.";
                         return false;
                     }
@@ -473,42 +486,48 @@ public class ClientTask {
                 httpResponse = httpClient.execute(httpPost);
             }catch (HttpHostConnectException e){
                 log.debug("Failed to connect "+apiUrl.getUrl()+". Check the URL.");
-                code = ReplyInfo.Code3001ResponseIsNull;
-                message = ReplyInfo.Msg3001ResponseIsNull;
+                code = ReplyCodeMessage.Code3001ResponseIsNull;
+                message = ReplyCodeMessage.Msg3001ResponseIsNull;
                 return false;
             }
 
             if (httpResponse == null) {
                 log.debug("httpResponse == null.");
-                code = ReplyInfo.Code3001ResponseIsNull;
-                message = ReplyInfo.Msg3001ResponseIsNull;
+                code = ReplyCodeMessage.Code3001ResponseIsNull;
+                message = ReplyCodeMessage.Msg3001ResponseIsNull;
                 return false;
             }
 
             if (httpResponse.getStatusLine().getStatusCode() != 200) {
                 log.debug("Post response status: {}.{}", httpResponse.getStatusLine().getStatusCode(), httpResponse.getStatusLine().getReasonPhrase());
-                if(httpResponse.getHeaders(UpStrings.CODE)!=null){
+                if(httpResponse.getHeaders(UpStrings.CODE)!=null&&httpResponse.getHeaders(UpStrings.CODE).length>0){
                     if(httpResponse.getHeaders(UpStrings.CODE)[0]!=null) {
                         code = Integer.valueOf(httpResponse.getHeaders(UpStrings.CODE)[0].getValue());
-                        message = ReplyInfo.getMsg(code);
+                        message = ReplyCodeMessage.getMsg(code);
+                        log.debug("Code:{}. Message:{}",code,message);
                     }
                 }else {
-                    code = ReplyInfo.Code3006ResponseStatusWrong;
-                    message = ReplyInfo.Msg3006ResponseStatusWrong + ": " + httpResponse.getStatusLine().getStatusCode();
+                    code = ReplyCodeMessage.Code3006ResponseStatusWrong;
+                    message = ReplyCodeMessage.Msg3006ResponseStatusWrong + ": " + httpResponse.getStatusLine().getStatusCode();
+                    log.debug("Code:{}. Message:{}",code,message);
                 }
                 return false;
             }
+
+            parseResponseHeader();
 
             switch (responseBodyType){
                 case STRING ->{
                     responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
                     responseBodyStr = new String(responseBodyBytes);
-                    boolean done =parseFcResponse(httpResponse);
-                    if(!done)return false;
+                    try {
+                        this.responseBody = new Gson().fromJson(responseBodyStr, FcReplier.class);
+                    } catch (JsonSyntaxException ignore) {
+                        log.debug("Failed to parse responseBody json.");
+                        return false;
+                    }
                 }
-                case BYTES -> {
-                    responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
-                }
+                case BYTES -> responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
                 case FILE -> {
                     String fileName;
                     if(responseFileName==null)fileName= StringTools.getTempName();
@@ -517,33 +536,43 @@ public class ClientTask {
                     if(responseFileName==null){
                         Files.move(Paths.get(fileName),Paths.get(gotDid), StandardCopyOption.REPLACE_EXISTING);
                     }
-                    if(responseBody==null)responseBody=new ResponseBody();
-                    responseBody.setCode(ReplyInfo.Code0Success);
-                    responseBody.setMessage(ReplyInfo.Msg0Success);
+                    if(responseBody==null)responseBody=new FcReplier();
+                    responseBody.setCode(ReplyCodeMessage.Code0Success);
+                    responseBody.setMessage(ReplyCodeMessage.Msg0Success);
                     responseBody.setData(gotDid);
                 }
                 default -> {
-                    code = ReplyInfo.Code1020OtherError;
+                    code = ReplyCodeMessage.Code1020OtherError;
                     message = "ResponseBodyType is null.";
+                    log.debug("Code:{}. Message:{}",code,message);
                     return false;
                 }
             }
         } catch (Exception e) {
             log.error("Error when requesting post.", e);
-            code = ReplyInfo.Code3007ErrorWhenRequestingPost;
-            message = ReplyInfo.Msg3007ErrorWhenRequestingPost+":"+e.getMessage();
+            code = ReplyCodeMessage.Code3007ErrorWhenRequestingPost;
+            message = ReplyCodeMessage.Msg3007ErrorWhenRequestingPost+":"+e.getMessage();
+            log.debug("Code:{}. Message:{}",code,message);
             return false;
         }
 
-        if (responseHeaderMap != null && responseHeaderMap.get(UpStrings.SIGN) != null) {
+
+        if (responseHeaderMap != null && responseHeaderMap.get(SIGN) != null) {
             if (sessionKey==null || !checkResponseSign(sessionKey)) {
-                code = ReplyInfo.Code1008BadSign;
-                message = ReplyInfo.Msg1008BadSign;
+                code = ReplyCodeMessage.Code1008BadSign;
+                message = ReplyCodeMessage.Msg1008BadSign;
+                log.debug("Code:{}. Message:{}",code,message);
                 return false;
             }
         }
-
         return checkResponseCode();
+    }
+
+    private void parseResponseHeader() {
+        this.responseHeaderMap = getHeaders(httpResponse);
+        String sign = this.responseHeaderMap.get(SIGN);
+        String sessionName = this.responseHeaderMap.get(SESSION_NAME);
+        this.signatureOfResponse = new Signature(sign, sessionName);
     }
 
     public void makeRequestBody() {
@@ -611,7 +640,7 @@ public class ClientTask {
 
         signatureOfRequest = new Signature(fid, requestBodyStr, sign, AlgorithmId.EccAes256K1P7_No1_NrC7.name());
         requestHeaderMap.put(UpStrings.FID, fid);
-        requestHeaderMap.put(UpStrings.SIGN, signatureOfRequest.getSign());
+        requestHeaderMap.put(SIGN, signatureOfRequest.getSign());
     }
     protected void makeFcdslRequest(@Nullable String via, @Nullable Fcdsl fcdsl) {
         requestBody = new RequestBody(apiUrl.getUrl(), via);
@@ -641,7 +670,7 @@ public class ClientTask {
         signatureOfRequest = new Signature(sign, ApipTools.getSessionName(sessionKey));
         if(requestHeaderMap==null)requestHeaderMap=new HashMap<>();
         requestHeaderMap.put(UpStrings.SESSION_NAME, signatureOfRequest.getSymKeyName());
-        requestHeaderMap.put(UpStrings.SIGN, signatureOfRequest.getSign());
+        requestHeaderMap.put(SIGN, signatureOfRequest.getSign());
     }
 
     //
@@ -711,15 +740,14 @@ public class ClientTask {
         Gson gson = new Gson();
         String sign;
         try {
-            this.responseBody = gson.fromJson(responseBodyStr, ResponseBody.class);
+            this.responseBody = gson.fromJson(responseBodyStr, FcReplier.class);
         } catch (JsonSyntaxException ignore) {
             return false;
         }
 
-        if (response.getHeaders(UpStrings.SIGN) != null && response.getHeaders(UpStrings.SIGN).length > 0) {
-            sign = response.getHeaders(UpStrings.SIGN)[0].getValue();
-            this.responseHeaderMap = new HashMap<>();
-            this.responseHeaderMap.put(UpStrings.SIGN, sign);
+        if (response.getHeaders(SIGN) != null && response.getHeaders(SIGN).length > 0) {
+            sign = response.getHeaders(SIGN)[0].getValue();
+            this.responseHeaderMap.put(SIGN, sign);
             String symKeyName = null;
             if (response.getHeaders(UpStrings.SESSION_NAME) != null && response.getHeaders(UpStrings.SESSION_NAME).length > 0) {
                 symKeyName = response.getHeaders(UpStrings.SESSION_NAME)[0].getValue();
@@ -728,6 +756,17 @@ public class ClientTask {
             this.signatureOfResponse = new Signature(sign, symKeyName);
         }
         return true;
+    }
+
+    public static Map<String, String> getHeaders(HttpResponse response) {
+        Map<String, String> headersMap = new HashMap<>();
+        Header[] headers = response.getAllHeaders();
+
+        for (Header header : headers) {
+            headersMap.put(header.getName(), header.getValue());
+        }
+
+        return headersMap;
     }
 
     public boolean checkResponseSign(byte[] symKey) {
@@ -790,11 +829,11 @@ public class ClientTask {
         this.responseHeaderMap = responseHeaderMap;
     }
 
-    public ResponseBody getResponseBody() {
+    public FcReplier getResponseBody() {
         return responseBody;
     }
 
-    public void setResponseBody(ResponseBody responseBody) {
+    public void setResponseBody(FcReplier responseBody) {
         this.responseBody = responseBody;
     }
 

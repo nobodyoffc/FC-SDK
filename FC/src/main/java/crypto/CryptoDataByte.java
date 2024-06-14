@@ -5,10 +5,7 @@ import fcData.AlgorithmId;
 import javaTools.BytesTools;
 import javaTools.Hex;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -54,6 +51,15 @@ public class CryptoDataByte {
 
     public static CryptoDataByte readFromFileStream(FileInputStream fis) throws IOException {
         byte[] jsonBytes = readOneJsonFromFile(fis);
+        if (jsonBytes == null) return null;
+        return fromJson(new String(jsonBytes));
+    }
+    public static CryptoDataByte readFromFile(String fileName,String path) throws IOException {
+        byte[] jsonBytes;
+        File file = new File(path,fileName);
+        try(FileInputStream fis = new FileInputStream(file)) {
+            jsonBytes = readOneJsonFromFile(fis);
+        }
         if (jsonBytes == null) return null;
         return fromJson(new String(jsonBytes));
     }
@@ -397,6 +403,9 @@ public class CryptoDataByte {
             this.did = Hash.sha256x2(data);
         }
     }
+    public boolean checkSum() {
+        return checkSum(this.alg);
+    }
     public boolean checkSum(AlgorithmId algorithmId) {
         byte[] newSum;
         switch (algorithmId){
@@ -423,5 +432,9 @@ public class CryptoDataByte {
             return false;
         }
         return true;
+    }
+
+    public void printCodeMessage() {
+        System.out.println(code+" : "+ message);
     }
 }

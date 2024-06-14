@@ -27,17 +27,22 @@ public class Shower {
 
         System.out.println("\n<" + title + ">");
         printUnderline(totalWidth);
+        int ordinalLength = String.valueOf(valueListList.size()).length();
+        System.out.print(formatString("", ordinalLength +1));
         for (int i = 0; i < fields.length; i++) {
             System.out.print(formatString(fields[i], widths[i] + 2));
         }
         System.out.println();
         printUnderline(totalWidth);
 
-        for (List<Object> valueList : valueListList) {
-            for (int i = 0; i < valueList.size(); i++) {
+//        for (List<Object> valueList : valueListList) {
+        for(int i = 0; i < valueListList.size(); i++){
+            System.out.print(formatString(String.valueOf(i+1),ordinalLength+1));
+            List<Object> valueList = valueListList.get(i);
+            for (int j = 0; j < valueList.size(); j++) {
 
-                String str = String.valueOf(valueList.get(i));
-                int width = widths[i];
+                String str = String.valueOf(valueList.get(j));
+                int width = widths[j];
                 if(str.length()>width){
                     if(str.length()<6){
                         width=str.length();

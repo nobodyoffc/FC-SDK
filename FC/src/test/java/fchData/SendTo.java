@@ -6,7 +6,7 @@ import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import static FCH.Inputer.inputGoodFid;
+import static fch.Inputer.inputGoodFid;
 
 public class SendTo {
     private String fid;

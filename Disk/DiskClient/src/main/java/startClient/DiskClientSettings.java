@@ -3,7 +3,9 @@ package startClient;
 import appTools.Menu;
 import clients.apipClient.ApipClient;
 import config.ApiAccount;
+import config.ApiProvider;
 import config.ApiType;
+import feip.feipData.Service;
 import redis.clients.jedis.JedisPool;
 import config.Configure;
 import server.Settings;
@@ -14,30 +16,35 @@ public class DiskClientSettings extends Settings {
     String diskAccountId;
     private transient ApiAccount diskAccount;
 
+    public DiskClientSettings() {
+    }
+
+    @Override
+    public Service initiateServer(String sid, byte[] symKey, Configure config, BufferedReader br) {
+        return null;
+    }
+
     public DiskClientSettings(Configure config, BufferedReader br) {
         super(config, br);
     }
 
-    @Override
-    public void initiate(byte[] symKey, Configure config) {
+    public String initiateClient(String fid, byte[] symKey, Configure config, BufferedReader br) {
         System.out.println("Initiating APP settings...");
-        this.config=config;
+        setInitForClient(fid, config, br);
 
-        apipAccountId=config.getInitApipAccountId();
-        apipAccount = config.getApiAccountMap().get(apipAccountId);
-        if(apipAccount.getClient()==null)
-            apipAccount.connectApip(config.getApiProviderMap().get(apipAccount.getSid()),symKey);
+        mainFidPriKeyCipher = config.getFidCipherMap().get(mainFid);
+        apipAccount = checkApipAccount(apipAccountId,config,symKey,null);
+        if(apipAccount.getClient()!=null)apipAccountId=apipAccount.getId();
+        else System.out.println("No APIP service.");
 
-        if(diskAccountId==null) {
-            diskAccount = config.initFcAccount((ApipClient) apipAccount.getClient(), ApiType.DISK,symKey);
-            diskAccountId = diskAccount.getId();
-        }else {
-            diskAccount = config.getApiAccountMap().get(diskAccountId);
-            diskAccount.setApipClient((ApipClient) apipAccount.getClient());
-            diskAccount.connectApi(config.getApiProviderMap().get(diskAccount.getSid()),symKey);
-        }
-        saveSettings();
+        diskAccount = checkFcAccount(diskAccountId,ApiType.DISK,config,symKey, (ApipClient) apipAccount.getClient());
+        if(diskAccount!=null && diskAccount.getClient()!=null)diskAccountId=diskAccount.getId();
+        else System.out.println("No Disk service.");
+
+        saveSettings(mainFid);
+        config.saveConfig();
         System.out.println("Service settings initiated.");
+        return mainFid;
     }
 
     @Override
@@ -50,31 +57,49 @@ public class DiskClientSettings extends Settings {
     }
 
     @Override
-    public void saveSettings() {
-        writeToFile();
+    public void saveSettings(String mainFid) {
+        writeToFile(mainFid);
     }
 
     @Override
     public void resetLocalSettings(byte[] symKey) {
+        System.out.println("No local settings.");
+        Menu.anyKeyToContinue(br);
+
+//        Menu menu = new Menu();
+//        menu.add("Reset listenPath");
+//        menu.add("Reset account");
+//        menu.add("minPayment");
+//        int choice = menu.choose(br);
+//        menu.show();
+//        switch (choice){
+//            case 1 -> updateAll(br);
+//        }
+    }
+
+//    @Override
+//    public Object resetDefaultApi(byte[] symKey, ApiType apiType) {
+//        return null;
+//    }
+
+    @Override
+    public void resetApis(byte[] symKey, JedisPool jedisPool, ApipClient apipClient){
         Menu menu = new Menu();
-        menu.add("Reset listenPath");
-        menu.add("Reset account");
-        menu.add("minPayment");
-        int choice = menu.choose(br);
-        menu.show();
-        switch (choice){
-            case 1 -> updateAll(br);
+        menu.setName("Reset APIs for Disk client");
+        menu.add("Reset APIP");
+        menu.add("Reset DISK");
+
+        while (true) {
+            menu.show();
+            int choice = menu.choose(br);
+            switch (choice) {
+                case 1 -> resetApi(symKey, apipClient, ApiType.APIP);
+                case 2 -> resetApi(symKey, apipClient, ApiType.DISK);
+                default -> {
+                    return;
+                }
+            }
         }
-    }
-
-    @Override
-    public Object resetDefaultApi(byte[] symKey, ApiType apiType) {
-        return null;
-    }
-
-    @Override
-    public void resetApis(byte[] symKey, JedisPool jedisPool) {
-
     }
 
     @Override

@@ -1,7 +1,7 @@
 package clients.apipClient;
 
-import APIP.apipData.Fcdsl;
-import APIP.apipData.RequestBody;
+import apip.apipData.Fcdsl;
+import apip.apipData.RequestBody;
 import constants.ApiNames;
 
 import javax.annotation.Nullable;

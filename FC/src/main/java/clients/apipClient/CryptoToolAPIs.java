@@ -1,13 +1,13 @@
 package clients.apipClient;
 
-import APIP.apipData.EncryptIn;
-import APIP.apipData.Fcdsl;
+import apip.apipData.EncryptIn;
+import apip.apipData.Fcdsl;
 import com.google.gson.Gson;
 import constants.ApiNames;
 import javaTools.Hex;
 import javaTools.JsonTools;
-import FCH.DataForOffLineTx;
-import FCH.fchData.SendTo;
+import fch.DataForOffLineTx;
+import fch.fchData.SendTo;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Type;

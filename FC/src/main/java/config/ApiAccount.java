@@ -1,18 +1,18 @@
 package config;
 
-import APIP.ApipTools;
-import APIP.apipData.RequestBody;
-import FEIP.feipData.serviceParams.ApipParams;
-import APIP.apipData.Session;
-import FCH.ParseTools;
-import FCH.TxCreator;
-import FCH.fchData.Cash;
-import FCH.fchData.SendTo;
-import FEIP.feipData.Service;
-import FEIP.feipData.serviceParams.DiskParams;
-import FEIP.feipData.serviceParams.Params;
-import NaSa.NaSaRpcClient;
-import NaSa.RPC.GetBlockchainInfo;
+import apip.ApipTools;
+import apip.apipData.RequestBody;
+import feip.feipData.serviceParams.ApipParams;
+import apip.apipData.Session;
+import fch.ParseTools;
+import fch.TxCreator;
+import fch.fchData.Cash;
+import fch.fchData.SendTo;
+import feip.feipData.Service;
+import feip.feipData.serviceParams.DiskParams;
+import feip.feipData.serviceParams.Params;
+import nasa.NaSaRpcClient;
+import nasa.RPC.GetBlockchainInfo;
 import appTools.Inputer;
 import appTools.Menu;
 import clients.ApiUrl;
@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import server.Settings;
 
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
@@ -66,6 +67,7 @@ public class ApiAccount {
     private String userPubKey;
     private String userPriKeyCipher;
     private Session session;
+    private Map<String,Double> payments;
     private transient byte[] sessionKey;
     private transient Service service;
     private transient Params serviceParams;
@@ -107,7 +109,7 @@ public class ApiAccount {
             case APIP -> {
                 return connectApip(apiProvider,symKey,br);
             }
-            case NASARPC -> {
+            case NASA_RPC -> {
                 return connectNaSaRPC(symKey);
             }
             case ES -> {
@@ -135,7 +137,7 @@ public class ApiAccount {
             case APIP -> {
                 return connectApip(apiProvider,symKey);
             }
-            case NASARPC -> {
+            case NASA_RPC -> {
                 return connectNaSaRPC(symKey);
             }
             case ES -> {
@@ -331,7 +333,6 @@ public class ApiAccount {
             return null;
         }
         String signInPath = ApiUrl.makeUrlTailPath(ApiNames.DiskApiType, ApiNames.SN_0, ApiNames.VersionV1);
-
         byte[] sessionKey1 = checkSessionKey(symKey,signInPath, apiProvider.getType());
 
         if(sessionKey1==null) return null;
@@ -367,7 +368,7 @@ public class ApiAccount {
     public byte[] inputPriKeyCipher(BufferedReader br, byte[] symKey) {
         byte[] priKey32;
         while (true) {
-            String input = FCH.Inputer.inputString(br, "Generate a new private key? y/n");
+            String input = fch.Inputer.inputString(br, "Generate a new private key? y/n");
             if ("y".equals(input)) {
                 priKey32 = KeyTools.genNewFid(br).getPrivKeyBytes();
             } else {
@@ -437,7 +438,7 @@ public class ApiAccount {
 
         System.out.println("Input the urlHead of the APIP service. Enter to set as 'https://cid.cash/APIP':");
 
-        String urlHead = FCH.Inputer.inputString(br);
+        String urlHead = fch.Inputer.inputString(br);
 
         if ("".equals(urlHead)) {
             urlHead = "https://cid.cash/APIP";
@@ -564,7 +565,7 @@ public class ApiAccount {
             if(type==null)type = chooseOne(ApiType.values(),"Choose the type:",br);
 
             switch (type) {
-                case NASARPC,ES -> {
+                case NASA_RPC,ES -> {
                     inputUsername(br);
                     inputPasswordCipher(symKey, br);
                 }
@@ -685,7 +686,7 @@ public class ApiAccount {
         if(Inputer.askIfYes(br,"Set the API buyer priKey?"))
             while(true) {
                 try {
-                    String cipherJson = FCH.Inputer.inputPriKeyCipher(br, symKey);
+                    String cipherJson = fch.Inputer.inputPriKeyCipher(br, symKey);
                     if(cipherJson==null){
                         System.out.println("Wrong input. Try again.");
                         continue;
@@ -793,7 +794,8 @@ public class ApiAccount {
         return true;
     }
 
-    public double buyApi(byte[] symKey) {
+    public double buyApi(byte[] symKey,ApipClient apipClient) {
+        if(apipClient==null) apipClient = Settings.getFreeApipClient();
         byte[] priKey = decryptUserPriKey(userPriKeyCipher, symKey);
 
         long minPay = ParseTools.fchStrToSatoshi(serviceParams.getMinPayment());
@@ -834,9 +836,11 @@ public class ApiAccount {
         }
 
         log.debug("Paid for APIP service: " + payValue + " f to " + serviceParams.getAccount() + ". \nWait for confirmation for a few minutes.");
-        log.debug("RawTx: " + txHex);
+//        log.debug("RawTx: " + txHex);
         log.debug("TxId: " + result);
         BytesTools.clearByteArray(priKey);
+        if(payments==null)payments=new HashMap<>();
+        payments.put(result,payValue);
         return payValue;
     }
 
@@ -1001,12 +1005,11 @@ public class ApiAccount {
 
         client1.setSessionKey(sessionKey);
 
-
-        boolean done = client1.pingFree(type);
-//        Service service1 = serviceMap.get(sid);
-//        freshApipService(service1);
-        if(isBalanceSufficient()) buyApi(symKey);
-        if(done)return sessionKey;
+        Long rest = client1.ping(type);
+        if(rest!=null){
+            log.info(rest+" KB/requests are available on "+ apiUrl);
+            return sessionKey;
+        }
         else return null;
     }
 
@@ -1029,7 +1032,7 @@ public class ApiAccount {
         Map<String, Service> serviceMap = client1.serviceMapByIds(new String[]{sid});
         Service service1 = serviceMap.get(sid);
         freshApipService(service1);
-        if(isBalanceSufficient()) buyApi(symKey);
+        if(isBalanceSufficient()) buyApi(symKey,apipClient);
         return sessionKey;
     }
 
@@ -1089,8 +1092,6 @@ public class ApiAccount {
 //    }
     public byte[] freshSessionKey(byte[] symKey, String signInPath,ApiType type, RequestBody.SignInMode mode) {
         System.out.println("Fresh the sessionKey of the "+type+" service...");
-//        byte[] sessionKey = new byte[0];
-//        String sessionKeyCipher;
         byte[] priKey = decryptUserPriKey(userPriKeyCipher,symKey);
         if(priKey==null)return null;
         Session session;
@@ -1101,10 +1102,6 @@ public class ApiAccount {
             }
             case DISK -> {
                 DiskClient diskClient = (DiskClient) client;
-//                diskClient.setProtocol(ApiNames.DiskApiProtocol);
-//                diskClient.setVersion(ApiNames.VersionV1);
-//                diskClient.makeUrlTailPath();
-//                diskClient.setSignInUrlTailPath(diskClient.getUrlTailPath());
                 session = diskClient.signInEcc(this,ApiType.DISK,RequestBody.SignInMode.NORMAL,symKey);
             }
             default -> {
@@ -1157,7 +1154,7 @@ public class ApiAccount {
         String input;
 
         System.out.println("The urlHead:\n" + apiUrl + "\nInput the new one. Enter to skip:");
-        input = FCH.Inputer.inputString(br);
+        input = fch.Inputer.inputString(br);
         if (!"".equals(input)) {
             apiUrl = input;
             Service service = getService(apiUrl);
@@ -1166,13 +1163,13 @@ public class ApiAccount {
         }
 
         String ask = "The via FID is :" + via + "\nInput the new one. Enter to skip:";
-        input = FCH.Inputer.inputGoodFid(br, ask);
+        input = fch.Inputer.inputGoodFid(br, ask);
         if (input != null && !"".equals(input)) via = input;
 
 
         while (true) {
             System.out.println("The buyerPriKeyCipher:\n" + userPriKeyCipher + ".\nChange it? y/n:");
-            input = FCH.Inputer.inputString(br);
+            input = fch.Inputer.inputString(br);
             if ("n".equals(input)) break;
             if ("y".equals(input)) {
                 inputPriKeyCipher(br, symKey);
@@ -1202,7 +1199,7 @@ public class ApiAccount {
 
     public void inputApiUrl(BufferedReader br) {
         System.out.println("Input the urlHead of the APIP service. Enter to set as 'https://cid.cash/APIP':");
-        String input = FCH.Inputer.inputString(br);
+        String input = fch.Inputer.inputString(br);
         if (input.endsWith("/")) input = input.substring(0, input.length() - 1);
         if ("".equals(input)) {
             this.apiUrl = "https://cid.cash/APIP";
@@ -1212,7 +1209,7 @@ public class ApiAccount {
     public void inputVia(BufferedReader br) {
         String input;
         String ask = "Input the FID by whom you knew this service. Default: 'FJYN3D7x4yiLF692WUAe7Vfo2nQpYDNrC7'";
-        input = FCH.Inputer.inputString(br,ask);
+        input = fch.Inputer.inputString(br,ask);
         while(true) {
             if ("".equals(input)) {
                 this.via = "FJYN3D7x4yiLF692WUAe7Vfo2nQpYDNrC7";
@@ -1434,5 +1431,13 @@ public class ApiAccount {
 
     public void setUserPubKey(String userPubKey) {
         this.userPubKey = userPubKey;
+    }
+
+    public Map<String, Double> getPayments() {
+        return payments;
+    }
+
+    public void setPayments(Map<String, Double> payments) {
+        this.payments = payments;
     }
 }

@@ -1,23 +1,22 @@
 package clients.diskClient;
 
-import APIP.apipData.Fcdsl;
+import apip.apipData.Fcdsl;
 import clients.ApiUrl;
 import clients.Client;
 import clients.ClientTask;
 import clients.apipClient.ApipClient;
 import clients.apipClient.DataGetter;
-import com.google.gson.Gson;
 import config.ApiAccount;
 import config.ApiProvider;
 import config.ApiType;
 import constants.ApiNames;
 import constants.Constants;
-import constants.ReplyInfo;
+import constants.ReplyCodeMessage;
 import crypto.*;
 import crypto.Hash;
+import javaTools.BytesTools;
 import javaTools.FileTools;
 import javaTools.Hex;
-import javaTools.JsonTools;
 import javaTools.StringTools;
 import javaTools.http.AuthType;
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +36,7 @@ import static fcData.AlgorithmId.FC_EccK1AesCbc256_No1_NrC7;
 public class DiskClient extends Client {
 
     public DiskClient(ApiProvider apiProvider, ApiAccount apiAccount, byte[] symKey, ApipClient apipClient) {
-        super(apiProvider,apiAccount,symKey,apipClient);
+        super(apiProvider, apiAccount, symKey, apipClient);
         this.signInUrlTailPath= ApiUrl.makeUrlTailPath(ApiNames.DiskApiType,ApiNames.SN_0,ApiNames.VersionV1);
     }
 
@@ -50,100 +49,31 @@ public class DiskClient extends Client {
         if(result1.getCode()!=0)return null;
         String cipherFileName;
         try {
-            cipherFileName = Hex.toHex(result1.getDid());
+            cipherFileName = Hash.sha256x2(new File(tempFileName));
             Files.move(Paths.get(tempFileName),Paths.get(cipherFileName));
         } catch (IOException e) {
             return null;
         }
         return cipherFileName;
-
-//        EccAes256K1P7 ecc = new EccAes256K1P7();
-//
-//        byte[] priKey = EccAes256K1P7.decryptJsonBytes(priKeyCipher, symKey);
-//        byte[] pubKey = KeyTools.priKeyToPubKey(priKey);
-//        File file = new File(fileName);
-//        ecc.encrypt(file, Hex.toHex(pubKey));
-//        fileName = EccAes256K1P7.getEncryptedFileName(fileName);
-//
-//        return fileName;
     }
 
-    public static boolean decryptFile(String sourceFileName, String sourcePath, String destFileName, String destPath, byte[] symKey, String priKeyCipher) {
-        try {
-            Gson gson = new Gson();
-//            Affair affair = JsonTools.readOneJsonFromFile(sourcePath, sourceFileName,Affair.class);
-//            if (affair == null) {
-//                return false;
-//            }
-
-//            if (affair.getData() == null){
-//                System.out.println("Failed to decrypt. Affair.data is null.");
-//                return false;
-//            }
-            CryptoDataStr cryptoDataStr = JsonTools.readOneJsonFromFile(sourcePath, sourceFileName, CryptoDataStr.class);
-            if (cryptoDataStr == null){
-                return false;
-            }
-        } catch (IOException ignore) {
-            return false;
+    @Nullable
+    public static String decryptFile(String path, String gotFile,byte[]symKey,String priKeyCipher) {
+        CryptoDataByte cryptoDataByte = new Decryptor().decryptJsonBySymKey(priKeyCipher,symKey);
+        if(cryptoDataByte.getCode()!=0){
+            log.debug("Failed to decrypt the user priKey.");
+            log.debug(cryptoDataByte.getMessage());
+            return null;
         }
-        System.out.println("Decrypting...");
-        Decryptor decryptorSym = new Decryptor();
-        CryptoDataByte cryptoDataByte = decryptorSym.decryptJsonBySymKey(priKeyCipher, symKey);
-
-        Decryptor decryptor = new Decryptor();
         byte[] priKey = cryptoDataByte.getData();
-
-        CryptoDataByte cryptoDataByte1 =
-                decryptor.decryptFileByAsyOneWay(sourcePath, sourceFileName, destPath, destFileName, priKey);
-
+        CryptoDataByte cryptoDataByte1 = new Decryptor().decryptFileToDidByAsyOneWay(path, gotFile, path, priKey);
         if(cryptoDataByte1.getCode()!=0){
-            System.out.println(CryptoCodeMessage.getErrorStringCodeMsg(cryptoDataByte1.getCode()));
-            return false;
+            log.debug("Failed to decrypt file "+ Path.of(path, gotFile));
+            return null;
         }
-        System.out.println("Original DID:"+Hex.toHex(cryptoDataByte1.getDid()));
-        return true;
-//
-//        File file = new File(sourcePath, sourceFileName);
-//
-//        EccAes256K1P7 ecc = new EccAes256K1P7();
-//        byte[] priKey = EccAes256K1P7.decryptJsonBytes(priKeyCipher, symKey);
-//        ecc.decrypt(file,priKey);
-//        File encryptedFile = new File(sourcePath,EccAes256K1P7.getDecryptedFileName(destFileName));
-//        String newDid;
-//        try {
-//            newDid = Hash.sha256(encryptedFile);
-//            System.out.println("Original DID:"+newDid);
-//        } catch (IOException e) {
-//            System.out.println("Failed to hash new file.");
-//            return false;
-//        }
-//        File dest = new File(destPath,newDid);
-//        boolean done = encryptedFile.renameTo(dest);
-//        if(done){
-//            System.out.println("Decrypted to: "+dest.getAbsolutePath());
-//            file.delete();
-//        }
-//        else{
-//            System.out.println("Failed to rename the file.");
-//            return false;
-//        }
-//        return true;
+        BytesTools.clearByteArray(priKey);
+        return Hex.toHex(cryptoDataByte1.getDid());
     }
-
-
-//    public String putPost(byte[] dataPut) {
-//        clientData = new ClientData();
-//
-//        String url = makeUrlForSign();
-//        clientData.setUrl(url);
-//
-//        clientData.postBinaryWithUrlSign(sessionKey, dataPut);
-//        Object data = checkResult("put", ApiType.DISK);
-//        if(sessionFreshen)data = checkResult("put", ApiType.DISK);
-//        if(data==null)return null;
-//        return ApipDataGetter.getStringMap(data).get(FieldNames.DID);
-//    }
 
     public String getFree(String did, String localPath) {
         localPath = checkLocalPath(localPath);
@@ -160,12 +90,15 @@ public class DiskClient extends Client {
         localPath = checkLocalPath(localPath);
         if (localPath == null) return null;
         Map<String,String> urlParamMap= new HashMap<>();
-
         urlParamMap.put(DID,did);
         clientTask = new ClientTask(sessionKey, apiAccount.getApiUrl(), ApiNames.DiskApiType, ApiNames.SN_0, ApiNames.VersionV1, ApiNames.GetApi, apiAccount.getVia(), AuthType.FC_SIGN_URL, urlParamMap);
-        boolean done = clientTask.get(sessionKey,did,localPath );
-        if(done)return (String) clientTask.getResponseBody().getData();
-        else return clientTask.getMessage();
+        clientTask.get(sessionKey,did,localPath );
+
+//        checkBalance(apiAccount,clientTask,symKey);
+//        if(done)return (String) clientTask.getResponseBody().getData();
+        Object data = checkResult();
+        if(data!=null)return (String) data;
+        return clientTask.getMessage();
     }
 
     public String check(String did) {
@@ -324,13 +257,13 @@ public class DiskClient extends Client {
         try {
             localDid = Hash.sha256x2(new File(fileName));
         } catch (IOException e) {
-            clientTask.setCode(ReplyInfo.Code1020OtherError);
+            clientTask.setCode(ReplyCodeMessage.Code1020OtherError);
             clientTask.setMessage("Failed to hash local file.");
             return null;
         }
         if(localDid.equals(respondDid))return respondDid;
         else {
-            clientTask.setCode(ReplyInfo.Code1020OtherError);
+            clientTask.setCode(ReplyCodeMessage.Code1020OtherError);
             clientTask.setMessage("Wrong DID."+"\nLocal DID:"+localDid+"\nrespond DID:"+respondDid);
             return null;
         }
@@ -347,14 +280,14 @@ public class DiskClient extends Client {
             try {
                 localDid = Hash.sha256x2(new File(fileName));
             } catch (IOException e) {
-                clientTask.setCode(ReplyInfo.Code1020OtherError);
+                clientTask.setCode(ReplyCodeMessage.Code1020OtherError);
                 clientTask.setMessage("Failed to hash local file.");
                 return null;
             }
             if(localDid.equals(respondDid))
                 return respondDid;
             else {
-                clientTask.setCode(ReplyInfo.Code1020OtherError);
+                clientTask.setCode(ReplyCodeMessage.Code1020OtherError);
                 clientTask.setMessage("Wrong DID."+"\nLocal DID:"+localDid+"\nrespond DID:"+respondDid);
                 return null;
             }

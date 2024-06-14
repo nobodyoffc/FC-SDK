@@ -1,10 +1,11 @@
 package server;
 
 import appTools.Menu;
+import clients.apipClient.ApipClient;
 import config.ApiAccount;
 import config.ApiProvider;
-import config.ApiType;
 import config.Configure;
+import feip.feipData.Service;
 import redis.clients.jedis.JedisPool;
 
 import java.io.BufferedReader;
@@ -16,8 +17,14 @@ public class SwapSettings extends Settings {
     private String naSaNodeAccountId;
 
     @Override
-    public void initiate(byte[] symKey, Configure config) {
+    public Service initiateServer(String sid, byte[] symKey, Configure config, BufferedReader br) {
 
+        return null;
+    }
+
+    @Override
+    public String initiateClient(String fid, byte[] symKey, Configure config, BufferedReader br) {
+        return null;
     }
 
     @Override
@@ -31,7 +38,7 @@ public class SwapSettings extends Settings {
     }
 
     @Override
-    public void saveSettings() {
+    public void saveSettings(String mainFid) {
 
     }
 
@@ -40,32 +47,32 @@ public class SwapSettings extends Settings {
         System.out.println("Reset settings.");
     }
 
-    @Override
-    public Object resetDefaultApi(byte[] symKey, ApiType apiType) {
-        System.out.println("Reset API service...");
-        ApiProvider apiProvider = config.chooseApiProviderOrAdd();
-        ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, symKey);
-        Object client = null;
-        if (apiAccount != null) {
-            client = apiAccount.connectApi(apiProvider, symKey, br, null);
-            if (client != null) {
-                switch (apiType) {
-                    case APIP -> apipAccountId=apiAccount.getId();
-                    case NASARPC -> naSaNodeAccountId=apiAccount.getId();
-                    case ES -> esAccountId=apiAccount.getId();
-                    case REDIS -> redisAccountId=apiAccount.getId();
-                    default -> {
-                        return client;
-                    }
-                }
-                System.out.println("Done.");
-            } else System.out.println("Failed to connect the apiAccount: " + apiAccount.getApiUrl());
-        } else System.out.println("Failed to get the apiAccount.");
-        return client;
-    }
+//    @Override
+//    public Object resetDefaultApi(byte[] symKey, ApiType apiType) {
+//        System.out.println("Reset API service...");
+//        ApiProvider apiProvider = config.chooseApiProviderOrAdd();
+//        ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, symKey);
+//        Object client = null;
+//        if (apiAccount != null) {
+//            client = apiAccount.connectApi(apiProvider, symKey, br, null);
+//            if (client != null) {
+//                switch (apiType) {
+//                    case APIP -> apipAccountId=apiAccount.getId();
+//                    case NASARPC -> naSaNodeAccountId=apiAccount.getId();
+//                    case ES -> esAccountId=apiAccount.getId();
+//                    case REDIS -> redisAccountId=apiAccount.getId();
+//                    default -> {
+//                        return client;
+//                    }
+//                }
+//                System.out.println("Done.");
+//            } else System.out.println("Failed to connect the apiAccount: " + apiAccount.getApiUrl());
+//        } else System.out.println("Failed to get the apiAccount.");
+//        return client;
+//    }
 
     @Override
-    public void resetApis(byte[] symKey,JedisPool jedisPool){
+    public void resetApis(byte[] symKey, JedisPool jedisPool, ApipClient apipClient){
         Menu menu = new Menu();
         menu.add("Reset initial APIP");
         menu.add("Reset NaSa node");
@@ -73,8 +80,8 @@ public class SwapSettings extends Settings {
         menu.add("Reset memory database");
         while (true) {
             System.out.println("Reset default API service...");
-            ApiProvider apiProvider = config.chooseApiProviderOrAdd();
-            ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, symKey);
+            ApiProvider apiProvider = config.chooseApiProviderOrAdd(config.getApiProviderMap(), apipClient);
+            ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, symKey,apipClient);
 
             if (apiAccount != null) {
                 Object client = apiAccount.connectApi(config.getApiProviderMap().get(apiAccount.getSid()), symKey, br, null);

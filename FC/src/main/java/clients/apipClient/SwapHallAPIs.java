@@ -1,13 +1,15 @@
 package clients.apipClient;
 
-import APIP.apipData.Fcdsl;
+import apip.apipData.Fcdsl;
 import constants.ApiNames;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import static javaTools.StringTools.listToString;
 import static javaTools.http.AuthType.FC_SIGN_BODY;
 import static constants.FieldNames.*;
 import static javaTools.StringTools.arrayToString;
@@ -32,14 +34,14 @@ public class SwapHallAPIs {
         return apipClientData;
     }
 
-    public static ApipClientTask getSwapInfo(String urlHead, @Nullable String[] sid, @Nullable String[] last) {
+    public static ApipClientTask getSwapInfo(String urlHead, @Nullable String[] sid, @Nullable List<String> last) {
 
         Map<String,String>paramMap = new HashMap<>();
         if (sid != null) {
             String sidStr = arrayToString(sid);
             paramMap.put(SID,sidStr);
         } else if (last != null) {
-            String lastStr = arrayToString(last);
+            String lastStr = listToString(last);
             paramMap.put(LAST,lastStr);
         }
 
@@ -92,7 +94,7 @@ public class SwapHallAPIs {
         return apipClientData;
     }
 
-    public static ApipClientTask getSwapPrice(String urlHead, String sid, String gTick, String mTick, String[] last) {
+    public static ApipClientTask getSwapPrice(String urlHead, String sid, String gTick, String mTick, List<String> last) {
 
         Map<String,String>paramMap = new HashMap<>();
 
@@ -109,7 +111,7 @@ public class SwapHallAPIs {
             }
         }
         if (last != null) {
-            String lastStr = arrayToString(last);
+            String lastStr = listToString(last);
             paramMap.put(LAST,lastStr);
         }
         ApipClientTask apipClientData=new ApipClientTask(urlHead, ApiNames.SwapHallPath,ApiNames.SwapPendingAPI,paramMap);

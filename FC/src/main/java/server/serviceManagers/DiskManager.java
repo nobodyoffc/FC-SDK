@@ -1,18 +1,20 @@
 package server.serviceManagers;
 
+import feip.feipData.Service;
 import clients.apipClient.ApipClient;
-import FEIP.feipData.serviceParams.DiskParams;
-import FEIP.feipData.serviceParams.Params;
+import feip.feipData.serviceParams.DiskParams;
+import feip.feipData.serviceParams.Params;
 import config.ApiAccount;
-import server.serviceManagers.ServiceManager;
 
 import java.io.BufferedReader;
 
 public class DiskManager extends ServiceManager {
 
-    public DiskManager(ApiAccount apipAccount, Class<?> paramsClass) {
-        super(apipAccount, paramsClass);
+
+    public DiskManager(Service service, ApiAccount apipAccount, BufferedReader br, byte[] symKey, Class<?> paramsClass) {
+        super(service, apipAccount, br, symKey, paramsClass);
     }
+
     @Override
     protected Params inputParams(byte[] symKey, BufferedReader br) {
         DiskParams diskParams = new DiskParams((ApipClient) apipAccount.getClient());

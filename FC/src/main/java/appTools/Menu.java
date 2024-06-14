@@ -40,7 +40,7 @@ public class Menu {
             } catch (Exception ignore) {
             }
         }
-        System.out.println("The sum of shares is " + sum / 100 + "%");
+//        System.out.println("The sum of shares is " + sum / 100 + "%");
         if (sum != 10000) {
             System.out.println("Builder shares didn't sum up to 100%. Reset it.");
             return false;
@@ -72,12 +72,12 @@ public class Menu {
     }
 
     public void show() {
-        if(name!=null)
-            System.out.println(" <<"+name+">>");
+//        if(name!=null)
+//            System.out.println(" <<"+name+">>");
         System.out.println(
-                "	-----------------------------\n"
-                        + "	Menu\n"
-                        + "	-----------------------------");
+                "-----------------------------\n  "
+                        + name
+                        + "\n-----------------------------");
 
         List<Integer> sortedKeys = new ArrayList<>(itemMap.keySet());
 
@@ -93,7 +93,7 @@ public class Menu {
 
         System.out.println(
                 "	0 Exit\n"
-                        + "	-----------------------------");
+                        + "-----------------------------");
         this.itemNum = itemMap.size();
     }
 
@@ -104,8 +104,14 @@ public class Menu {
             String input = null;
             try {
                 input = br.readLine();
+                if("".equals(input)){
+                    System.out.println("\nInput one of the integers shown above:");
+                    continue;
+                }
                 choice = Integer.parseInt(input);
             } catch (Exception e) {
+                System.out.println("\nInput one of the integers shown above.");
+                continue;
             }
             if (choice <= this.itemNum && choice >= 0) break;
             System.out.println("\nInput one of the integers shown above.");

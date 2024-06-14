@@ -15,6 +15,7 @@ import co.elastic.clients.json.JsonData;
 import co.elastic.clients.transport.endpoints.BooleanResponse;
 import constants.Strings;
 
+import fch.fchData.Block;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +25,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+
+import static constants.IndicesNames.BLOCK;
 
 public class EsTools {
 
@@ -49,6 +52,15 @@ public class EsTools {
         TimeUnit.SECONDS.sleep(2);
 
         createIndex(esClient, index, mappingJsonStr);
+    }
+
+    public static Block getBestBlock(ElasticsearchClient esClient) throws ElasticsearchException, IOException {
+        SearchResponse<Block> result = esClient.search(s->s
+                        .index(BLOCK)
+                        .size(1)
+                        .sort(so->so.field(f->f.field("height").order(SortOrder.Desc)))
+                , Block.class);
+        return result.hits().hits().get(0).source();
     }
     public static void createIndex(ElasticsearchClient esClient, String index, String mappingJsonStr) {
 

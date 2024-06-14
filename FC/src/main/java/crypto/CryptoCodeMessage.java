@@ -38,4 +38,6 @@ public class CryptoCodeMessage {
     public static String getErrorStringCodeMsg(int code) {
         return "Error:"+code+"_"+CryptoCodeMessage.getMessage(code);
     }
+
+
 }

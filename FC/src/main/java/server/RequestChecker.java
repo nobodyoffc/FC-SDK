@@ -1,27 +1,26 @@
 package server;
 
-import APIP.apipData.RequestBody;
-import APIP.apipData.Session;
-import FEIP.feipData.serviceParams.DiskParams;
+import apip.apipData.RequestBody;
+import apip.apipData.Session;
+import feip.feipData.serviceParams.DiskParams;
 import clients.redisClient.RedisTools;
 import com.google.gson.Gson;
 import constants.ApiNames;
 import constants.FieldNames;
-import constants.ReplyInfo;
+import constants.ReplyCodeMessage;
 import constants.Strings;
 import crypto.Hash;
 
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.http.AuthType;
-import javaTools.http.FcReplier;
+import fcData.FcReplier;
 import javaTools.http.HttpTools;
 import org.bitcoinj.core.ECKey;
 import org.jetbrains.annotations.Nullable;
 import redis.clients.jedis.Jedis;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
@@ -32,56 +31,58 @@ import java.util.Map;
 
 import static constants.Strings.*;
 import static crypto.KeyTools.pubKeyToFchAddr;
-import static server.Counter.updateBalance;
+import static javaTools.http.AuthType.FC_SIGN_BODY;
+import static javaTools.http.AuthType.FC_SIGN_URL;
+import static javaTools.http.HttpTools.getApiNameFromUrl;
 import static javaTools.http.HttpTools.illegalUrl;
 
 public class RequestChecker {
 
-    public static RequestCheckResult checkUrlSignRequest(String sid, HttpServletRequest request, HttpServletResponse response, FcReplier replier, Map<String, String> paramsMap, long windowTime, Jedis jedis) {
-
-        RequestCheckResult requestCheckResult = new RequestCheckResult();
-
+    public static RequestCheckResult checkUrlSignRequest(String sid, HttpServletRequest request, FcReplier replier, RequestCheckResult requestCheckResult, Map<String, String> paramsMap, long windowTime, Jedis jedis) {
         String url = request.getRequestURL().toString();
         String queryString = request.getQueryString();
         if (queryString != null) {
             url += "?" + queryString;
         }
         if(illegalUrl(url)){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1016IllegalUrl,ReplyInfo.Msg1016IllegalUrl,null,null );
+            replier.reply(ReplyCodeMessage.Code1016IllegalUrl, null,jedis);
             return null;
         }
 
+        String apiNameFromUrl = HttpTools.getApiNameFromUrl(url);
+        requestCheckResult.setApiName(apiNameFromUrl);
+
         String nonceStr = request.getParameter(NONCE);
         if(nonceStr==null){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1018NonceMissed,ReplyInfo.Msg1018NonceMissed,null, null);
+            replier.reply(ReplyCodeMessage.Code1018NonceMissed, null, jedis);
             return null;
         }
         long nonce = Long.parseLong(nonceStr);
         String timeStr = request.getParameter(TIME);
         if(timeStr==null){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1019TimeMissed,ReplyInfo.Msg1019TimeMissed,null, null);
+            replier.reply(ReplyCodeMessage.Code1019TimeMissed, null, jedis);
             return null;
         }
         long time = Long.parseLong(timeStr);
 
         String via = request.getParameter(VIA);
 
-        String sign = request.getHeader(ReplyInfo.SignInHeader);
+        String sign = request.getHeader(ReplyCodeMessage.SignInHeader);
 
         if(sign==null){
-            promoteUrlSignRequest(response, replier, paramsMap.get(URL_HEAD));
+            promoteUrlSignRequest(replier, paramsMap.get(URL_HEAD),jedis);
             return null;
         }
 
-        String sessionName = request.getHeader(ReplyInfo.SessionNameInHeader);
+        String sessionName = request.getHeader(ReplyCodeMessage.SessionNameInHeader);
         if(sessionName==null){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1002SessionNameMissed,ReplyInfo.Msg1002SessionNameMissed,null, null);
+            replier.reply(ReplyCodeMessage.Code1002SessionNameMissed, null,jedis);
             return null;
         }
 
         Session session = getSession(sessionName,jedis);
         if(session ==null){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1009SessionTimeExpired,ReplyInfo.Msg1009SessionTimeExpired,null, null);
+            replier.reply(ReplyCodeMessage.Code1009SessionTimeExpired, null, jedis);
             return null;
         }
 
@@ -92,31 +93,28 @@ public class RequestChecker {
         requestCheckResult.setSessionKey(sessionKey);
         requestCheckResult.setFid(fid);
 
-        if(isBadBalance(sid,fid, ApiNames.SignInAPI, jedis)){
+        if(isBadBalance(sid,fid, apiNameFromUrl, jedis)){
             String data = "Send at lest "+paramsMap.get(MIN_PAYMENT)+" F to "+paramsMap.get(ACCOUNT)+" to buy the service #"+sid+".";
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1004InsufficientBalance,ReplyInfo.Msg1004InsufficientBalance,data, sessionKey);
+            replier.reply(ReplyCodeMessage.Code1004InsufficientBalance, data, jedis);
             return null;
         }
 
         if(isBadNonce(nonce, windowTime, jedis)){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1007UsedNonce,ReplyInfo.Msg1007UsedNonce,null, sessionKey);
-            updateBalance(sid, HttpTools.getApiNameFromUrl(url), replier.toJson().length(), replier, requestCheckResult, jedis );
+            replier.reply(ReplyCodeMessage.Code1007UsedNonce, null, jedis);
             return null;
         }
 
         replier.setNonce(nonce);
 
         if(isBadSymSign(sign, url.getBytes(), replier, sessionKey)){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1008BadSign,ReplyInfo.Msg1008BadSign,replier.getData(), sessionKey);
-            updateBalance(sid, HttpTools.getApiNameFromUrl(url), replier.toJson().length(), replier, requestCheckResult, jedis );
+            replier.reply(ReplyCodeMessage.Code1008BadSign, replier.getData(),jedis);
             return null;
         }
 
         if (isBadTime(time,windowTime)){
             Map<String, String> dataMap = new HashMap<>();
             dataMap.put("windowTime", String.valueOf(windowTime));
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1006RequestTimeExpired,ReplyInfo.Msg1006RequestTimeExpired,dataMap, sessionKey);
-            updateBalance(sid, HttpTools.getApiNameFromUrl(url), replier.toJson().length(), replier, requestCheckResult, jedis );
+            replier.reply(ReplyCodeMessage.Code1006RequestTimeExpired, dataMap, jedis);
             return null;
         }
         if(via!=null) requestCheckResult.setVia(via);
@@ -124,35 +122,39 @@ public class RequestChecker {
         return requestCheckResult;
     }
 
-    public static RequestCheckResult checkBodySignRequest(String sid, HttpServletRequest request, HttpServletResponse response, FcReplier replier, Jedis jedis) {
+    public static RequestCheckResult checkBodySignRequest(String sid, HttpServletRequest request, FcReplier replier, RequestCheckResult requestCheckResult, Jedis jedis) {
 
         Map<String, String> paramsMap = jedis.hgetAll(Settings.addSidBriefToName(sid, PARAMS));
         long windowTime = RedisTools.readHashLong(jedis, Settings.addSidBriefToName(sid, SETTINGS), WINDOW_TIME);
 
-        RequestCheckResult requestCheckResult = new RequestCheckResult();
+
         String url = request.getRequestURL().toString();
 
         if(illegalUrl(url)){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1016IllegalUrl,ReplyInfo.Msg1016IllegalUrl,null,null );
+            replier.reply(ReplyCodeMessage.Code1016IllegalUrl, null,jedis);
             return null;
         }
 
-        String sign = request.getHeader(ReplyInfo.SignInHeader);
+
+        String apiName = HttpTools.getApiNameFromUrl(url);
+        requestCheckResult.setApiName(apiName);
+
+        String sign = request.getHeader(ReplyCodeMessage.SignInHeader);
 
         if(sign==null){
-            promoteSignInRequest(response, replier, paramsMap.get(URL_HEAD));
+            promoteSignInRequest( replier, paramsMap.get(URL_HEAD),jedis);
             return null;
         }
 
-        String sessionName = request.getHeader(ReplyInfo.SessionNameInHeader);
+        String sessionName = request.getHeader(ReplyCodeMessage.SessionNameInHeader);
         if(sessionName==null){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1002SessionNameMissed,ReplyInfo.Msg1002SessionNameMissed,null,null );
+            replier.reply(ReplyCodeMessage.Code1002SessionNameMissed, null,jedis);
             return null;
         }
 
         Session session = getSession(sessionName,jedis);
         if(session ==null){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1009SessionTimeExpired,ReplyInfo.Msg1009SessionTimeExpired,null, null);
+            replier.reply(ReplyCodeMessage.Code1009SessionTimeExpired, null, jedis);
             return null;
         }
 
@@ -163,42 +165,36 @@ public class RequestChecker {
         requestCheckResult.setSessionKey(sessionKey);
         requestCheckResult.setFid(fid);
 
-        if(isBadBalance(sid,fid, ApiNames.SignInAPI, jedis)){
+        if(isBadBalance(sid,fid, apiName, jedis)){
             String data = "Send at lest "+paramsMap.get(MIN_PAYMENT)+" F to "+paramsMap.get(ACCOUNT)+" to buy the service #"+sid+".";
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1004InsufficientBalance,ReplyInfo.Msg1004InsufficientBalance,data, sessionKey);
+            replier.reply(ReplyCodeMessage.Code1004InsufficientBalance, data, jedis);
             return null;
         }
 
-        byte[] requestBodyBytes = new byte[0];
+        byte[] requestBodyBytes;
         try {
             requestBodyBytes = request.getInputStream().readAllBytes();
         } catch (IOException e) {
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1020OtherError,ReplyInfo.Msg1020OtherError,"Getting request body bytes wrong.", sessionKey);
-
-            updateBalance(sid, HttpTools.getApiNameFromUrl(url), replier.toJson().length(), replier, requestCheckResult, jedis );
-
+            replier.reply(ReplyCodeMessage.Code1020OtherError, "Getting request body bytes wrong.", jedis);
             return null;
         }
         if(requestBodyBytes==null){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1003BodyMissed,ReplyInfo.Msg1003BodyMissed,null, sessionKey);
-            updateBalance(sid, HttpTools.getApiNameFromUrl(url), replier.toJson().length(), replier, requestCheckResult, jedis );
+            replier.reply(ReplyCodeMessage.Code1003BodyMissed, null, jedis);
             return null;
         }
 
-        RequestBody requestBody = getRequestBody(requestBodyBytes,response,replier,sessionKey);
+        RequestBody requestBody = getRequestBody(requestBodyBytes,replier,jedis);
         if(requestBody==null)return null;
 
         if(isBadNonce(requestBody.getNonce(), windowTime,jedis )){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1007UsedNonce,ReplyInfo.Msg1007UsedNonce,null, sessionKey);
-            updateBalance(sid, HttpTools.getApiNameFromUrl(url), replier.toJson().length(), replier, requestCheckResult, jedis );
+            replier.reply(ReplyCodeMessage.Code1007UsedNonce, null, jedis);
             return null;
         }
 
         replier.setNonce(requestBody.getNonce());
 
         if(isBadSymSign(sign, requestBodyBytes, replier, sessionKey)){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1008BadSign,ReplyInfo.Msg1008BadSign,replier.getData(), sessionKey);
-            updateBalance(sid, HttpTools.getApiNameFromUrl(url), replier.toJson().length(), replier, requestCheckResult, jedis );
+            replier.reply(ReplyCodeMessage.Code1008BadSign, replier.getData(), jedis);
             return null;
         }
 
@@ -207,16 +203,14 @@ public class RequestChecker {
             dataMap.put("requestedURL",request.getRequestURL().toString());
             dataMap.put("signedURL",requestBody.getUrl());
             replier.setData(dataMap);
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1005UrlUnequal,ReplyInfo.Msg1005UrlUnequal,replier.getData(), sessionKey);
-            updateBalance(sid, HttpTools.getApiNameFromUrl(url), replier.toJson().length(), replier, requestCheckResult, jedis );
+            replier.reply(ReplyCodeMessage.Code1005UrlUnequal, replier.getData(), jedis);
             return null;
         }
 
         if (isBadTime(requestBody.getTime(),windowTime)){
             Map<String, String> dataMap = new HashMap<>();
             dataMap.put("windowTime", String.valueOf(windowTime));
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1006RequestTimeExpired,ReplyInfo.Msg1006RequestTimeExpired,dataMap,sessionKey );
-            updateBalance(sid, HttpTools.getApiNameFromUrl(url), replier.toJson().length(), replier, requestCheckResult, jedis );
+            replier.reply(ReplyCodeMessage.Code1006RequestTimeExpired, dataMap,jedis);
             return null;
         }
         if(requestBody.getVia()!=null) requestCheckResult.setVia(requestBody.getVia());
@@ -225,11 +219,11 @@ public class RequestChecker {
         return requestCheckResult;
     }
 
-    public static RequestCheckResult checkUrlSignRequest(String sid, HttpServletRequest request, HttpServletResponse response, FcReplier replier, Jedis jedis) {
+    public static RequestCheckResult checkUrlSignRequest(String sid, HttpServletRequest request, FcReplier replier, RequestCheckResult requestCheckResult, Jedis jedis) {
 
         Map<String, String> paramsMap = jedis.hgetAll(Settings.addSidBriefToName(sid, PARAMS));
         long windowTime = RedisTools.readHashLong(jedis, Settings.addSidBriefToName(sid, SETTINGS), WINDOW_TIME);
-        return checkUrlSignRequest(sid, request, response, replier, paramsMap, windowTime, jedis);
+        return checkUrlSignRequest(sid, request, replier,requestCheckResult, paramsMap, windowTime, jedis);
     }
 
     private static boolean isBadSymSign(String sign, byte[] requestBodyBytes, FcReplier replier, String sessionKey) {
@@ -252,6 +246,7 @@ public class RequestChecker {
         String fid = jedis.hget(sessionName, "fid");
         String sessionKey = jedis.hget(sessionName, "sessionKey");
 
+        jedis.select(0);
         if (fid == null || sessionKey == null) {
             return null;
         }
@@ -265,80 +260,84 @@ public class RequestChecker {
     }
 
     @Nullable
-    public static RequestCheckResult checkRequest(String sid, HttpServletRequest request, HttpServletResponse response, FcReplier replier, AuthType authType, Jedis jedis) {
+    public static RequestCheckResult checkRequest(String sid, HttpServletRequest request, FcReplier replier, AuthType authType, Jedis jedis) {
         String sign = request.getHeader(SIGN);
         String sessionName = request.getHeader(SESSION_NAME);
-        boolean isSigned = false;
-        if(sign!=null && sessionName!=null)
-            isSigned=true;
+        boolean isSigned = sign != null && sessionName != null;
 
-        String isForbidFreeApiStr = jedis.hget(Settings.addSidBriefToName(sid,SETTINGS), FieldNames.FORBID_FREE_API);
-        boolean isForbidFreeApi = isForbidFreeApiStr.equalsIgnoreCase("true");
-        RequestCheckResult requestCheckResult = null;
-        if(isSigned){
-            switch (authType){
-                case FC_SIGN_URL -> requestCheckResult = checkUrlSignRequest(sid, request, response, replier, jedis);
-                case FC_SIGN_BODY -> requestCheckResult = checkBodySignRequest(sid, request, response, replier, jedis);
-                default -> {
-                }
+        RequestCheckResult requestCheckResult = new RequestCheckResult();
+        replier.setRequestCheckResult(requestCheckResult);
+        boolean isForbidFreeApi;
+        if(!isSigned) {
+            String isForbidFreeApiStr = jedis.hget(Settings.addSidBriefToName(sid, SETTINGS), FieldNames.FORBID_FREE_API);
+            isForbidFreeApi = isForbidFreeApiStr.equalsIgnoreCase("true");
+            if(isForbidFreeApi){
+                replier.reply(ReplyCodeMessage.Code2001FreeGetIsForbidden,null,jedis);
+                return null;
             }
-        }
-        if(requestCheckResult==null) {
-            if (isForbidFreeApi) {
-                replier.replyWithCodeAndMessage(response, ReplyInfo.Code2001FreeGetIsForbidden, ReplyInfo.Msg2001FreeGetIsForbidden, null, null);
-            } else {
-                requestCheckResult = new RequestCheckResult();
-                requestCheckResult.setFreeRequest(Boolean.TRUE);
+            requestCheckResult.setFreeRequest(Boolean.TRUE);
+        }else{
+            if(authType.equals(FC_SIGN_URL)) checkUrlSignRequest(sid, request, replier, requestCheckResult,jedis);
+           else {
+                if(authType.equals(FC_SIGN_BODY)) checkBodySignRequest(sid, request, replier, requestCheckResult,jedis);
+                else {
+                     replier.reply(ReplyCodeMessage.Code1020OtherError, "Wrong AuthType.", jedis);
+                     return null;
+                 }
             }
         }
         return requestCheckResult;
     }
 
-    public RequestCheckResult checkSignInRequest(String sid, HttpServletRequest request, HttpServletResponse response, FcReplier replier, Map<String, String> paramsMap, long windowTime, Jedis jedis){
+    public RequestCheckResult checkSignInRequest(String sid, HttpServletRequest request, FcReplier replier, Map<String, String> paramsMap, long windowTime, Jedis jedis){
         RequestCheckResult requestCheckResult = new RequestCheckResult();
+        replier.setRequestCheckResult(requestCheckResult);
         String url = request.getRequestURL().toString();
-
+        requestCheckResult.setApiName(getApiNameFromUrl(url));
         if(illegalUrl(url)){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1016IllegalUrl,ReplyInfo.Msg1016IllegalUrl,null, null);
+            replier.reply(ReplyCodeMessage.Code1016IllegalUrl, null, jedis);
             return null;
         }
+        String apiName = HttpTools.getApiNameFromUrl(url);
+        requestCheckResult.setApiName(apiName);
 
-        String fid = request.getHeader(ReplyInfo.FidInHeader);
+
+        String fid = request.getHeader(ReplyCodeMessage.FidInHeader);
         if(fid==null){
             String data = "A FID is required in request header.";
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1015FidMissed,ReplyInfo.Msg1015FidMissed,data,null );
+            replier.reply(ReplyCodeMessage.Code1015FidMissed, data,jedis);
             return null;
         }
         requestCheckResult.setFid(fid);
 
-        String sign = request.getHeader(ReplyInfo.SignInHeader);
+        String sign = request.getHeader(ReplyCodeMessage.SignInHeader);
 
         if (paramsMap==null||paramsMap.get(URL_HEAD)==null) {
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1020OtherError,ReplyInfo.Msg1020OtherError,"Failed to get parameters from redis.", null);
+            replier.reply(ReplyCodeMessage.Code1020OtherError, "Failed to get parameters from redis.", jedis);
             return null;
         }
 
         if(sign==null||"".equals(sign)){
-            promoteSignInRequest(response, replier, paramsMap.get(URL_HEAD));
+            promoteSignInRequest(replier, paramsMap.get(URL_HEAD),jedis);
             return null;
         }
 
-        byte[] requestBodyBytes = new byte[0];
+        byte[] requestBodyBytes;
         try {
             requestBodyBytes = request.getInputStream().readAllBytes();
         } catch (IOException e) {
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1020OtherError,ReplyInfo.Msg1020OtherError,"Getting request body bytes wrong.", null);
+            replier.reply(ReplyCodeMessage.Code1020OtherError, "Getting request body bytes wrong.", jedis);
             return null;
         }
         if(requestBodyBytes==null){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1003BodyMissed,ReplyInfo.Msg1003BodyMissed,null, null);
+            replier.reply(ReplyCodeMessage.Code1003BodyMissed, null, jedis);
             return null;
         }
 
-        RequestBody signInRequestBody = getRequestBody(requestBodyBytes,response,replier, null);
+        RequestBody signInRequestBody = getRequestBody(requestBodyBytes,replier, jedis);
         if(signInRequestBody==null)return null;
         if(isBadNonce(signInRequestBody.getNonce(), windowTime,jedis )){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1007UsedNonce,ReplyInfo.Msg1007UsedNonce,null,null );
+            replier.reply(ReplyCodeMessage.Code1007UsedNonce, null,jedis);
             return null;
         }
         replier.setNonce(signInRequestBody.getNonce());
@@ -347,18 +346,18 @@ public class RequestChecker {
         try {
             pubKey = checkAsySignAndGetPubKey(fid,sign,requestBodyBytes);
         } catch (SignatureException e) {
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1008BadSign,ReplyInfo.Msg1008BadSign,null, null);
+            replier.reply(ReplyCodeMessage.Code1008BadSign, null, jedis);
             return null;
         }
         if(null==pubKey){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1008BadSign,ReplyInfo.Msg1008BadSign,null,null );
+            replier.reply(ReplyCodeMessage.Code1008BadSign, null,jedis);
             return null;
         }
         requestCheckResult.setPubKey(pubKey);
 
-        if(isBadBalance(sid,fid,ApiNames.SignInAPI, jedis)){
+        if(isBadBalance(sid,fid,apiName, jedis)){
             String data = "Send at lest "+paramsMap.get(MIN_PAYMENT)+" F to "+paramsMap.get(ACCOUNT)+" to buy the service #"+sid+".";
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1004InsufficientBalance,ReplyInfo.Msg1004InsufficientBalance,data, null);
+            replier.reply(ReplyCodeMessage.Code1004InsufficientBalance, data, jedis);
             return null;
         }
 
@@ -367,14 +366,14 @@ public class RequestChecker {
             dataMap.put("requestedURL",request.getRequestURL().toString());
             dataMap.put("signedURL",signInRequestBody.getUrl());
             replier.setData(dataMap);
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1005UrlUnequal,ReplyInfo.Msg1005UrlUnequal,replier.getData(), null);
+            replier.reply(ReplyCodeMessage.Code1005UrlUnequal, replier.getData(), jedis);
             return null;
         }
 
         if (isBadTime(signInRequestBody.getTime(),windowTime)){
             Map<String, String> dataMap = new HashMap<>();
             dataMap.put("windowTime", String.valueOf(windowTime));
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1006RequestTimeExpired,ReplyInfo.Msg1006RequestTimeExpired,dataMap, null);
+            replier.reply(ReplyCodeMessage.Code1006RequestTimeExpired, dataMap, jedis);
             return null;
         }
         if(signInRequestBody.getVia()!=null) requestCheckResult.setVia(signInRequestBody.getVia());
@@ -383,7 +382,7 @@ public class RequestChecker {
         return requestCheckResult;
     }
 
-    private static void promoteSignInRequest(HttpServletResponse response, FcReplier replier, String urlHead) {
+    private static void promoteSignInRequest(FcReplier replier, String urlHead, Jedis jedis) {
         String data = "A Sign is required in request header.";
         SecureRandom secureRandom = new SecureRandom();
         byte[] bytes = new byte[4];
@@ -400,10 +399,10 @@ public class RequestChecker {
                     \tRequest body:{"url":"%s","nonce":"%d","time":"%d"}"""
                     .formatted(urlHead+ApiNames.VersionV1 + ApiNames.SignInAPI,nonce,timestamp);
         }
-        replier.replyWithCodeAndMessage(response,ReplyInfo.Code1000SignMissed,ReplyInfo.Msg1000SignMissed,data,null );
+        replier.reply(ReplyCodeMessage.Code1000SignMissed, data,jedis);
     }
 
-    private static void promoteJsonRequest(HttpServletResponse response, FcReplier replier, DiskParams params) {
+    private static void promoteJsonRequest(FcReplier replier, DiskParams params, Jedis jedis) {
         String urlHead = params.getUrlHead();
         String data = "A Sign is required in request header.";
         SecureRandom secureRandom = new SecureRandom();
@@ -418,13 +417,20 @@ public class RequestChecker {
                     \tRequest header:
                     \t\tSessionName = <The session name which is the hex of the first 6 bytes of the sessionKey>
                     \t\tSign = <The value of double sha256 of the request body bytes adding the sessionKey bytes.>
+                    \tRequest body:
+                    \t\t{
+                    \t\t\t"url":%s,
+                    \t\t\t"nonce":%d
+                    \t\t\t"time":%d
+                    \t\t\t<your request parameters...>
+                    \t\t}
                     """
                     .formatted(urlHead+ApiNames.VersionV1 + ApiNames.SignInAPI,nonce,timestamp);
         }
-        replier.replyWithCodeAndMessage(response,ReplyInfo.Code1000SignMissed,ReplyInfo.Msg1000SignMissed,data,null );
+        replier.reply(ReplyCodeMessage.Code1000SignMissed, data,jedis);
     }
 
-    private static void promoteUrlSignRequest(HttpServletResponse response, FcReplier replier, String urlHead) {
+    private static void promoteUrlSignRequest(FcReplier replier, String urlHead, Jedis jedis) {
         String data = "A Sign is required in request header.";
         SecureRandom secureRandom = new SecureRandom();
         byte[] bytes = new byte[4];
@@ -438,19 +444,21 @@ public class RequestChecker {
                     \tRequest header:
                     \t\tSessionName = <The session name which is the hex of the first 6 bytes of the sessionKey>
                     \t\tSign = <The value of double sha256 of the whole requested URL bytes adding the sessionKey bytes.>
+                    \tRequest URL should be:
+                    \t\t\t%s/"nonce=%s&time=%s<your more parameters>
                     """
                     .formatted(urlHead+ApiNames.VersionV1 + ApiNames.SignInAPI,nonce,timestamp);
         }
-        replier.replyWithCodeAndMessage(response,ReplyInfo.Code1000SignMissed,ReplyInfo.Msg1000SignMissed,data, null);
+        replier.reply(ReplyCodeMessage.Code1000SignMissed, data, jedis);
     }
 
-    private static RequestBody getRequestBody(byte[] requestBodyBytes, HttpServletResponse response, FcReplier replier, String sessionKey) {
+    private static RequestBody getRequestBody(byte[] requestBodyBytes, FcReplier replier, Jedis jedis) {
         String requestDataJson = new String(requestBodyBytes);
         RequestBody connectRequestBody;
         try {
             connectRequestBody = new Gson().fromJson(requestDataJson, RequestBody.class);
         }catch(Exception e){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1013BadRequest,ReplyInfo.Msg1013BadRequest,"Parsing request body wrong.", sessionKey);
+            replier.reply(ReplyCodeMessage.Code1013BadRequest, "Parsing request body wrong.", jedis);
             return null;
         }
         return connectRequestBody;
@@ -467,16 +475,22 @@ public class RequestChecker {
             return true;
         jedis.set(nonceStr, "");
         jedis.expire(nonceStr, windowTime);
-
+        jedis.select(0);
         return false;
     }
-    public static boolean isBadBalance(String sid, String fid, String signInAPI, Jedis jedis){
+    public static boolean isBadBalance(String sid, String fid, String apiName, Jedis jedis){
 
-        long nPrice = RedisTools.readHashLong(jedis, Settings.addSidBriefToName(sid, Strings.N_PRICE), signInAPI);
-        double price = RedisTools.readHashDouble(jedis, Settings.addSidBriefToName(sid,Strings.PARAMS),PRICE_PER_K_BYTES);
+        long nPrice = RedisTools.readHashLong(jedis, Settings.addSidBriefToName(sid, Strings.N_PRICE), apiName);
+        double price;
+        String priceStr;
+        String paramsKeyInRedis = Settings.addSidBriefToName(sid, PARAMS);
+        jedis.select(0);
+        priceStr = jedis.hget(paramsKeyInRedis,PRICE_PER_K_BYTES);
+        if(priceStr==null)priceStr = jedis.hget(paramsKeyInRedis,PRICE_PER_REQUEST);
+        if(priceStr==null)return false;
+        price = Double.parseDouble(priceStr);
         long balance = RedisTools.readHashLong(jedis, Settings.addSidBriefToName(sid, BALANCE),fid);
         return balance < nPrice*price*100000000;
-
     }
 
     private String checkAsySignAndGetPubKey(String fid, String sign, byte[] requestBodyBytes) throws SignatureException {

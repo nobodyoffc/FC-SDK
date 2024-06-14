@@ -1,23 +1,25 @@
 package config;
 
 
-import FEIP.feipData.serviceParams.ApipParams;
-import FEIP.feipData.serviceParams.DiskParams;
-import FEIP.feipData.serviceParams.Params;
-import FEIP.feipData.serviceParams.SwapParams;
+import feip.feipData.serviceParams.ApipParams;
+import feip.feipData.serviceParams.DiskParams;
+import feip.feipData.serviceParams.Params;
+import feip.feipData.serviceParams.SwapParams;
 import clients.apipClient.ApipClient;
 import clients.apipClient.ApipClientTask;
 import clients.apipClient.OpenAPIs;
-import FEIP.feipData.Service;
+import feip.feipData.Service;
 import appTools.Inputer;
 import com.google.gson.Gson;
 import javaTools.JsonTools;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import server.Settings;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import static appTools.Inputer.promptAndUpdate;
@@ -25,7 +27,6 @@ import static appTools.Inputer.promptAndUpdate;
 
 public class ApiProvider {
     private static final Logger log = LoggerFactory.getLogger(ApiProvider.class);
-    private static final String DEFAULT_API_URL = "https://cid.cash/APIP";
     private String sid;
     private ApiType type;
     private String orgUrl;
@@ -118,9 +119,11 @@ public class ApiProvider {
     }
 
     public ApiProvider makeApipProvider(BufferedReader br) {
-        apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service. Enter to set default as "+ DEFAULT_API_URL);
-        if(apiUrl==null) return null;
-        if("".equals(apiUrl))apiUrl = DEFAULT_API_URL;
+        apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service. Enter to choose one:");
+        if("".equals(apiUrl)) {
+            apiUrl = Inputer.chooseOne(Settings.freeApipUrlList,"Choose an default APIP service:",br);
+            if(apiUrl==null)return null;
+        }
         ApipClientTask apipClientData = OpenAPIs.getService(apiUrl);
         if(apipClientData.checkResponse()!=0){
             System.out.println("Failed to get the APIP service from "+apiUrl);
@@ -152,14 +155,13 @@ public class ApiProvider {
             if(apiType==null)inputType(br);
             else type =apiType;
 
-            if(type==ApiType.APIP){
-                makeApipProvider(br);
-                return;
-            }
             switch (type){
-                case NASARPC ->{
+                case APIP -> makeApipProvider(br);
+                case NASA_RPC ->{
                     inputApiURL(br, "http://127.0.0.1:8332");
-                    inputTicks(br);
+                    do {
+                        inputTicks(br);
+                    }while(this.ticks==null|| ticks.length==0);
                     sid = ticks[0]+"@"+apiUrl;
                 }
                 case ES -> {

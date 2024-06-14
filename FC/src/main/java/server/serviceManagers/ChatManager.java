@@ -1,7 +1,8 @@
 package server.serviceManagers;
 
-import FEIP.feipData.serviceParams.DiskParams;
-import FEIP.feipData.serviceParams.Params;
+import feip.feipData.Service;
+import feip.feipData.serviceParams.DiskParams;
+import feip.feipData.serviceParams.Params;
 import clients.apipClient.ApipClient;
 import config.ApiAccount;
 
@@ -9,9 +10,11 @@ import java.io.BufferedReader;
 
 public class ChatManager extends ServiceManager {
 
-    public ChatManager(ApiAccount apipAccount, Class<?> paramsClass) {
-        super(apipAccount, paramsClass);
+
+    public ChatManager(Service service, ApiAccount apipAccount, BufferedReader br, byte[] symKey, Class<?> paramsClass) {
+        super(service, apipAccount, br, symKey, paramsClass);
     }
+
     @Override
     protected Params inputParams(byte[] symKey, BufferedReader br) {
         DiskParams diskParams = new DiskParams((ApipClient) apipAccount.getClient());

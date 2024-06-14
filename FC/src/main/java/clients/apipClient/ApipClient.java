@@ -1,12 +1,13 @@
 package clients.apipClient;
 
-import APIP.apipData.*;
-import APIP.apipData.TxInfo;
-import FCH.Inputer;
-import FCH.fchData.*;
-import FEIP.feipClient.IdentityFEIPs;
-import FEIP.feipData.*;
-import FEIP.feipData.serviceParams.ApipParams;
+import apip.apipData.*;
+import apip.apipData.TxInfo;
+import clients.ClientTask;
+import fch.Inputer;
+import fch.fchData.*;
+import feip.feipClient.IdentityFEIPs;
+import feip.feipData.*;
+import feip.feipData.serviceParams.ApipParams;
 import appTools.swapClass.SwapAffair;
 import appTools.swapClass.SwapLpData;
 import appTools.swapClass.SwapPriceData;
@@ -27,23 +28,50 @@ import java.util.List;
 import java.util.Map;
 
 import static config.ApiAccount.decryptHexWithPriKey;
+import static constants.Strings.*;
 import static crypto.KeyTools.priKeyToFid;
 
 public class ApipClient extends Client {
-//    private static final Logger log = LoggerFactory.getLogger(ApipClient.class);
-//    private ApiProvider apiProvider;
-//    private ApiAccount apiAccount;
-//    private ClientData clientData;
-//    private byte[] symKey;
-//    private byte[] sessionKey;
-//    private Fcdsl fcdsl;
-//    private Gson gson = new Gson();
 
     public ApipClient() {
     }
     public ApipClient(ApiProvider apiProvider,ApiAccount apiAccount,byte[] symKey){
         super(apiProvider,apiAccount,symKey);
         this.signInUrlTailPath=ApiNames.APIP0V1Path;
+    }
+
+    public Map<String, String> checkSubscription(String endpoint) {
+        WebhookRequestBody webhookRequestBody = new WebhookRequestBody();
+        webhookRequestBody.setEndpoint(endpoint);
+        webhookRequestBody.setOp(CHECK);
+        webhookRequestBody.setMethod(ApiNames.NewCashByFidsAPI);
+        webhookRequestBody.setUserName(apiAccount.getUserId());
+        String hookUserId = WebhookRequestBody.makeHookUserId(apiAccount.getSid(), apiAccount.getUserId(), ApiNames.NewCashByFidsAPI);
+        webhookRequestBody.setHookUserId(hookUserId);
+
+        newCashListWebHook(webhookRequestBody);
+        Object data = apipClient.checkResult();
+        return DataGetter.getStringMap(data);
+    }
+
+    public boolean subscribeWebhook(String endpoint) {
+        WebhookRequestBody webhookRequestBody = new WebhookRequestBody();
+
+        webhookRequestBody.setEndpoint(endpoint);
+        webhookRequestBody.setMethod(ApiNames.NewCashByFidsAPI);
+        webhookRequestBody.setUserName(apiAccount.getUserId());
+        webhookRequestBody.setOp(SUBSCRIBE);
+        newCashListWebHook(webhookRequestBody);
+        Object data1 =  checkResult();
+        Map<String, String> dataMap1 = DataGetter.getStringMap(data1);
+        if(dataMap1==null) return false;
+        String hookUserId = dataMap1.get(HOOK_USER_ID);
+        if(hookUserId==null) return false;
+        return true;
+    }
+
+    public void newCashListWebHook(WebhookRequestBody webhookRequestBody){
+        clientTask = WebhookAPIs.newCashList(this.apiAccount.getApiUrl(),this.apiAccount.getVia(),webhookRequestBody,sessionKey);
     }
 
 //    public static void checkBalance(ApiAccount apipAccount, final ClientData apipClientData, byte[] initSymKey) {
@@ -73,34 +101,6 @@ public class ApipClient extends Client {
 
     public Object checkApipV1Result(){
         return checkResult(ApiType.APIP);
-//        if(clientData ==null)return null;
-//
-//        if(clientData.getCode()!= ReplyInfo.Code0Success) {
-//            System.out.println("Failed to " + taskName);
-//            if (clientData.getResponseBody()== null) {
-//                System.out.println("ResponseBody is null when requesting "+this.clientData.getUrl());
-//                System.out.println(clientData.getMessage());
-//            } else {
-//                System.out.println(clientData.getResponseBody().getCode() + ":" + clientData.getResponseBody().getMessage());
-//                if (clientData.getResponseBody().getData() != null)
-//                    System.out.println(JsonTools.getString(clientData.getResponseBody().getData()));
-//            }
-//            log.debug(clientData.getMessage());
-//            if (clientData.getCode() == ReplyInfo.Code1004InsufficientBalance) {
-//                apiAccount.buyApi(symKey);
-//                return null;
-//            }
-//
-//            if (clientData.getCode() == ReplyInfo.Code1002SessionNameMissed || clientData.getCode() == ReplyInfo.Code1009SessionTimeExpired) {
-//                apiAccount.freshSessionKey(symKey, ApiNames.APIP0V1Path,ApiType.APIP, null);
-//                if (sessionKey == null) {
-//                    return null;
-//                }
-//            }
-//            return null;
-//        }
-//        checkBalance(apiAccount, clientData, symKey);
-//        return clientData.getResponseBody().getData();
     }
 
     public void checkMaster(String priKeyCipher,BufferedReader br) {
@@ -221,11 +221,9 @@ public class ApipClient extends Client {
         return DataGetter.getUtxoList(data);
     }
 
-    public List<Cash> cashSearch(Fcdsl fcdsl){
+    public ClientTask cashSearch(Fcdsl fcdsl){
         clientTask = BlockchainAPIs.cashSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
-        Object data = checkApipV1Result();
-        if(data==null)return null;
-        return DataGetter.getCashList(data);
+        return clientTask;
     }
 
     public Map<String, Address> fidByIds(String[] ids){
@@ -518,11 +516,9 @@ public class ApipClient extends Client {
         return FreeGetAPIs.getTotals(apiAccount.getApiUrl());
     }
 
-    public Map<String, CidInfo> cidInfoByIds(String[] ids){
+    public ClientTask cidInfoByIds(String[] ids){
         clientTask = IdentityAPIs.cidInfoByIdsPost(apiAccount.getApiUrl(), ids,apiAccount.getVia(),sessionKey);
-        Object data = checkApipV1Result();
-        if(data==null)return null;
-        return DataGetter.getCidInfoMap(data);
+        return clientTask;
     }
     public List<CidInfo> cidInfoSearch(Fcdsl fcdsl){
         clientTask = IdentityAPIs.cidInfoSearchPost(apiAccount.getApiUrl(), fcdsl,apiAccount.getVia(),sessionKey);
@@ -971,7 +967,7 @@ public class ApipClient extends Client {
         return DataGetter.getSwapAffairList(data);
     }
 
-    public List<SwapPriceData> swapPrices(String sid, String gTick, String mTick, String[] last){
+    public List<SwapPriceData> swapPrices(String sid, String gTick, String mTick, List<String> last){
         clientTask = SwapHallAPIs.getSwapPrice(apiAccount.getApiUrl(), sid,gTick,mTick,last);
         Object data = checkApipV1Result();
         if(data==null)return null;

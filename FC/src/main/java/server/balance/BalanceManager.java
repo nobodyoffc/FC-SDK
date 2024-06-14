@@ -1,5 +1,6 @@
 package server.balance;
 
+import feip.feipData.Service;
 import appTools.Menu;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import constants.Strings;
@@ -8,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import server.Settings;
 import server.order.User;
 
 import java.io.BufferedReader;
@@ -19,6 +21,7 @@ import java.util.Set;
 
 import static constants.Strings.BALANCE;
 import static clients.esClient.EsTools.recreateIndex;
+import static constants.Strings.DOT_JSON;
 import static server.Settings.addSidBriefToName;
 
 public class BalanceManager {
@@ -26,22 +29,24 @@ public class BalanceManager {
     private final ElasticsearchClient esClient;
     private final JedisPool jedisPool;
     private final BufferedReader br;
+    private Service service;
     public static  final  String  balanceMappingJsonStr = "{\"mappings\":{\"properties\":{\"user\":{\"type\":\"text\"},\"consumeVia\":{\"type\":\"text\"},\"orderVia\":{\"type\":\"text\"},\"bestHeight\":{\"type\":\"keyword\"}}}}";
     public static String sid;
     public static String sidBrief;
 
-    public BalanceManager(String sid,ElasticsearchClient esClient, JedisPool jedisPool, BufferedReader br) {
+    public BalanceManager(Service service, BufferedReader br, ElasticsearchClient esClient, JedisPool jedisPool) {
         this.esClient = esClient;
         this.jedisPool = jedisPool;
         this.br = br;
-        BalanceManager.sid = sid;
+        this.service = service;
+        BalanceManager.sid = service.getSid();
         BalanceManager.sidBrief=sid.substring(0,6);
     }
 
     public void menu()  {
 
         Menu menu = new Menu();
-
+        menu.setName("User Manager");
         ArrayList<String> menuItemList = new ArrayList<>();
 
 
@@ -55,12 +60,13 @@ public class BalanceManager {
         while (true) {
             menu.show();
             int choice = menu.choose(br);
+            String balance0FileName = Settings.getLocalDataDir(sid)+BALANCE + 0 + DOT_JSON;
             switch (choice) {
 
                 case 1 -> findUsers(br);
                 case 2 -> BalanceInfo.backupBalance(sid,esClient,jedisPool);
                 case 3 -> BalanceInfo.recoverUserBalanceFromEs(esClient,jedisPool);
-                case 4 -> BalanceInfo.recoverUserBalanceFromFile(jedisPool);
+                case 4 -> BalanceInfo.recoverUserBalanceFromFile(balance0FileName,jedisPool);
                 case 5 -> recreateBalanceIndex(br, esClient,  BALANCE, balanceMappingJsonStr);
                 case 0 -> {
                     return;
@@ -131,5 +137,11 @@ public class BalanceManager {
         return user;
     }
 
+    public Service getService() {
+        return service;
+    }
 
+    public void setService(Service service) {
+        this.service = service;
+    }
 }

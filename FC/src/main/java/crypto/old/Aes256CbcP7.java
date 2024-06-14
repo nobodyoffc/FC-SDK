@@ -1,7 +1,7 @@
 package crypto.old;
 
 
-import FCH.Inputer;
+import fch.Inputer;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;

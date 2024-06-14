@@ -1,17 +1,19 @@
 package clients.apipClient;
 
-import APIP.apipData.Fcdsl;
-import APIP.apipData.RequestBody;
-import APIP.apipData.Session;
-import FCH.fchData.SendTo;
+import apip.apipData.Fcdsl;
+import apip.apipData.RequestBody;
+import apip.apipData.Session;
+import fch.fchData.SendTo;
 import appTools.Inputer;
 import appTools.Menu;
 import appTools.Shower;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import config.ApiAccount;
+import config.Configure;
 import constants.ApiNames;
 import constants.IndicesNames;
+import crypto.Decryptor;
 import crypto.Hash;
 import crypto.KeyTools;
 import crypto.old.EccAes256K1P7;
@@ -24,48 +26,60 @@ import org.jetbrains.annotations.Nullable;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 
-import static FCH.Inputer.inputGoodFid;
+import static fch.Inputer.inputGoodFid;
 import static config.ApiAccount.decryptSessionKey;
 import static constants.Constants.APIP_Account_JSON;
 
 public class StartApipClient {
     public static final int DEFAULT_SIZE = 20;
-
+    private static String fid;
+    private static ApipClientSettings settings;
     public static ApiAccount initApiAccount;
 
     public static void main(String[] args) {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        byte[] sessionKey;
-        byte[] symKey;
-        while (true) {
-            Shower.printUnderline(20);
-            System.out.println("\nWelcome to the Freeverse with APIP Client.");
-            Shower.printUnderline(20);
-            System.out.println("Confirm or set your password...");
-            byte[] passwordBytes = Inputer.getPasswordBytes(br);
-            BytesTools.clearByteArray(passwordBytes);
 
-            symKey = Hash.sha256x2(passwordBytes);
-            try {
-                initApiAccount = ApiAccount.checkApipAccount(br, symKey);
-                if (initApiAccount == null) return;
-                sessionKey = decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), symKey);
+        //Load config info from the file
+        Configure configure = Configure.loadConfig(br);
+        byte[] symKey = configure.checkPassword(configure);
 
-                if (sessionKey == null) continue;
+        fid = configure.chooseMainFid(symKey);
 
-                break;
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println("Wrong password, try again.");
-            }
-        }
+        settings = ApipClientSettings.loadFromFile(fid,ApipClientSettings.class);//new ApipClientSettings(configure,br);
+        if(settings==null) settings = new ApipClientSettings();
+
+        settings.initiateClient(fid,symKey,configure,br);
+
+//        initApiAccount = configure.getInitApipClient().getApiAccount();
+        byte[] sessionKey= decryptSessionKey(initApiAccount.getSession().getSessionKeyCipher(), symKey);
+//
+//        while (true) {
+//            Shower.printUnderline(20);
+//            System.out.println("\nWelcome to the Freeverse with APIP Client.");
+//            Shower.printUnderline(20);
+//            System.out.println("Confirm or set your password...");
+//            byte[] passwordBytes = Inputer.getPasswordBytes(br);
+//            symKey = Hash.sha256x2(passwordBytes);
+//            BytesTools.clearByteArray(passwordBytes);
+//            try {
+//                initApiAccount = ApiAccount.checkApipAccount(br, symKey);
+//                if (initApiAccount == null) return;
+//                sessionKey =
+//
+//                if (sessionKey == null) continue;
+//
+//                break;
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                System.out.println("Wrong password, try again.");
+//            }
+//        }
 
         Menu menu = new Menu();
-
+        menu.setName("Apip Client");
         ArrayList<String> menuItemList = new ArrayList<>();
         menuItemList.add("Example");
         menuItemList.add("FreeGet");
@@ -159,6 +173,7 @@ public class StartApipClient {
     public static void freeGet(BufferedReader br) {
         while (true) {
             Menu menu = new Menu();
+            menu.setName("Free GET methods");
             menu.add(ApiNames.FreeGetAPIs);
             menu.show();
             int choice = menu.choose(br);
@@ -248,7 +263,7 @@ public class StartApipClient {
         Menu menu = new Menu();
 
         ArrayList<String> menuItemList = new ArrayList<>();
-
+        menu.setName("OpenAPI");
         menuItemList.add("getService");
         menuItemList.add("SignInPost");
         menuItemList.add("SignInEccPost");
@@ -327,7 +342,7 @@ public class StartApipClient {
         Gson gson = new Gson();
         Session session = gson.fromJson(gson.toJson(diskClientData.getResponseBody().getData()), Session.class);
         String sessionKeyCipherFromApip = session.getSessionKeyCipher();
-        byte[] newSessionKey = EccAes256K1P7.decryptWithPriKey(sessionKeyCipherFromApip, priKey);
+        byte[] newSessionKey = new Decryptor().decryptJsonByAsyOneWay(sessionKeyCipherFromApip,priKey).getData();
 
         ApiAccount.updateSession(initApiAccount,symKey, session, newSessionKey);
         ApiAccount.writeApipParamsToFile(initApiAccount, APIP_Account_JSON);
@@ -357,6 +372,7 @@ public class StartApipClient {
         System.out.println("Blockchain...");
         while (true) {
             Menu menu = new Menu();
+            menu.setName("Blockchain");
             menu.add(ApiNames.BlockchainAPIs);
             menu.show();
             int choice = menu.choose(br);
@@ -376,6 +392,7 @@ public class StartApipClient {
                 case 12 -> p2shSearch(DEFAULT_SIZE, "birthHeight:desc->fid:asc", sessionKey, br);
                 case 13 -> txByIds(sessionKey, br);
                 case 14 -> txSearch(DEFAULT_SIZE, "height:desc->txId:asc", sessionKey, br);
+                case 15 -> chainInfo();
                 case 0 -> {
                     return;
                 }
@@ -387,7 +404,8 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input blockIds:", 0);
         System.out.println("Requesting blockByIds...");
         ApipClientTask diskClientData = BlockchainAPIs.blockByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
     }
 
     public static void blockSearch(int defaultSize, String defaultSort, byte[] sessionKey, BufferedReader br) {
@@ -395,21 +413,24 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting blockSearch...");
         ApipClientTask diskClientData = BlockchainAPIs.blockSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
     }
 
     public static void blockByHeights(byte[] sessionKey, BufferedReader br) {
         String[] heights = Inputer.inputStringArray(br, "Input block heights:", 0);
         System.out.println("Requesting blockByHeights...");
         ApipClientTask diskClientData = BlockchainAPIs.blockByHeightPost(initApiAccount.getApiUrl(), heights, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
     }
 
     public static void cashByIds(byte[] sessionKey, BufferedReader br) {
         String[] ids = Inputer.inputStringArray(br, "Input cashIds:", 0);
         System.out.println("Requesting cashByIds...");
         ApipClientTask diskClientData = BlockchainAPIs.cashByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
     }
 
     public static void cashValid(int defaultSize, String defaultSort, byte[] sessionKey, BufferedReader br) {
@@ -417,7 +438,8 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting cashValid...");
         ApipClientTask diskClientData = BlockchainAPIs.cashValidPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
     }
 
     public static void cashSearch(int defaultSize, String defaultSort, byte[] sessionKey, BufferedReader br) {
@@ -425,14 +447,16 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting cashSearch...");
         ApipClientTask diskClientData = BlockchainAPIs.cashSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
     }
 
     public static void fidByIds(byte[] sessionKey, BufferedReader br) {
         String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
         System.out.println("Requesting fidByIds...");
         ApipClientTask diskClientData = BlockchainAPIs.fidByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
     }
 
     public static void fidSearch(int defaultSize, String defaultSort, byte[] sessionKey, BufferedReader br) {
@@ -440,14 +464,16 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting fidSearch...");
         ApipClientTask diskClientData = BlockchainAPIs.fidSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
     }
 
     public static void opReturnByIds(byte[] sessionKey, BufferedReader br) {
         String[] ids = Inputer.inputStringArray(br, "Input opReturnIds:", 0);
         System.out.println("Requesting opReturnByIds...");
         ApipClientTask diskClientData = BlockchainAPIs.opReturnByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
     }
 
     public static void opReturnSearch(int defaultSize, String defaultSort, byte[] sessionKey, BufferedReader br) {
@@ -455,14 +481,16 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting opReturnSearch...");
         ApipClientTask diskClientData = BlockchainAPIs.opReturnSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
     }
 
     public static void p2shByIds(byte[] sessionKey, BufferedReader br) {
         String[] ids = Inputer.inputStringArray(br, "Input p2shIds:", 0);
         System.out.println("Requesting p2shByIds...");
         ApipClientTask diskClientData = BlockchainAPIs.p2shByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
     }
 
     public static void p2shSearch(int defaultSize, String defaultSort, byte[] sessionKey, BufferedReader br) {
@@ -470,14 +498,16 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting p2shSearch...");
         ApipClientTask diskClientData = BlockchainAPIs.p2shSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
     }
 
     public static void txByIds(byte[] sessionKey, BufferedReader br) {
         String[] ids = Inputer.inputStringArray(br, "Input txIds:", 0);
         System.out.println("Requesting txByIds...");
         ApipClientTask diskClientData = BlockchainAPIs.txByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
     }
 
     public static void txSearch(int defaultSize, String defaultSort, byte[] sessionKey, BufferedReader br) {
@@ -485,7 +515,15 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting txSearch...");
         ApipClientTask diskClientData = BlockchainAPIs.txSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void chainInfo() {
+        System.out.println("Requesting chainInfo...");
+        ApipClientTask diskClientData = BlockchainAPIs.chainInfo(initApiAccount.getApiUrl());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
+
     }
 
     @Nullable
@@ -510,6 +548,7 @@ public class StartApipClient {
         System.out.println("Identity...");
         while (true) {
             Menu menu = new Menu();
+            menu.setName("Identity");
             menu.add(ApiNames.IdentityAPIs);
             menu.show();
             int choice = menu.choose(br);
@@ -538,7 +577,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
         System.out.println("Requesting cidInfoByIds...");
         ApipClientTask diskClientData = IdentityAPIs.cidInfoByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -547,7 +586,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = IdentityAPIs.cidInfoSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -556,7 +595,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = IdentityAPIs.fidCidSeekPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -573,7 +612,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = IdentityAPIs.nobodyByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -582,7 +621,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = IdentityAPIs.nobodySearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -591,7 +630,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = IdentityAPIs.cidHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -600,7 +639,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = IdentityAPIs.homepageHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -609,7 +648,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = IdentityAPIs.noticeFeeHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -618,7 +657,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = IdentityAPIs.reputationHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -626,7 +665,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = IdentityAPIs.avatarsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -644,6 +683,7 @@ public class StartApipClient {
         System.out.println("Organize...");
         while (true) {
             Menu menu = new Menu();
+            menu.setName("Organize");
             menu.add(ApiNames.OrganizeAPIs);
             menu.show();
             int choice = menu.choose(br);
@@ -673,7 +713,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input GIDs:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = OrganizeAPIs.groupByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -682,7 +722,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = OrganizeAPIs.groupSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -690,7 +730,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input GIDs:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = OrganizeAPIs.groupMembersPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -698,7 +738,7 @@ public class StartApipClient {
         Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort, br);
         if (fcdsl == null) return;
         ApipClientTask diskClientData = OrganizeAPIs.groupOpHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -708,14 +748,14 @@ public class StartApipClient {
         if ("".equals(id)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = OrganizeAPIs.myGroupsPost(initApiAccount.getApiUrl(), id, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
     public static void teamByIds(byte[] sessionKey, BufferedReader br) {
         String[] ids = Inputer.inputStringArray(br, "Input TIDs:", 0);
         ApipClientTask diskClientData = OrganizeAPIs.teamByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -724,7 +764,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = OrganizeAPIs.teamSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -732,7 +772,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input TIDs:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = OrganizeAPIs.teamMembersPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -740,7 +780,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input TIDs:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = OrganizeAPIs.teamExMembersPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -749,7 +789,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = OrganizeAPIs.teamRateHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -758,7 +798,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = OrganizeAPIs.teamOpHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -766,7 +806,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input TIDs:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = OrganizeAPIs.teamOtherPersonsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -776,7 +816,7 @@ public class StartApipClient {
         if ("".equals(id)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = OrganizeAPIs.myTeamsPost(initApiAccount.getApiUrl(), id, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -784,6 +824,7 @@ public class StartApipClient {
         System.out.println("Construct...");
         while (true) {
             Menu menu = new Menu();
+            menu.setName("Construct");
             menu.add(ApiNames.ConstructAPIs);
             menu.show();
             int choice = menu.choose(br);
@@ -816,7 +857,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input PIDs:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.protocolByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -825,7 +866,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.protocolSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -834,7 +875,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.protocolRateHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -843,14 +884,14 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.protocolOpHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
     public static void codeByIds(byte[] sessionKey, BufferedReader br) {
         String[] ids = Inputer.inputStringArray(br, "Input codeIds:", 0);
         ApipClientTask diskClientData = ConstructAPIs.codeByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -859,7 +900,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.codeSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -868,7 +909,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.codeRateHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -877,7 +918,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.codeOpHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -885,7 +926,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input SIDs:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.serviceByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -894,7 +935,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.serviceSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -903,7 +944,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.serviceRateHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -912,7 +953,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.serviceOpHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -920,7 +961,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input AIDs:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.appByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -929,7 +970,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.appSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -938,7 +979,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.appRateHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -947,7 +988,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = ConstructAPIs.appOpHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -955,6 +996,7 @@ public class StartApipClient {
         System.out.println("Personal...");
         while (true) {
             Menu menu = new Menu();
+            menu.setName("Personal");
             menu.add(ApiNames.PersonalAPIs);
             menu.show();
             int choice = menu.choose(br);
@@ -984,7 +1026,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input BIDs:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PersonalAPIs.boxByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -993,7 +1035,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PersonalAPIs.boxSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1002,7 +1044,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PersonalAPIs.boxHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1010,7 +1052,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input contactIds:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PersonalAPIs.contactByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1019,7 +1061,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PersonalAPIs.contactsPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1028,7 +1070,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PersonalAPIs.contactsDeletedPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1036,7 +1078,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input secretIds:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PersonalAPIs.secretByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1045,7 +1087,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PersonalAPIs.secretsPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1054,7 +1096,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PersonalAPIs.secretsDeletedPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1062,7 +1104,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input mailIds:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PersonalAPIs.mailByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1071,7 +1113,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PersonalAPIs.mailsPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1080,7 +1122,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PersonalAPIs.mailsDeletedPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1089,7 +1131,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PersonalAPIs.mailThreadPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1097,6 +1139,7 @@ public class StartApipClient {
         System.out.println("Publish...");
         while (true) {
             Menu menu = new Menu();
+            menu.setName("Publish");
             menu.add(ApiNames.PublishAPIs);
             menu.show();
             int choice = menu.choose(br);
@@ -1125,7 +1168,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input tokenIds:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PublishAPIs.tokenByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1134,7 +1177,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PublishAPIs.tokenSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1143,7 +1186,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PublishAPIs.tokenHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1151,7 +1194,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input tokenHolderIds:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PublishAPIs.tokenHolderByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1160,7 +1203,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PublishAPIs.myTokensPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1169,7 +1212,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PublishAPIs.tokenHoldersPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1177,7 +1220,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input proofIds:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PublishAPIs.proofByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1186,7 +1229,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PublishAPIs.proofSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1195,7 +1238,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PublishAPIs.proofHistoryPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1203,7 +1246,7 @@ public class StartApipClient {
         String[] ids = Inputer.inputStringArray(br, "Input statementIds:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PublishAPIs.statementByIdsPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1212,7 +1255,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PublishAPIs.statementSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1221,7 +1264,7 @@ public class StartApipClient {
         if (fcdsl == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = PublishAPIs.nidSearchPost(initApiAccount.getApiUrl(), fcdsl, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1229,6 +1272,7 @@ public class StartApipClient {
         System.out.println("Wallet...");
         while (true) {
             Menu menu = new Menu();
+            menu.setName("Wallet");
             menu.add(ApiNames.WalletAPIs);
             menu.show();
             int choice = menu.choose(br);
@@ -1258,7 +1302,7 @@ public class StartApipClient {
         }
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = WalletAPIs.broadcastTxPost(initApiAccount.getApiUrl(), txHex, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1272,7 +1316,7 @@ public class StartApipClient {
         }
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = WalletAPIs.decodeRawTxPost(initApiAccount.getApiUrl(), txHex, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1289,7 +1333,7 @@ public class StartApipClient {
         if (amount == null) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = WalletAPIs.cashValidForPayPost(initApiAccount.getApiUrl(), fid, amount, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1305,14 +1349,14 @@ public class StartApipClient {
         int cd = Inputer.inputInteger(br, "Input the required CD:", 0);
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = WalletAPIs.cashValidForCdPost(initApiAccount.getApiUrl(), fid, cd, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
     public static void unconfirmed(byte[] sessionKey, BufferedReader br) {
         String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
         ApipClientTask diskClientData = WalletAPIs.unconfirmedPost(initApiAccount.getApiUrl(), ids, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1320,6 +1364,7 @@ public class StartApipClient {
         System.out.println("CryptoTools");
         while (true) {
             Menu menu = new Menu();
+            menu.setName("CryptoTools");
             menu.add(ApiNames.CryptoToolsAPIs);
             menu.show();
             int choice = menu.choose(br);
@@ -1347,7 +1392,7 @@ public class StartApipClient {
         if ("".equals(addrOrKey)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = CryptoToolAPIs.addressesPost(initApiAccount.getApiUrl(), addrOrKey, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1361,7 +1406,7 @@ public class StartApipClient {
         if ("".equals(key)) return;
 
         ApipClientTask diskClientData = CryptoToolAPIs.encryptPost(initApiAccount.getApiUrl(), key, msg, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1371,7 +1416,7 @@ public class StartApipClient {
         if ("".equals(signature)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = CryptoToolAPIs.verifyPost(initApiAccount.getApiUrl(), signature, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1381,7 +1426,7 @@ public class StartApipClient {
         if ("".equals(text)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = CryptoToolAPIs.sha256Post(initApiAccount.getApiUrl(), text, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1391,7 +1436,7 @@ public class StartApipClient {
         if ("".equals(text)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = CryptoToolAPIs.sha256x2Post(initApiAccount.getApiUrl(), text, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1401,7 +1446,7 @@ public class StartApipClient {
         if ("".equals(text)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = CryptoToolAPIs.sha256BytesPost(initApiAccount.getApiUrl(), text, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1411,7 +1456,7 @@ public class StartApipClient {
         if ("".equals(text)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = CryptoToolAPIs.sha256x2BytesPost(initApiAccount.getApiUrl(), text, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1426,7 +1471,7 @@ public class StartApipClient {
         if ("".equals(msg)) msg = null;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = CryptoToolAPIs.offLineTxPost(initApiAccount.getApiUrl(), fid, sendToList, msg, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1443,15 +1488,16 @@ public class StartApipClient {
         if ("".equals(msg)) msg = null;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = CryptoToolAPIs.offLineTxByCdPost(initApiAccount.getApiUrl(), fid, sendToList, msg, cd, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
 
     public static void swapTools(byte[] sessionKey, BufferedReader br) {
-        System.out.println("CryptoTools");
+        System.out.println("SwapTools...");
         while (true) {
             Menu menu = new Menu();
+            menu.setName("SwapTools");
             menu.add(ApiNames.SwapHallAPIs);
             menu.show();
             int choice = menu.choose(br);
@@ -1478,7 +1524,7 @@ public class StartApipClient {
         if ("".equals(sid)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = SwapHallAPIs.swapRegisterPost(initApiAccount.getApiUrl(), sid, initApiAccount.getVia(), sessionKey);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         Menu.anyKeyToContinue(br);
     }
 
@@ -1492,12 +1538,12 @@ public class StartApipClient {
         if ("".equals(sid)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = SwapHallAPIs.getSwapInfo(initApiAccount.getApiUrl(), new String[]{sid}, null);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
 
-        String[] last = diskClientData.getResponseBody().getLast();
-        if (last != null && !Arrays.stream(last).isParallel()) {
+        List<String> last = diskClientData.getResponseBody().getLast();
+        if (last != null&& !last.isEmpty()) {
             diskClientData = SwapHallAPIs.getSwapInfo(initApiAccount.getApiUrl(), new String[]{sid}, last);
-            System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+            System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         }
         Menu.anyKeyToContinue(br);
     }
@@ -1508,7 +1554,7 @@ public class StartApipClient {
         if ("".equals(sid)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = SwapHallAPIs.getSwapState(initApiAccount.getApiUrl(), sid);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
     }
 
     private static void swapLp(BufferedReader br) {
@@ -1517,7 +1563,7 @@ public class StartApipClient {
         if ("".equals(sid)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = SwapHallAPIs.getSwapLp(initApiAccount.getApiUrl(), sid);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
     }
 
     private static void swapPending(BufferedReader br) {
@@ -1526,7 +1572,7 @@ public class StartApipClient {
         if ("".equals(sid)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = SwapHallAPIs.getSwapPending(initApiAccount.getApiUrl(), sid);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
     }
 
     private static void swapFinished(BufferedReader br) {
@@ -1535,12 +1581,12 @@ public class StartApipClient {
         if ("".equals(sid)) return;
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = SwapHallAPIs.getSwapFinished(initApiAccount.getApiUrl(), sid, null);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
 
-        String[] last = diskClientData.getResponseBody().getLast();
-        if (last != null && !Arrays.stream(last).isParallel()) {
+        List<String> last = diskClientData.getResponseBody().getLast();
+        if (last != null && !last.isEmpty()) {
             diskClientData = SwapHallAPIs.getSwapInfo(initApiAccount.getApiUrl(), new String[]{sid}, last);
-            System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+            System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         }
         Menu.anyKeyToContinue(br);
     }
@@ -1560,20 +1606,21 @@ public class StartApipClient {
 
         System.out.println("Requesting ...");
         ApipClientTask diskClientData = SwapHallAPIs.getSwapPrice(initApiAccount.getApiUrl(), sid, gTick, mTick, null);
-        System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
 
-        String[] last = diskClientData.getResponseBody().getLast();
-        if (last != null && !Arrays.stream(last).isParallel()) {
+        List<String> last = diskClientData.getResponseBody().getLast();
+        if (last != null && !last.isEmpty()) {
             diskClientData = SwapHallAPIs.getSwapPrice(initApiAccount.getApiUrl(), sid, gTick, mTick, last);
-            System.out.println("diskClientData:\n" + diskClientData.getResponseBodyStr());
+            System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
         }
         Menu.anyKeyToContinue(br);
     }
 
     public static void setting(byte[] sessionKey, byte[] symKey, BufferedReader br) {
-        System.out.println("setting...");
+        System.out.println("Setting...");
         while (true) {
             Menu menu = new Menu();
+            menu.setName("Settings");
             menu.add("Check APIP", "Reset APIP", "Refresh SessionKey", "Change password");
             menu.show();
             int choice = menu.choose(br);

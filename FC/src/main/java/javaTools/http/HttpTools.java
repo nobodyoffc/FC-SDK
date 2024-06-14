@@ -1,15 +1,20 @@
 package javaTools.http;
 
-import APIP.apipData.RequestBody;
 import clients.ApiUrl;
-import clients.apipClient.DataGetter;
-import constants.ReplyInfo;
+import clients.ClientTask;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.HttpHostConnectException;
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
-import server.RequestCheckResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -20,21 +25,17 @@ import static constants.ApiNames.apiList;
 import static constants.ApiNames.freeApiList;
 
 public class HttpTools {
+    private static final Logger log = LoggerFactory.getLogger(HttpTools.class);
     public static String getApiNameFromUrl(String url) {
         int lastSlashIndex = url.lastIndexOf('/');
         int firstQuestionIndex = url.indexOf('?');
-        if (lastSlashIndex != -1 && lastSlashIndex != url.length() - 1) {
-            String name = url.substring(lastSlashIndex + 1);
-            if(firstQuestionIndex!=-1){
-                name = name.substring(0,firstQuestionIndex);
-            }
-            if (apiList.contains(name) || freeApiList.contains(name)) {
-                return name;
-            }
-            return "";
-        } else {
-            return "";  // Return empty string if '/' is the last character or not found
+        if (lastSlashIndex == -1 || lastSlashIndex == url.length() - 1)return null;
+
+        String name = url.substring(lastSlashIndex + 1);
+        if(firstQuestionIndex!=-1){
+            name = name.substring(0,firstQuestionIndex);
         }
+        return name;
     }
 
     @Nullable
@@ -60,41 +61,62 @@ public class HttpTools {
         return paramMap;
     }
 
-    public static String parseApiName(String url) {
-        int index = url.lastIndexOf('/');
-        if(index!=url.length()-1){
-            return url.substring(index);
+    public static CloseableHttpResponse post(String url, Map<String,String>requestHeaderMap, String requestBodyType, byte[] requestBodyBytes) {
+        CloseableHttpResponse httpResponse;
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+
+            HttpPost httpPost = new HttpPost(url);
+            if (requestHeaderMap != null) {
+                for (String key : requestHeaderMap.keySet()) {
+                    httpPost.setHeader(key, requestHeaderMap.get(key));
+                }
+            }
+
+            switch (requestBodyType) {
+                case "string" -> {
+                    StringEntity entity = new StringEntity(new String(requestBodyBytes));
+                    httpPost.setEntity(entity);
+                }
+                case "bytes" -> {
+                    ByteArrayEntity entity = new ByteArrayEntity(requestBodyBytes);
+                    httpPost.setEntity(entity);
+                }
+
+                default -> {
+                    return null;
+                }
+            }
+
+
+            try {
+                httpResponse = httpClient.execute(httpPost);
+            } catch (HttpHostConnectException e) {
+                log.debug("Failed to connect " + url + ". Check the URL.");
+                return null;
+            }
+
+            if (httpResponse == null) {
+                log.debug("httpResponse == null.");
+                return null;
+            }
+
+            if (httpResponse.getStatusLine().getStatusCode() != 200) {
+                log.debug("Post response status: {}.{}", httpResponse.getStatusLine().getStatusCode(), httpResponse.getStatusLine().getReasonPhrase());
+                return httpResponse;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        return null;
+        return httpResponse;
     }
 
-    @Nullable
-    public static String getStringFromHeader(HttpServletRequest request, HttpServletResponse response, FcReplier replier, RequestCheckResult requestCheckResult, String name) {
-        String value = request.getParameter(name);
-        if (value == null) {
-            replier.replyWithCodeAndMessage(response, ReplyInfo.Code3009DidMissed,ReplyInfo.Msg3009DidMissed,null, requestCheckResult.getSessionKey() );
-            return null;
-        }
-        return value;
-    }
-
-    @Nullable
-    public static String getStringFromBodyJsonData(HttpServletResponse response, FcReplier replier, RequestCheckResult requestCheckResult, RequestBody requestBody, String name) {
-        String value;
-        try {
-            Map<String, String> requestDataMap = DataGetter.getStringMap(requestBody.getData());
-            value = requestDataMap.get(name);
-        }catch (Exception e){
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1020OtherError,"Can not get the"+ name +"from request body.",null, requestCheckResult.getSessionKey());
-            return null;
-        }
-
-        if (value == null) {
-            replier.replyWithCodeAndMessage(response,ReplyInfo.Code1020OtherError,"Can not get the "+ name +" from request body.", null, requestCheckResult.getSessionKey());
-            return null;
-        }
-        return value;
-    }
+//    public static String parseApiName(String url) {
+//        int index = url.lastIndexOf('/');
+//        if(index!=url.length()-1){
+//            return url.substring(index);
+//        }
+//        return null;
+//    }
 
     @Test
     public void test() {

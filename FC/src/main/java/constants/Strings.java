@@ -45,7 +45,7 @@ public class Strings {
     public static final String PUBLIC = "public";
     public static final String FID = "fid";
     public static final String SERVICE_NAME = "serviceName";
-    public static final String PARAMS_ON_CHAIN = "paramsOnChain";
+//    public static final String PARAMS_ON_CHAIN = "paramsOnChain";
     public static final String OPRETURN = "opreturn";
     public static final String CURRENCY = "currency";
     public static final String URL_HEAD = "urlHead";
@@ -80,15 +80,15 @@ public class Strings {
     public static final String ACTIVE = "active";
     public static final String TYPES = "types";
     public static final String HOOK_USER_ID = "hookUserId";
+    public static final String HOOK_LAST_HEIGHT = "hookUserId";
     public static final String ENDPOINT = "endpoint";
     public static final String TARGET_API = "targetApi";
-    public static final String HOOK_INFO_ = "hookInfo_";
+    public static final String HOOK_INFO = "hookInfo";
 
     public static final String FCH = "fch";
     public static final String AGAIN = "again";
     public static final String WEBHOOK_ENDPOINT_SESSION_KEY = "webhookEndpointSessionKey";
     public static final String DOT_JSON = ".json";
-    public static final String CASH_ID = "cashId";
     public static final String BIRTH_HEIGHT = "birthHeight";
     public static final String ORDER = "order";
     public static final String NONCE = "nonce";

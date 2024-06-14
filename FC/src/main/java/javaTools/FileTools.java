@@ -111,8 +111,9 @@ public class FileTools {
         Path path = Paths.get(filePathString);
         try {
             // Create parent directories if they do not exist
-            if (Files.notExists(path.getParent())) {
-                Files.createDirectories(path.getParent());
+            Path pathParent = path.getParent();
+            if(pathParent!=null && Files.notExists(pathParent)) {
+                Files.createDirectories(pathParent);
             }
 
             // Create file if it does not exist
@@ -132,7 +133,7 @@ public class FileTools {
         Path path = Paths.get(filePathString);
         try {
             // Create parent directories if they do not exist
-            if (Files.notExists(path.getParent())) {
+            if (path.getParent()!=null && Files.notExists(path.getParent())) {
                 Files.createDirectories(path.getParent());
             }
             return true;

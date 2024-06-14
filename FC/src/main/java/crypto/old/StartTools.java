@@ -614,7 +614,7 @@ public class StartTools {
 
         System.out.println("----");
 
-        System.out.println("FCH" + ": " + addrMap.get("fchAddr"));
+        System.out.println("fch" + ": " + addrMap.get("fchAddr"));
         System.out.println("BTC" + ": " + addrMap.get("btcAddr"));
         System.out.println("ETH" + ": " + addrMap.get("ethAddr"));
         System.out.println("BCH" + ": " + addrMap.get("bchAddr"));

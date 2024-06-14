@@ -1,10 +1,11 @@
 package startManager;
 
-import FEIP.feipData.serviceParams.Params;
+import feip.feipData.serviceParams.Params;
 import clients.diskClient.DiskDataInfo;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.JsonData;
+import config.ApiAccount;
 import constants.FieldNames;
 import javaTools.FileTools;
 import server.Counter;
@@ -13,14 +14,15 @@ import server.Settings;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
+import java.util.List;
 
 import static constants.Strings.DATA;
 
 public class DiskCounter extends Counter {
 
 
-    public DiskCounter(Settings settings, Params params) {
-        super(settings, params);
+    public DiskCounter(Settings settings, Params params, List<ApiAccount> chargedAccountList,byte[] symKey) {
+        super(settings, params, chargedAccountList, symKey);
     }
 
     @Override

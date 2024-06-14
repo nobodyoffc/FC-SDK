@@ -1,13 +1,14 @@
 package constants;
 
-import fcData.AlgorithmId;
-
 public class Constants {
+    public static long CDD_CHECK_HEIGHT =3000000;
+    public static long CDD_REQUIRED =1;
     public static final Long COIN_TO_SATOSHI = 100000000L;
     public static final Long OneDayInterval = 1L;//1440L;
     public static final Long BalanceBackupInterval = OneDayInterval;
-    public static final Long RewardInterval = OneDayInterval * 10;
+    public static final Long RewardInterval = OneDayInterval * 1;//10
     public static final String UserDir = "user.dir";
+    public static final String UserHome = "user.home";
     public static final int MaxRequestSize = 100;
     public static final int DefaultSize = 20;
     public static final String zeroBlockId = "00000000cbe04361b1d6de82b893a7d8419e76e99dd2073ac0db2ba0e652eea8";
@@ -47,15 +48,17 @@ public class Constants {
     public static final String FBBP = "FBBP";
     public static final String SESSION_NAME = "SessionName";
     public static final String WEBHOOK_FILE = "webhook.json";
-    public static final String APIP = "APIP";
+    public static final String APIP = "apip";
     public static final String V1 = "V1";
     public static final String APIP_Account_JSON = "ApipAccount.json";
     ;
     public static final String MAKER_SN = "2";
     public static final String FEIP = "FEIP";
+    public static final String CID = "CID";
+    public static final String Master = "Master";
+    public static final String COINBASE = "coinbase";
     public static final double Dust = 0.00001;
 
-    public static final AlgorithmId ECC_AES_256_K1_P7 = AlgorithmId.EccAes256K1P7_No1_NrC7;//"EccAes256K1P7@No1_NrC7";
     public static final String ALG_SIGN_TX_BY_CRYPTO_SIGN = "SignTxByCryptoSign@No1_NrC7";
     public static final String CONFIG_JSON = "config.json";
     public static final long DAY_TO_MIL_SEC = 24*60*60*1000;
@@ -72,4 +75,6 @@ public class Constants {
     public static String Dot_JSON = ".json";
     public final static String FCH_0BlockId = "00000000cbe04361b1d6de82b893a7d8419e76e99dd2073ac0db2ba0e652eea8";
     public final static String DOGE_0BlockId = "1a91e3dace36e2be3bf030a65679fe821aa1d6ef92e7c9902eb318182c355691";
+    public static long SatoshiDust = 546;
+    public static long TenDayBlocks = 60*24*10;
 }

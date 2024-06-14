@@ -3,13 +3,13 @@ package server.reward;
 import fcData.Affair;
 import fcData.DataSignTx;
 import fcData.Op;
-import FCH.CashListReturn;
-import FCH.CryptoSign;
-import FCH.DataForOffLineTx;
-import FCH.WalletTools;
-import FCH.fchData.Cash;
-import FCH.fchData.SendTo;
-import FEIP.feipData.FcInfo;
+import fch.CashListReturn;
+import fch.CryptoSign;
+import fch.DataForOffLineTx;
+import fch.Wallet;
+import fch.fchData.Cash;
+import fch.fchData.SendTo;
+import feip.feipData.DataOnChain;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import com.google.gson.Gson;
 import javaTools.JsonTools;
@@ -67,7 +67,7 @@ public class AffairMaker {
 
     public String makeAffair(){
 
-        FcInfo feip = new FcInfo();
+        DataOnChain feip = new DataOnChain();
         feip.setType(FBBP);
         feip.setSn("1");
         feip.setVer("1");
@@ -82,7 +82,7 @@ public class AffairMaker {
 
         long rewardT = rewardInfo.getRewardT();
 
-        CashListReturn cashListReturn = WalletTools.getCashListForPay(rewardT,account,esClient);
+        CashListReturn cashListReturn = Wallet.getCashListForPay(rewardT,account,esClient);
 
         if(cashListReturn.getCode()>0){
             log.debug(cashListReturn.getMsg());

@@ -25,7 +25,7 @@ public class ApiUrl{
     public ApiUrl(){}
     public ApiUrl(String url){
         this.url = url;
-        this.api = HttpTools.parseApiName(url);
+        this.api = HttpTools.getApiNameFromUrl(url);
     }
     public ApiUrl(String urlHead,String urlTail){
         this.urlHead = formatUrlPath(urlHead);

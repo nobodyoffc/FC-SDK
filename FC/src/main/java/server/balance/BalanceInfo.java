@@ -33,17 +33,17 @@ public class BalanceInfo {
 
 
     private static final Logger log = LoggerFactory.getLogger(BalanceInfo.class);
-    public static final String BALANCE_BACKUP_JSON = "balanceBackup.json";
+//    public static final String BALANCE_BACKUP_JSON = "balanceBackup.json";
 
     public static final String MAPPINGS = "{\"mappings\":{\"properties\":{\"user\":{\"type\":\"keyword\"},\"bestHeight\":{\"type\":\"long\"},\"consumeVia\":{\"type\":\"keyword\"},\"orderVia\":{\"type\":\"keyword\"},\"pending\":{\"type\":\"text\",\"fields\":{\"keyword\":{\"type\":\"keyword\",\"ignore_above\":256}}}}}}";
 
-    public static void recoverUserBalanceFromFile(JedisPool jedisPool) {
+    public static void recoverUserBalanceFromFile(String fileName,JedisPool jedisPool) {
         try(Jedis jedis = jedisPool.getResource()) {
-            BalanceInfo balanceInfo = JsonTools.readObjectFromJsonFile(null,BALANCE_BACKUP_JSON, BalanceInfo.class);
+            BalanceInfo balanceInfo = JsonTools.readObjectFromJsonFile(null,fileName, BalanceInfo.class);
             if(balanceInfo==null)return;
             recoverBalanceToRedis(balanceInfo, jedis);
         } catch (IOException e) {
-            log.debug("Failed to recoverUserBalanceFromFile: "+BALANCE_BACKUP_JSON);
+            log.debug("Failed to recoverUserBalanceFromFile: "+fileName);
         }
     }
 
@@ -113,7 +113,7 @@ public class BalanceInfo {
         }
     }
 
-    private static void recoverBalanceToRedis(BalanceInfo balanceInfo, Jedis jedis) {
+    public static void recoverBalanceToRedis(BalanceInfo balanceInfo, Jedis jedis) {
         Gson gson = new Gson();
         Map<String, String> balanceMap = gson.fromJson(balanceInfo.getUser(), new TypeToken<HashMap<String, String>>() {
         }.getType());
@@ -180,31 +180,35 @@ public class BalanceInfo {
         }
     }
 
-    private static void backupBalanceToFile(BalanceInfo balanceInfo, String filename) {
+    private static void backupBalanceToFile(BalanceInfo balanceInfo, String fileName) {
         String finalFileName = null;
-        for(int i=0;i<30;i++){
-            File file = new File(filename +i+DOT_JSON);
-            if(file.exists()) {
-                if (i == 0){
-                    if(new File(filename +29+DOT_JSON).exists())
-                        file.delete();
-                } else {
-                    if(new File(filename +29+DOT_JSON).exists()) {
-                        file.renameTo(new File(filename + (i - 1) + DOT_JSON));
-                        if(i==29){
-                            JsonTools.writeObjectToJsonFile(balanceInfo, filename +i+DOT_JSON,false);
-                            finalFileName = filename +i+DOT_JSON;
-                            break;
-                        }
-                    }
-                }
-            }else {
-                JsonTools.writeObjectToJsonFile(balanceInfo, filename +i+DOT_JSON,false);
-                finalFileName = filename +i+DOT_JSON;
-                break;
+
+        try {
+            // Check if balance29.json exists
+            File oldestFile = new File(fileName + 29 + DOT_JSON);
+            if (oldestFile.exists()) {
+                // Delete the oldest file
+                oldestFile.delete();
             }
+
+            // Rename the files from balance28.json to balance0.json
+            for (int i = 28; i >=0; i--) {
+                File currentFile = new File(fileName + i + DOT_JSON);
+                if (currentFile.exists()) {
+                    File newFile = new File(fileName + (i + 1) + DOT_JSON);
+                    currentFile.renameTo(newFile);
+                }
+            }
+
+            // Write the new balance info to balance0.json
+            JsonTools.writeObjectToJsonFile(balanceInfo, fileName + 0 + DOT_JSON, false);
+            finalFileName = fileName + 0 + DOT_JSON;
+
+        } catch (Exception e) {
+            log.error("Failed to backup user balance to file", e);
         }
-        log.debug("User balance is backed up to "+ finalFileName);
+
+        log.debug("User balance is backed up to " + finalFileName);
     }
 
     public long getBestHeight() {

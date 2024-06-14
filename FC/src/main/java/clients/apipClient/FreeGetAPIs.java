@@ -1,7 +1,7 @@
 package clients.apipClient;
 
 import constants.ApiNames;
-import constants.ReplyInfo;
+import constants.ReplyCodeMessage;
 
 public class FreeGetAPIs {
 
@@ -41,8 +41,8 @@ public class FreeGetAPIs {
         if (id != null) urlTail = urlTail + "?fid=" + id;
         if (amount != 0) {
             if(id==null){
-                apipClientData.setCode(ReplyInfo.Code1021FidIsRequired);
-                apipClientData.setMessage(ReplyInfo.Msg1021FidIsRequired);
+                apipClientData.setCode(ReplyCodeMessage.Code1021FidIsRequired);
+                apipClientData.setMessage(ReplyCodeMessage.Msg1021FidIsRequired);
                 return apipClientData;
             }
             urlTail = urlTail + "&amount=" + amount;

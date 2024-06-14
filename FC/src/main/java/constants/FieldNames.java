@@ -4,6 +4,9 @@ public class FieldNames {
     public static final String OWNER = "owner";
     public static final String TYPES = "types";
     public static final String LAST_HEIGHT = "lastHeight";
+    public static final String BIRTH_HEIGHT = "birthHeight";
+
+    public static final String LAST_TIME = "lastTime";
     public static final String VALUE = "value";
     public static final String SUM = "sum";
     public static final String SPEND_CASHES = "spendCashes";
@@ -25,6 +28,7 @@ public class FieldNames {
     public static final String SETTINGS = "settings";
     public static final String FORBID_FREE_API = "forbidFreeApi";
     public static final String DISK_INFO = "disk_info";
+    public static final String APIP_INFO = "apip_info";
     public static final String EXPIRE = "expire";
     public static final String SORT = "sort";
     public static final String SIZE = "size";
@@ -34,4 +38,10 @@ public class FieldNames {
     public static final String TXID = "txId";
     public static final String INDEX = "index";
     public static final String SINCE = "since";
+    public static final String HOOK_SESSION_NAME_KEY = "hookSessionNameKey";
+    public static final String RECIPIENT = "recipient";
+    public static final String TX_ID = "txId";
+    public static final String CASH_ID = "cashId";
+    public static final String CDD = "cdd";
+
 }

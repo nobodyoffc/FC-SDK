@@ -1,6 +1,6 @@
 package clients.apipClient;
 
-import APIP.apipData.Fcdsl;
+import apip.apipData.Fcdsl;
 import constants.ApiNames;
 
 import javax.annotation.Nullable;
@@ -209,6 +209,12 @@ public class BlockchainAPIs {
         paramMap.put("address",id);
         paramMap.put("amount", String.valueOf(amount));
         ApipClientTask apipClientData = new ApipClientTask(urlHead, ApiNames.APIP2V1Path,ApiNames.GetUtxoAPI);
+        apipClientData.get();
+        return apipClientData;
+    }
+
+    public static ApipClientTask chainInfo(String urlHead) {
+        ApipClientTask apipClientData = new ApipClientTask(urlHead, ApiNames.APIP2V1Path,ApiNames.ChainInfoAPI);
         apipClientData.get();
         return apipClientData;
     }

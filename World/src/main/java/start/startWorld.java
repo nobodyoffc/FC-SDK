@@ -1,6 +1,6 @@
 package start;
 
-import FCH.Inputer;
+import fch.Inputer;
 import appTools.Menu;
 import clients.apipClient.ApipClient;
 import config.Configure;
@@ -23,13 +23,10 @@ public class startWorld {
         Configure configure = Configure.loadConfig(br);
         byte[] symKey = configure.checkPassword(configure);
 
-        configure.initiate(symKey);
-
         //Need a chat service and a disk service.
         worldSettings = WorldSettings.loadFromFile(null,WorldSettings.class);
         if(worldSettings==null)worldSettings=new WorldSettings(configure,br);
-        worldSettings.initiate(symKey,configure);
-
+        worldSettings.initiateServer(sid, symKey,configure, br);
 
         Object[] fids = worldSettings.getFidPriKeyCipherMap().keySet().toArray();
         String fid = (String) Inputer.chooseOne(fids,"Choose ID:",br);

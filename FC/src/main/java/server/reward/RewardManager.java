@@ -1,9 +1,9 @@
 package server.reward;
 
 import clients.apipClient.ApipClient;
-import APIP.apipData.Sort;
-import FCH.ParseTools;
-import FCH.fchData.Address;
+import apip.apipData.Sort;
+import fch.ParseTools;
+import fch.fchData.Address;
 import appTools.Menu;
 import appTools.Shower;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
@@ -160,7 +160,7 @@ public class RewardManager {
         AffairMaker affairMaker;
         String account = null;
         try(Jedis jedis = jedisPool.getResource()) {
-            account = jedis.hget(jedis.hget(CONFIG,SERVICE_NAME)+"_"+ PARAMS_ON_CHAIN, ACCOUNT);
+            account = jedis.hget(jedis.hget(CONFIG,SERVICE_NAME)+"_"+ PARAMS, ACCOUNT);
         }catch (Exception e){
             log.error("Get service account wrong. Check redis.");
         }

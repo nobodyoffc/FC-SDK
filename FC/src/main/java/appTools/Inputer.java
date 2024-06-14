@@ -10,10 +10,7 @@ import java.io.BufferedReader;
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 
 public class Inputer {
@@ -61,7 +58,7 @@ public class Inputer {
 
     public static Double inputGoodShare(BufferedReader br) {
         while (true) {
-            String ask = "Input the number. Enter to quit.";
+            String ask = "Input the share(0~1). Enter to quit.";
             Double share = inputDouble(br, ask);
             if (share == null) return null;
             if (share > 1) {
@@ -401,7 +398,7 @@ public class Inputer {
     }
 
     public static boolean promptAndSet(BufferedReader reader, String fieldName, boolean currentValue) throws IOException {
-        System.out.print("Enter " + fieldName + ". It is "+currentValue+ " now. (Press Enter to keep it): ");
+        System.out.print("Enter " + fieldName + ". It is '"+currentValue+ "' now. (Press Enter to keep it): ");
         return Boolean.parseBoolean(reader.readLine());
     }
     public static long promptForLong(BufferedReader reader, String fieldName, long currentValue) throws IOException {
@@ -422,7 +419,7 @@ public class Inputer {
     }
 
     public static String promptAndUpdate(BufferedReader reader, String fieldName, String currentValue) throws IOException {
-        System.out.println("The " + fieldName + "is :" + currentValue);
+        System.out.println("The " + fieldName + " is :" + currentValue);
         System.out.print("Do you want to update it? (y/n): ");
 
         if ("y".equalsIgnoreCase(reader.readLine())) {
@@ -498,6 +495,7 @@ public class Inputer {
     }
 
     public static <T> T chooseOne(T[] values,String ask,BufferedReader br) {
+        if(values==null || values.length==0)return null;
         System.out.println(ask);
         Shower.printUnderline(10);
         for(int i=0;i<values.length;i++){
@@ -507,5 +505,48 @@ public class Inputer {
         int choice = inputInteger(br,"Choose the number. 0 to skip:",values.length);
         if(choice==0)return null;
         return values[choice-1];
+    }
+
+    public static <T> T chooseOne(List<T> values, String ask, BufferedReader br) {
+        if(values==null || values.isEmpty())return null;
+        System.out.println(ask);
+        Shower.printUnderline(10);
+        for(int i=0;i<values.size();i++){
+            System.out.println((i+1)+" "+values.get(i).toString());
+        }
+        Shower.printUnderline(10);
+        int choice = inputInteger(br,"Choose the number. 0 to skip:",values.size());
+        if(choice==0)return null;
+        return values.get(choice-1);
+    }
+
+    public static <T> String chooseOne(Map<String,T> stringTMap, String ask, BufferedReader br) {
+        if(stringTMap==null || stringTMap.isEmpty())return null;
+        System.out.println(ask);
+        Shower.printUnderline(10);
+        List<String> keyList = stringTMap.keySet().stream().toList();
+        for(int i=0;i<keyList.size();i++){
+            String key = keyList.get(i);
+            System.out.println((i+1)+" "+ key +" "+stringTMap.get(key).toString());
+        }
+        Shower.printUnderline(10);
+        int choice = inputInteger(br,"Choose the number. 0 to skip:",stringTMap.size());
+        if(choice==0)return null;
+        return keyList.get(choice-1);
+    }
+
+    public static boolean isGoodShare(Map<String, String> map) {
+        float sum=0;
+        for(String key:map.keySet()){
+            float value = 0;
+            try{
+                value = Float.parseFloat(map.get(key));
+                if(value<0)return false;
+                sum+=value;
+            }catch (Exception ignore){
+                return false;
+            }
+        }
+        return sum==1;
     }
 }

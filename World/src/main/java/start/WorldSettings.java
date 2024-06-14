@@ -1,12 +1,12 @@
 package start;
 
-import FCH.Inputer;
+import clients.apipClient.ApipClient;
+import fch.Inputer;
 import appTools.Menu;
-import config.ApiType;
 import config.Configure;
 import crypto.KeyTools;
 import crypto.old.EccAes256K1P7;
-import org.bitcoinj.core.ECKey;
+import feip.feipData.Service;
 import redis.clients.jedis.JedisPool;
 import server.Settings;
 
@@ -23,22 +23,13 @@ public class WorldSettings extends Settings {
     }
 
     @Override
-    public void initiate(byte[] symKey, Configure config) {
-        if(fidPriKeyCipherMap==null)fidPriKeyCipherMap = new HashMap<>();
-        System.out.println("Import IDs:");
-        while(true){
+    public Service initiateServer(String sid, byte[] symKey, Configure config, BufferedReader br) {
+        return null;
+    }
 
-            byte[] priKey32 = Inputer.inputPriKey(br);
-            if (priKey32 == null){
-                System.out.println("Failed to get priKey. Try again.");
-                continue;
-            }
-            String fid = KeyTools.priKeyToFid(priKey32);
-            String priKeyCipher = EccAes256K1P7.encryptWithSymKey(priKey32,symKey);
-            fidPriKeyCipherMap.put(fid,priKeyCipher);
-            if(!Inputer.askIfYes(br,"Add more ID?"))break;
-        }
-        saveSettings();
+    @Override
+    public String initiateClient(String fid, byte[] symKey, Configure config, BufferedReader br) {
+        return null;
     }
 
     @Override
@@ -52,8 +43,8 @@ public class WorldSettings extends Settings {
     }
 
     @Override
-    public void saveSettings() {
-        writeToFile();
+    public void saveSettings(String mainFid) {
+        writeToFile(mainFid);
     }
 
     @Override
@@ -73,13 +64,9 @@ public class WorldSettings extends Settings {
         }
     }
 
-    @Override
-    public Object resetDefaultApi(byte[] symKey, ApiType apiType) {
-        return null;
-    }
 
     @Override
-    public void resetApis(byte[] symKey, JedisPool jedisPool) {
+    public void resetApis(byte[] symKey, JedisPool jedisPool, ApipClient apipClient) {
     }
 
     @Override

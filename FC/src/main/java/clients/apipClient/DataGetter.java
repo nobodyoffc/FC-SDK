@@ -1,9 +1,9 @@
 package clients.apipClient;
 
-import APIP.apipData.*;
-import APIP.apipData.TxInfo;
-import FCH.fchData.*;
-import FEIP.feipData.*;
+import apip.apipData.*;
+import apip.apipData.TxInfo;
+import fch.fchData.*;
+import feip.feipData.*;
 import appTools.swapClass.SwapAffair;
 import appTools.swapClass.SwapPriceData;
 import clients.diskClient.DiskDataInfo;

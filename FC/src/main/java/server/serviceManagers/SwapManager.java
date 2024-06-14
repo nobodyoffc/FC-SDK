@@ -1,15 +1,17 @@
 package server.serviceManagers;
 
-import FEIP.feipData.serviceParams.Params;
-import FEIP.feipData.serviceParams.SwapParams;
+import feip.feipData.Service;
+import feip.feipData.serviceParams.Params;
+import feip.feipData.serviceParams.SwapParams;
 import config.ApiAccount;
 
 import java.io.BufferedReader;
 
 public class SwapManager extends ServiceManager {
-    public SwapManager(ApiAccount apipAccount, Class<?> paramsClass) {
-        super(apipAccount, paramsClass);
+    public SwapManager(Service service, ApiAccount apipAccount, BufferedReader br, byte[] symKey, Class<?> paramsClass) {
+        super(service, apipAccount, br, symKey, paramsClass);
     }
+
 
 //    public void publishService(byte[] symKey,BufferedReader br) {
 //        if(Inputer.askIfYes(br,"Publish a new service? y/n")){

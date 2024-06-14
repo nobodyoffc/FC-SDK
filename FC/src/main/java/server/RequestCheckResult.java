@@ -1,8 +1,9 @@
 package server;
 
-import APIP.apipData.RequestBody;
+import apip.apipData.RequestBody;
 
 public class RequestCheckResult {
+    private String apiName;
     private RequestBody requestBody;
     private String fid;
     private String pubKey;
@@ -65,5 +66,13 @@ public class RequestCheckResult {
 
     public void setFreeRequest(Boolean freeRequest) {
         isFreeRequest = freeRequest;
+    }
+
+    public String getApiName() {
+        return apiName;
+    }
+
+    public void setApiName(String apiName) {
+        this.apiName = apiName;
     }
 }

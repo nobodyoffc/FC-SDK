@@ -1,9 +1,9 @@
 package clients.apipClient;
 
-import APIP.apipData.Fcdsl;
+import apip.apipData.Fcdsl;
 import constants.ApiNames;
 import constants.FieldNames;
-import constants.ReplyInfo;
+import constants.ReplyCodeMessage;
 import crypto.KeyTools;
 
 import javax.annotation.Nullable;
@@ -19,8 +19,7 @@ public class IdentityAPIs {
 
         String urlTail = ApiNames.APIP3V1Path + ApiNames.CidInfoByIdsAPI;
 
-        boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
-        if (!isGood) return null;
+        apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
         return apipClientData;
     }
 
@@ -31,8 +30,8 @@ public class IdentityAPIs {
 
         String urlTail = ApiNames.APIP3V1Path + ApiNames.CidInfoSearchAPI;
 
-        boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
-        if (!isGood) return null;
+        apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
+
         return apipClientData;
     }
 
@@ -57,8 +56,7 @@ public class IdentityAPIs {
 
         String urlTail = ApiNames.APIP3V1Path + ApiNames.CidHistoryAPI;
 
-        boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
-        if (!isGood) return null;
+        apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
         return apipClientData;
     }
 
@@ -69,8 +67,8 @@ public class IdentityAPIs {
 
         String urlTail = ApiNames.APIP3V1Path + ApiNames.HomepageHistoryAPI;
 
-        boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
-        if (!isGood) return null;
+        apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
+
         return apipClientData;
     }
 
@@ -81,8 +79,8 @@ public class IdentityAPIs {
 
         String urlTail = ApiNames.APIP3V1Path + ApiNames.NoticeFeeHistoryAPI;
 
-        boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
-        if (!isGood) return null;
+        apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
+
         return apipClientData;
     }
 
@@ -93,8 +91,8 @@ public class IdentityAPIs {
 
         String urlTail = ApiNames.APIP3V1Path + ApiNames.ReputationHistoryAPI;
 
-        boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
-        if (!isGood) return null;
+         apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
+
         return apipClientData;
     }
 
@@ -106,21 +104,21 @@ public class IdentityAPIs {
 
         if (fcdsl.getQuery().getPart() == null) {
             System.out.println("This API needs a 'part' query.");
-            apipClientData.setCode(ReplyInfo.Code1012BadQuery);
-            apipClientData.setMessage(ReplyInfo.Msg1012BadQuery);
+            apipClientData.setCode(ReplyCodeMessage.Code1012BadQuery);
+            apipClientData.setMessage(ReplyCodeMessage.Msg1012BadQuery);
             return null;
         }
         if (fcdsl.getQuery().getPart().getFields() == null) {
             System.out.println("This API needs a 'part' query.");
-            apipClientData.setCode(ReplyInfo.Code1012BadQuery);
-            apipClientData.setMessage(ReplyInfo.Msg1012BadQuery);
+            apipClientData.setCode(ReplyCodeMessage.Code1012BadQuery);
+            apipClientData.setMessage(ReplyCodeMessage.Msg1012BadQuery);
             return null;
         }
 
         String urlTail = ApiNames.APIP3V1Path + ApiNames.FidCidSeekAPI;
 
-        boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
-        if (!isGood) return null;
+         apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
+
         return apipClientData;
     }
 
@@ -136,8 +134,8 @@ public class IdentityAPIs {
 
         String urlTail = ApiNames.APIP3V1Path + ApiNames.FidCidSeekAPI;
 
-        boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
-        if (!isGood) return null;
+         apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
+
         return apipClientData;
     }
 
@@ -165,8 +163,8 @@ public class IdentityAPIs {
 
         String urlTail = ApiNames.APIP3V1Path + ApiNames.NobodyByIdsAPI;
 
-        boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
-        if (!isGood) return null;
+         apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
+
         return apipClientData;
     }
 
@@ -177,8 +175,8 @@ public class IdentityAPIs {
 
         String urlTail = ApiNames.APIP3V1Path + ApiNames.NobodySearchAPI;
 
-        boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
-        if (!isGood) return null;
+         apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
+
         return apipClientData;
     }
 
@@ -190,8 +188,8 @@ public class IdentityAPIs {
 
         String urlTail = ApiNames.APIP17V1Path + ApiNames.AvatarsAPI;
 
-        boolean isGood = apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
-        if (!isGood) return null;
+         apipClientData.post(urlHead, urlTail, fcdsl, via, sessionKey);
+
         return apipClientData;
     }
 

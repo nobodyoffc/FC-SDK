@@ -3,11 +3,11 @@ package server.serviceManagers;
 import clients.apipClient.ApipClient;
 import clients.apipClient.ApipClientTask;
 import clients.apipClient.ConstructAPIs;
-import FEIP.feipData.FcInfo;
-import FEIP.feipData.Service;
-import FEIP.feipData.ServiceData;
-import FEIP.feipData.serviceParams.Params;
-import FEIP.feipData.serviceParams.SwapParams;
+import feip.feipData.DataOnChain;
+import feip.feipData.Service;
+import feip.feipData.ServiceData;
+import feip.feipData.serviceParams.Params;
+import feip.feipData.serviceParams.SwapParams;
 import appTools.Menu;
 import appTools.Shower;
 import com.google.gson.Gson;
@@ -27,20 +27,33 @@ public abstract class ServiceManager {
     protected Service service;
     protected ApiAccount apipAccount;
     protected Class<?> paramsClass;
+    protected BufferedReader br;
+    protected byte[] symKey;
+
+    public ServiceManager(Service service,ApiAccount apipAccount, BufferedReader br, byte[] symKey, Class<?> paramsClass) {
+        this.service=service;
+        this.br = br;
+        this.symKey = symKey;
+        this.paramsClass = paramsClass;
+        this.apipAccount =apipAccount;
+    }
+//    public ServiceManager(ApiAccount apipAccount,Class<?> paramsClass) {
+//        this.apipAccount = apipAccount;
+//        this.paramsClass = paramsClass;
+//    }
+//
+//    public ServiceManager(Class<?> paramsClass) {
+//        this.paramsClass = paramsClass;
+//    }
+
     protected abstract Params inputParams(byte[] symKey, BufferedReader br);
 
     protected abstract void updateParams(Params serviceParams, BufferedReader br, byte[] symKey);
 
-    public ServiceManager(ApiAccount apipAccount,Class<?> paramsClass) {
-        this.apipAccount = apipAccount;
-        this.paramsClass = paramsClass;
-    }
 
-    public void manageService(BufferedReader br,byte[] symKey) {
-        System.out.println("Manage service...");
-
+    public void menu() {
         Menu menu = new Menu();
-
+        menu.setName("Service Manager");
         ArrayList<String> menuItemList = new ArrayList<>();
 
         menuItemList.add("Show service");
@@ -51,13 +64,15 @@ public abstract class ServiceManager {
         menuItemList.add("Close service");
 
         menu.add(menuItemList);
-        System.out.println(" << Manage service>> ");
         while (true) {
             menu.show();
             int choice = menu.choose(br);
             switch (choice) {
                 case 1 -> showService();
-                case 2 -> publishService(symKey,br,(ApipClient) apipAccount.getClient());
+                case 2 -> {
+                    if(apipAccount!=null)publishService();
+                    else publishService();
+                }
                 case 3 -> updateService(symKey,br);
                 case 4 -> stopService(br);
                 case 5 -> recoverServices(br);
@@ -79,7 +94,7 @@ public abstract class ServiceManager {
             Menu.anyKeyToContinue(br);
             return;
         }
-        checkBalance(apipAccount, apipClientData, symKey);
+        checkBalance(apipAccount, apipClientData, symKey, (ApipClient) apipAccount.getClient());
     }
 
     private void showService() {
@@ -87,12 +102,12 @@ public abstract class ServiceManager {
     }
 
 
-    public void publishService(byte[] symKey, BufferedReader br, ApipClient apipClient) {
+    public void publishService() {
         System.out.println("Publish service services...");
 
         if (Menu.askIfToDo("Get the OpReturn text to publish a new service service?", br)) return;
 
-        FcInfo fcInfo = setFcInfoForService();
+        DataOnChain dataOnChain = setFcInfoForService();
 
         ServiceData data = new ServiceData();
 
@@ -100,8 +115,8 @@ public abstract class ServiceManager {
 
         data.inputTypes(br);
 
-        if(symKey!=null && apipClient!=null)
-            data.inputServiceHead(br,symKey, apipClient);
+        if(symKey!=null && apipAccount!=null)
+            data.inputServiceHead(br,symKey, apipAccount.getApipClient());
         else data.inputServiceHead(br);
 
         System.out.println("Set the service parameters...");
@@ -110,12 +125,12 @@ public abstract class ServiceManager {
 
         data.setParams(serviceParams);
 
-        fcInfo.setData(data);
+        dataOnChain.setData(data);
 
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
         Shower.printUnderline(10);
-        String opReturnJson = gson.toJson(fcInfo);
+        String opReturnJson = gson.toJson(dataOnChain);
 //        opReturnJson = opReturnJson.replaceAll(",\n {4}\"rate\": 0", "");
         System.out.println(opReturnJson);
         Shower.printUnderline(10);
@@ -123,13 +138,13 @@ public abstract class ServiceManager {
         Menu.anyKeyToContinue(br);
     }
 
-    private static FcInfo setFcInfoForService() {
-        FcInfo fcInfo = new FcInfo();
-        fcInfo.setType("FEIP");
-        fcInfo.setSn("5");
-        fcInfo.setVer("2");
-        fcInfo.setName("Service");
-        return fcInfo;
+    private static DataOnChain setFcInfoForService() {
+        DataOnChain dataOnChain = new DataOnChain();
+        dataOnChain.setType("feip");
+        dataOnChain.setSn("5");
+        dataOnChain.setVer("2");
+        dataOnChain.setName("Service");
+        return dataOnChain;
     }
 
 
@@ -140,7 +155,7 @@ public abstract class ServiceManager {
 
         if (Menu.askIfToDo("Get the OpReturn text to update a service service?", br)) return;
 
-        FcInfo fcInfo = setFcInfoForService();
+        DataOnChain dataOnChain = setFcInfoForService();
 
         ServiceData data = new ServiceData();
 
@@ -159,12 +174,12 @@ public abstract class ServiceManager {
         updateParams(serviceParams,br,symKey);
 
 
-        fcInfo.setData(data);
+        dataOnChain.setData(data);
 
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
         System.out.println("Check the JSON text below. Send it in a TX by the owner of the service to freecash blockchain:");
-        System.out.println(gson.toJson(fcInfo));
+        System.out.println(gson.toJson(dataOnChain));
 
         Menu.anyKeyToContinue(br);
     }
@@ -205,16 +220,16 @@ public abstract class ServiceManager {
 
         if (Menu.askIfToDo("Get the OpReturn text to "+op+" a service service?", br)) return;
 
-        FcInfo fcInfo = setFcInfoForService();
+        DataOnChain dataOnChain = setFcInfoForService();
 
         ServiceData data = new ServiceData();
 
         data.setOp(op);
         data.setSid(service.getSid());
-        fcInfo.setData(data);
+        dataOnChain.setData(data);
 
         System.out.println("The owner can send a TX with below json in OpReturn to "+op+" the service: "+service.getSid());
-        System.out.println(JsonTools.getNiceString(fcInfo));
+        System.out.println(JsonTools.getNiceString(dataOnChain));
 
         System.out.println("you can replace the value of 'data.sid' to "+op+" other your own service services.");
         Menu.anyKeyToContinue(br);

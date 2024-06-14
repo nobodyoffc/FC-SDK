@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.*;
 import java.util.Arrays;
 import java.util.HexFormat;
@@ -372,13 +373,18 @@ public class Decryptor {
     public CryptoDataByte decryptFileByAsyTwoWay(@NotNull String cipherFile, String dataFile, @NotNull byte[]priKeyX, @NotNull byte[] pubKeyY){
         return decryptFileByAsyTwoWay(null, cipherFile, null, dataFile, priKeyX,pubKeyY);
     }
-    public CryptoDataByte decryptFileByAsyOneWay(String srcPath, String srcFileName, String destPath, String destFileName, @NotNull byte[]priKeyX){
+
+    public CryptoDataByte decryptFileToDidByAsyOneWay(String srcPath, String srcFileName, String destPath, @NotNull byte[]priKeyX){
+        return decryptFileByAsyTwoWay(srcPath, srcFileName, destPath, null, priKeyX,null);
+    }
+    public CryptoDataByte decryptFileByAsyOneWay(String srcPath, String srcFileName, String destPath, @Nullable String destFileName, @NotNull byte[]priKeyX){
         return decryptFileByAsyTwoWay(srcPath, srcFileName, destPath, destFileName, priKeyX,null);
     }
-    public CryptoDataByte decryptFileByAsyTwoWay(String srcPath, String srcFileName, String destPath, String destFileName, byte[]priKeyX, byte[] pubKeyY){
+    public CryptoDataByte decryptFileByAsyTwoWay(String srcPath, @NotNull String srcFileName, String destPath, @Nullable String destFileName, @NotNull byte[]priKeyX, byte[] pubKeyY){
         CryptoDataByte cryptoDataByte;
         String srcFullName = getFileFullName(srcPath, srcFileName);
-        String destFullName = getFileFullName(destPath, destFileName);
+        String destFullName = null;
+        if(destFileName!=null) destFullName = getFileFullName(destPath, destFileName);
 
         if(srcFullName==null){
             cryptoDataByte = new CryptoDataByte();
@@ -390,7 +396,6 @@ public class Decryptor {
         String destFileForFos;
         if(destFullName!=null)
             destFileForFos=destFullName;
-
         else {
             tempDestFileName = FileTools.getTempFileName();
             destFileForFos = tempDestFileName;
@@ -420,16 +425,24 @@ public class Decryptor {
                 cryptoDataByte.setPriKeyB(priKeyX);
                 cryptoDataByte.setPubKeyA(pubKeyY);
             }
+
             decryptStreamByAsy(fis,fos,cryptoDataByte);
 
-            String did = Hash.sha256x2(new File(destFileForFos));
-            cryptoDataByte.setDid(Hex.fromHex(did));
-            cryptoDataByte.makeSum4();
-            if(destFullName==null){
-                Path destPathForFos = Paths.get(destFileForFos);
-                if(destPath==null)
-                    Files.move(destPathForFos,Paths.get(did));
-                else Files.move(destPathForFos,Paths.get(destPath,did));
+            byte[] did = Hash.sha256x2Bytes(new File(destFileForFos));
+            cryptoDataByte.setDid(did);
+            if(!cryptoDataByte.checkSum())cryptoDataByte.setCodeMessage(20);
+
+
+            String didHex = Hex.toHex(did);
+
+//            Path destPathForFos;
+            if(destFileName==null){
+                if(destPath!=null) Files.move(Path.of(destFileForFos),Path.of(destPath,didHex), StandardCopyOption.REPLACE_EXISTING);
+                else Files.move(Path.of(destFileForFos),Path.of(didHex), StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                if (destPath != null)
+                    Files.move(Path.of(destPath, destFileForFos), Path.of(destPath, destFileName), StandardCopyOption.REPLACE_EXISTING);
+                else Files.move(Path.of(destFileForFos), Path.of(destFileName), StandardCopyOption.REPLACE_EXISTING);
             }
 
             return cryptoDataByte;

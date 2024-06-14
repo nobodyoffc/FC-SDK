@@ -1,24 +1,27 @@
 package startClient;
 
-import APIP.apipData.Fcdsl;
+import apip.apipData.Fcdsl;
+import apip.apipData.RequestBody;
+import apip.apipData.Session;
+import feip.feipData.Service;
+import feip.feipData.serviceParams.DiskParams;
 import appTools.Inputer;
+import appTools.Menu;
 import appTools.Shower;
 import clients.apipClient.ApipClient;
-import APIP.apipData.RequestBody;
-import APIP.apipData.Session;
-import FEIP.feipData.Service;
-import FEIP.feipData.serviceParams.DiskParams;
-import appTools.Menu;
 import clients.diskClient.DiskClient;
 import clients.diskClient.DiskDataInfo;
 import config.ApiAccount;
 import config.ApiType;
-import crypto.old.EccAes256K1P7;
 import config.Configure;
-import javaTools.*;
-import javaTools.http.AuthType;
+import crypto.old.EccAes256K1P7;
+import javaTools.Hex;
+import javaTools.JsonTools;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
+import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,10 +33,11 @@ public class StartDiskClient {
     private static BufferedReader br;
     public static ApipClient apipClient;
     public static DiskClient diskClient;
-    private static DiskClientSettings diskClientSettings;
+    private static DiskClientSettings settings;
     private static byte[] symKey;
     public Service diskService;
     public DiskParams diskParams;
+    private static String fid;
 
     public static final String MY_DATA_DIR = System.getProperty("user.home")+"/myData";
 
@@ -45,14 +49,15 @@ public class StartDiskClient {
         Configure configure = Configure.loadConfig(br);
         symKey = configure.checkPassword(configure);
 
-        configure.initiate(symKey);
-
         //Load the local settings from the file of localSettings.json
-        diskClientSettings = DiskClientSettings.loadFromFile("DiskClient",DiskClientSettings.class);
-        if(diskClientSettings ==null) diskClientSettings =new DiskClientSettings(configure,br);
-        diskClientSettings.initiate(symKey, configure);
-        apipClient = (ApipClient) diskClientSettings.getApipAccount().getClient();
-        diskClient = (DiskClient) diskClientSettings.getDiskAccount().getClient();
+        fid = configure.chooseMainFid(symKey);
+
+        settings = DiskClientSettings.loadFromFile(fid,DiskClientSettings.class);//new ApipClientSettings(configure,br);
+        if(settings==null) settings = new DiskClientSettings();
+        settings.initiateClient(fid,symKey, configure, br);
+
+        apipClient = (ApipClient) settings.getApipAccount().getClient();
+        diskClient = (DiskClient) settings.getDiskAccount().getClient();
 
 
         Menu menu = new Menu();
@@ -76,7 +81,7 @@ public class StartDiskClient {
                 case 12 -> listPost(br);
                 case 13 -> signIn(configure);
                 case 14 -> signInEcc(configure);
-                case 15 -> diskClientSettings.setting(symKey, br);
+                case 15 -> settings.setting(symKey, br);
                 case 0 -> {
                     return;
                 }
@@ -85,14 +90,14 @@ public class StartDiskClient {
     }
 
     private static void signInEcc(Configure configure) {
-        Session session = diskClient.signInEcc(diskClientSettings.getDiskAccount(), ApiType.DISK, RequestBody.SignInMode.NORMAL, symKey);
+        Session session = diskClient.signInEcc(settings.getDiskAccount(), ApiType.DISK, RequestBody.SignInMode.NORMAL, symKey);
         JsonTools.gsonPrint(session);
         configure.saveConfigToFile();
         Menu.anyKeyToContinue(br);
     }
 
     private static void signIn(Configure configure) {
-        Session session = diskClient.signIn(diskClientSettings.getDiskAccount(), ApiType.DISK,RequestBody.SignInMode.NORMAL,symKey);
+        Session session = diskClient.signIn(settings.getDiskAccount(), ApiType.DISK,RequestBody.SignInMode.NORMAL,symKey);
         JsonTools.gsonPrint(session);
         configure.saveConfigToFile();
         Menu.anyKeyToContinue(br);
@@ -106,16 +111,17 @@ public class StartDiskClient {
     }
 
     public static void ping(BufferedReader br){
-        boolean done = diskClient.ping(ApiType.DISK, AuthType.FC_SIGN_BODY);
-        if(done) System.out.println("OK!");
+        Long rest = diskClient.ping(ApiType.DISK);
+        if(rest!=null) System.out.println("OK! "+rest+" KB/requests are available.");
         else System.out.println("Failed!");
+
         Menu.anyKeyToContinue(br);
     }
 
     public static void put(BufferedReader br){
         String fileName;
         while(true) {
-            fileName = Inputer.inputPath(br, "Input the path of the file:");
+            fileName = Inputer.inputPath(br, "Input the file path and name:");
             if (new File(fileName).isDirectory()) {
                 System.out.println("It is a directory. A file name is required.");
                 continue;
@@ -127,14 +133,19 @@ public class StartDiskClient {
             System.out.println("Encrypted to: "+fileName);
         }
         String dataResponse = diskClient.put(fileName);
-        System.out.println("Got:"+dataResponse);
+        if(Hex.isHexString(dataResponse)) {
+            if(!new File(dataResponse).delete()){
+                System.out.println("Failed to delete the local cipher file.");
+            };
+            System.out.println("Put:" + dataResponse);
+        }else System.out.println(dataResponse);
         Menu.anyKeyToContinue(br);
     }
 
     public static void putFree(BufferedReader br){
         String fileName;
         while(true) {
-            fileName = Inputer.inputPath(br, "Input the path of the file:");
+            fileName = Inputer.inputPath(br, "Input the file path and name:");
             if (new File(fileName).isDirectory()) {
                 System.out.println("It is a directory. A file name is required.");
                 continue;
@@ -146,37 +157,45 @@ public class StartDiskClient {
             System.out.println("Encrypted to: "+fileName);
         }
         String dataResponse = diskClient.putFree(fileName);
-        System.out.println("Got:"+dataResponse);
+        if(Hex.isHexString(dataResponse)) {
+            if(!new File(dataResponse).delete()){
+                System.out.println("Failed to delete the local cipher file.");
+            };
+            System.out.println("Put: " + dataResponse);
+        }else System.out.println(dataResponse);
         Menu.anyKeyToContinue(br);
     }
     public static void getFree(BufferedReader br){
         String filename = Inputer.inputString(br,"Input the DID of the file");
         String path = Inputer.inputString(br,"Input the destination path");
-        String dataResponse = diskClient.getFree(filename,path);
-        System.out.println("Got:"+dataResponse);
-        if(!Hex.isHexString(dataResponse))return;
-        DiskClient.decryptFile(filename, path, dataResponse,path , symKey, diskClient.getApiAccount().getUserPriKeyCipher());
+        String gotFile = diskClient.getFree(filename,path);
+        System.out.println("Got:"+Path.of(path,gotFile));
+        if(!Hex.isHexString(gotFile))return;
 
+        String did = DiskClient.decryptFile(path, gotFile,symKey,diskClient.getApiAccount().getUserPriKeyCipher());
+        if(did!= null) System.out.println("Decrypted to:"+Path.of(path,did));
         Menu.anyKeyToContinue(br);
     }
 
     public static void get(BufferedReader br){
         String filename = Inputer.inputString(br,"Input the DID of the file:");
         String path = Inputer.inputString(br,"Input the destination path");
-        String dataResponse = diskClient.get(filename,path);
-        System.out.println("Got:"+dataResponse);
-        if(!Hex.isHexString(dataResponse))return;
-        DiskClient.decryptFile(filename, path, dataResponse, path, symKey, diskClient.getApiAccount().getUserPriKeyCipher());
+        String gotFile = diskClient.get(filename,path);
+        System.out.println("Got:"+Path.of(path,gotFile));
+        if(!Hex.isHexString(gotFile))return;
+        String did = DiskClient.decryptFile(path, gotFile,symKey,diskClient.getApiAccount().getUserPriKeyCipher());
+        if(did!= null) System.out.println("Decrypted to:"+Path.of(path,did));
         Menu.anyKeyToContinue(br);
     }
 
     public static void getPost(BufferedReader br){
         String filename = Inputer.inputString(br,"Input the DID of the file:");
         String path = Inputer.inputString(br,"Input the destination path");
-        String dataResponse = diskClient.getPost(filename,path );
-        System.out.println("Got:"+dataResponse);
-        if(!Hex.isHexString(dataResponse))return;
-        DiskClient.decryptFile(filename, path, dataResponse,path , symKey, diskClient.getApiAccount().getUserPriKeyCipher());
+        String gotFile = diskClient.getPost(filename,path );
+        System.out.println("Got:"+gotFile);
+        if(!Hex.isHexString(gotFile))return;
+        String did = DiskClient.decryptFile(path, gotFile,symKey,diskClient.getApiAccount().getUserPriKeyCipher());
+        if(did!= null) System.out.println("Decrypted to:"+Path.of(path,did));
         Menu.anyKeyToContinue(br);
     }
     public static void check(BufferedReader br){
@@ -202,7 +221,7 @@ public class StartDiskClient {
         String order = null;
         int size = 0;
         if(Inputer.askIfYes(br,"Set the last?")){
-            last = Inputer.inputStringArray(br,"Set the last values:",0);
+            last = Inputer.inputStringArray(br,"Set the last values of the sorted fields:",0);
         }
         if(Inputer.askIfYes(br,"Set the sort?")){
             sort = Inputer.inputString(br,"Set the field name of the sort:");

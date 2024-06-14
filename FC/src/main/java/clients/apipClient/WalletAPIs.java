@@ -1,6 +1,6 @@
 package clients.apipClient;
 
-import APIP.apipData.Fcdsl;
+import apip.apipData.Fcdsl;
 import constants.ApiNames;
 import constants.FieldNames;
 import javaTools.NumberTools;

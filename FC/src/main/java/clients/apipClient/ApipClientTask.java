@@ -1,6 +1,6 @@
 package clients.apipClient;
 
-import APIP.apipData.*;
+import apip.apipData.*;
 
 import clients.ApiUrl;
 import clients.ClientTask;

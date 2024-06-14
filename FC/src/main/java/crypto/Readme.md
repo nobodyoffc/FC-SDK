@@ -1,5 +1,5 @@
 
-# There 4 types of encrypting and decrypting:
+# There are 4 types of encrypting and decrypting:
 
 1. SymKey: Encrypt or decrypt by a 32 bytes symmetric key.
 2. Password: Encrypt or decrypt by a UTF-8 password which no longer than 64 bytes.

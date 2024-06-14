@@ -15,7 +15,7 @@ public class ApiNames {
     public static String[] PublishAPIs;
     public static String[] WalletAPIs;
     public static String[] CryptoToolsAPIs;
-    public static String[] FreeDiskAPIs;
+    public static String[] DiskAPIs;
     //APIP path
     public static final String APIP0V1Path = "/apip0/v1/";
     public static final String APIP1V1Path = "/apip1/v1/";
@@ -154,6 +154,7 @@ public class ApiNames {
     public static final String OffLineTxByCdAPI = "offLineTxByCd";
     public static final String AddressesAPI = "addresses";
     public static final String NewCashByFidsAPI = "newCashByFids";
+    public static final String OpReturnByFidsAPI = "opReturnByFids";
     public static final String NobodyByIdsAPI ="nobodyByIds";
 
     public static final String SwapRegisterAPI ="swapRegister";
@@ -164,7 +165,6 @@ public class ApiNames {
     public static final String SwapFinishedAPI ="swapFinished";
     public static final String SwapPriceAPI ="swapPrice";
     public static final String SwapInfoAPI ="swapInfo";
-//    public static final String SwapInfoAPI ="swapSummary";
 
     public static final String MyTokensAPI = "myTokens";
     public static final String TokenByIdsAPI = "tokenByIds";
@@ -187,12 +187,14 @@ public class ApiNames {
     public static final String DifficultyHistoryAPI ="difficultyHistory";
     public static final String HashRateHistoryAPI ="hashRateHistory";
     public static final String BlockTimeHistoryAPI ="blockTimeHistory";
+    public static final String EndpointAPI = "endpoint";
+    public static final String NewOpReturnByFidsAPI="newOpReturnByFids";
 
 
     static {
 
         OpenAPIs = new String[]{
-                GetServiceAPI,SignInAPI,SignInEccAPI,TotalsAPI,GeneralAPI
+                PingAPI,GetServiceAPI,SignInAPI,SignInEccAPI,TotalsAPI,GeneralAPI
         };
 
         BlockchainAPIs = new String[]{
@@ -201,7 +203,8 @@ public class ApiNames {
                 FidByIdsAPI,FidSearchAPI,
                 OpReturnByIdsAPI,OpReturnSearchAPI,
                 P2shByIdsAPI,P2shSearchAPI,
-                TxByIdsAPI,TxSearchAPI
+                TxByIdsAPI,TxSearchAPI,
+                ChainInfoAPI
         };
 
         IdentityAPIs = new String[]{
@@ -252,15 +255,13 @@ public class ApiNames {
                 OffLineTxAPI,OffLineTxByCdAPI
         };
 
-        FreeDiskAPIs = new String[]{
-                PutApi, GetApi, CheckApi
+        DiskAPIs = new String[]{
+                PutApi, GetApi, CheckApi,ListApi,PingAPI,SignInAPI,SignInEccAPI
         };
 
         FreeGetAPIs = new String[]{
-                GetBestBlockAPI,
                 BroadcastAPI,GetAppsAPI,GetServicesAPI,GetAvatarAPI,GetCashesAPI,
-                GetFidCidAPI,GetFreeServiceAPI,GetServicesAPI,GetTotalsAPI,
-                GetPricesAPI
+                GetFidCidAPI,GetFreeServiceAPI,GetServicesAPI,GetTotalsAPI
         };
         freeApiList.add(ApiNames.GetBestBlockAPI);
         freeApiList.add(ApiNames.GetFreeServiceAPI);
@@ -278,6 +279,7 @@ public class ApiNames {
         diskApiList.add(GetApi);
         diskApiList.add(CheckApi);
         diskApiList.add(ListApi);
+        diskApiList.add(PingAPI);
 
         SwapHallAPIs = new String[]{
                 SwapRegisterAPI,SwapUpdateAPI,SwapStateAPI,
