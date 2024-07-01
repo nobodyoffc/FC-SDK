@@ -1,10 +1,26 @@
 package apip.apipData;
 
+import javaTools.StringTools;
+
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class Equals {
     private String[] fields;
     private String[] values;
+
+    public static String equalsToUrlParam(Equals equals) {
+        if(equals==null)return null;
+        if(equals.getFields().length>1){
+            System.out.println("To make terms into URL, the field can not more than one.");
+            return null;
+        }
+        List<String> stringList = new ArrayList<>();
+        stringList.add(equals.getFields()[0]);
+        stringList.addAll(Arrays.asList(equals.getValues()));
+        return StringTools.listToString(stringList);
+    }
 
     public Equals addNewFields(String... fields) {
         this.fields = fields;

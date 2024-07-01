@@ -1,9 +1,9 @@
 package fch;
 
-import clients.apipClient.ApipClientTask;
-import clients.apipClient.DataGetter;
-import clients.apipClient.WalletAPIs;
+import clients.apipClient.ApipClient;
 import fch.fchData.SendTo;
+import javaTools.http.AuthType;
+import javaTools.http.HttpRequestMethod;
 import nasa.data.TxInput;
 import nasa.data.TxOutput;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
@@ -15,7 +15,6 @@ import config.ApiAccount;
 import constants.Constants;
 import constants.IndicesNames;
 import crypto.KeyTools;
-import javaTools.JsonTools;
 import org.bitcoinj.crypto.SchnorrSignature;
 import org.bitcoinj.fch.FchMainNetwork;
 import fch.fchData.Cash;
@@ -835,27 +834,21 @@ public class TxCreator {
 
         String urlHead = apiAccount.getApiUrl();
         System.out.println("Getting cashes from " + urlHead + " ...");
-        ApipClientTask apipClientData = WalletAPIs.cashValidForPayPost(urlHead, sender, sum + ((double) fee / COIN_TO_SATOSHI), apiAccount.getVia(), sessionKey);
+        ApipClient apipClient = (ApipClient) apiAccount.getClient();
+        List<Cash> cashList =apipClient.cashValidForPay(HttpRequestMethod.POST, sender, sum + ((double) fee / COIN_TO_SATOSHI), AuthType.FC_SIGN_BODY);
 
-        if (apipClientData.checkResponse() != 0) {
-            System.out.println("Failed to get cashes." + apipClientData.getMessage() + apipClientData.getResponseBody().getData());
-            JsonTools.gsonPrint(apipClientData);
-            return apipClientData.getMessage();
-        }
-
-        List<Cash> cashList = DataGetter.getCashList(apipClientData.getResponseBody().getData());
+//        if (apipClientData.checkResponse() != 0) {
+//            System.out.println("Failed to get cashes." + apipClientData.getMessage() + apipClientData.getResponseBody().getData());
+//            JsonTools.gsonPrint(apipClientData);
+//            return apipClientData.getMessage();
+//        }
+//
+//        List<Cash> cashList = DataGetter.getCashList(apipClientData.getResponseBody().getData());
 
         String txSigned = TxCreator.createTransactionSignFch(cashList, priKey, sendToList, msg);
 
         System.out.println("Broadcast with " + urlHead + " ...");
-        apipClientData = WalletAPIs.broadcastTxPost(urlHead, txSigned, apiAccount.getVia(), sessionKey);
-        if (apipClientData.checkResponse() != 0) {
-            System.out.println(apipClientData.getCode() + ": " + apipClientData.getMessage());
-            if (apipClientData.getResponseBody().getData() != null)
-                System.out.println(apipClientData.getResponseBody().getData());
-            return apipClientData.getMessage();
-        }
 
-        return (String) apipClientData.getResponseBody().getData();
+        return apipClient.broadcastTx(HttpRequestMethod.POST, txSigned, AuthType.FC_SIGN_BODY);
     }
 }

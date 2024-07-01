@@ -84,7 +84,7 @@ public class SwapSettings extends Settings {
             ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, symKey,apipClient);
 
             if (apiAccount != null) {
-                Object client = apiAccount.connectApi(config.getApiProviderMap().get(apiAccount.getSid()), symKey, br, null);
+                Object client = apiAccount.connectApi(config.getApiProviderMap().get(apiAccount.getProviderId()), symKey, br, null);
                 if (client != null) {
                     menu.show();
                     int choice = menu.choose(br);

@@ -48,7 +48,7 @@ public abstract class Params {
     public abstract void inputParams(BufferedReader br, byte[] symKey);
     public abstract void updateParams(BufferedReader br, byte[] symKey);
     public String toJson(){
-        return JsonTools.getNiceString(this);
+        return JsonTools.toNiceJson(this);
     }
 
     public String getAccount() {

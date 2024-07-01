@@ -56,7 +56,7 @@ public class FeipTools {
 
         data.setData(masterData);
 
-        return JsonTools.getString(data);
+        return JsonTools.toJson(data);
     }
     public static String getCidUnregisterData() {
         return getCidData(null,UNREGISTER);
@@ -74,6 +74,6 @@ public class FeipTools {
         if(name!=null)cidData.setName(name);
 
         data.setData(cidData);
-        return JsonTools.getString(data);
+        return JsonTools.toJson(data);
     }
 }

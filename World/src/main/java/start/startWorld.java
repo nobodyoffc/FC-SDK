@@ -23,6 +23,7 @@ public class startWorld {
         Configure configure = Configure.loadConfig(br);
         byte[] symKey = configure.checkPassword(configure);
 
+        String sid = worldSettings.chooseFid(configure,br,symKey);
         //Need a chat service and a disk service.
         worldSettings = WorldSettings.loadFromFile(null,WorldSettings.class);
         if(worldSettings==null)worldSettings=new WorldSettings(configure,br);

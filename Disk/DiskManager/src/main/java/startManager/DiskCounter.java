@@ -21,8 +21,8 @@ import static constants.Strings.DATA;
 public class DiskCounter extends Counter {
 
 
-    public DiskCounter(Settings settings, Params params, List<ApiAccount> chargedAccountList,byte[] symKey) {
-        super(settings, params, chargedAccountList, symKey);
+    public DiskCounter(Settings settings, Params params, byte[] symKey) {
+        super(settings, params, symKey);
     }
 
     @Override

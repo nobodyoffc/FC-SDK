@@ -3,14 +3,29 @@ package apip.apipData;
 import javaTools.JsonTools;
 import appTools.Inputer;
 import appTools.Menu;
+import javaTools.StringTools;
 import org.junit.jupiter.api.Test;
 
 
 import java.io.BufferedReader;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+
+import static apip.apipData.FcQuery.*;
+import static apip.apipData.Range.*;
+import static constants.FieldNames.INDEX;
+import static constants.Strings.ASC;
+import static constants.Strings.DESC;
 
 public class Fcdsl {
+    private String index;
+    private List<String> ids;
+    private FcQuery query;
+    private Filter filter;
+    private Except except;
+    private String size;
+    private List<Sort> sort;
+    private List<String> after;
+    private Object other;
 
     public static final String MATCH_ALL = "matchAll";
     public static final String IDS = "ids";
@@ -22,16 +37,264 @@ public class Fcdsl {
     public static final String AFTER = "after";
     public static final String OTHER = "other";
     public static final String[] FCDSL_FIELDS = new String[]{MATCH_ALL, IDS, QUERY, FILTER, EXCEPT, SIZE, SORT, AFTER, OTHER};
-    private String index;
-    private String[] ids;
-    private FcQuery query;
-    private Filter filter;
-    private Except except;
-    private String size;
-    private ArrayList<Sort> sort;
-    private List<String> after;
-    private Object other;
+    /*
+   Fcdsl to GET url parameters:
 
+   index = <String indexName>
+   ids = <String[]>
+   terms = field,value1,value2... & match = field1,field2,...,value
+   range = field,lte,value1,gt,value2...
+   exists = field1,field2,...
+   unexists = field1,field2,...
+   equals = field,value1,value2,...
+   part = field1,field2,...,value
+   sort = field1,order1,field2,order2
+   size = <int in String>
+   after = <List<String>>
+   other = String
+
+   Filter and Except is forbidden.
+    */
+    public static Fcdsl urlParamsToFcdsl(String urlParams){
+        if("".equals(urlParams))return null;
+        Fcdsl fcdsl = new Fcdsl();
+        int i = urlParams.indexOf("?");
+        if(i!=-1) urlParams = urlParams.substring(i +1);
+
+        urlParams = urlParams.replaceAll(" ", "");
+        String[] params = urlParams.split("&");
+        for(String param : params){
+            int splitIndex = param.indexOf("=");
+            String method = param.substring(0, splitIndex);
+            String valueStr = param.substring(splitIndex+1);
+            if("".equals(method)||"".equals(valueStr)) {
+                System.out.println("Bad url.");
+                return null;
+            }
+            switch (method){
+                case INDEX -> fcdsl.addIndex(valueStr);
+                case IDS-> fcdsl.addIds(valueStr.split(","));
+                case TERMS-> {
+                    if(fcdsl.getQuery()==null)fcdsl.addNewQuery();
+                    String[] values = valueStr.split(",");
+                    fcdsl.getQuery().addNewTerms().addNewFields(values[0]);
+                    String[] newValues = new String[values.length-1];
+                    System.arraycopy(values, 1, newValues, 0, values.length - 1);
+                    fcdsl.getQuery().getTerms().addNewValues(newValues);
+                }
+                case MATCH-> {
+                    if(fcdsl.getQuery()==null)fcdsl.addNewQuery();
+                    String[] values = valueStr.split(",");
+                    String[] fields = new String[values.length-1];
+                    System.arraycopy(values, 0, fields, 0, values.length - 1);
+                    fcdsl.getQuery().addNewMatch().addNewFields(fields);
+                    fcdsl.getQuery().getMatch().addNewValue(values[values.length-1]);
+                }
+                case RANGE-> {
+                    if(fcdsl.getQuery()==null)fcdsl.addNewQuery();
+                    String[] values = valueStr.split(",");
+                    fcdsl.getQuery().addNewRange().addNewFields(values[0]);
+                    String[] newValues = new String[values.length-1];
+                    System.arraycopy(values, 1, newValues, 0, values.length - 1);
+
+                    Iterator<String> iter = Arrays.stream(newValues).iterator();
+                    while(iter.hasNext()){
+                        String str = iter.next();
+                        switch (str){
+                            case GT-> fcdsl.getQuery().getRange().addGt(iter.next());
+                            case GTE-> fcdsl.getQuery().getRange().addGte(iter.next());
+                            case LT-> fcdsl.getQuery().getRange().addLt(iter.next());
+                            case LTE-> fcdsl.getQuery().getRange().addLte(iter.next());
+                        }
+                    }
+                }
+                case PART->  {
+                    if(fcdsl.getQuery()==null)fcdsl.addNewQuery();
+                    String[] values = valueStr.split(",");
+                    String[] fields = new String[values.length-1];
+                    System.arraycopy(values, 0, fields, 0, values.length - 1);
+                    fcdsl.getQuery().addNewPart().addNewFields(fields);
+                    fcdsl.getQuery().getPart().addNewValue(values[values.length-1]);
+                }
+                case EXISTS-> {
+                    if(fcdsl.getQuery()==null)fcdsl.addNewQuery();
+                    String[] values = valueStr.split(",");
+                    fcdsl.getQuery().addNewExists(values);
+                }
+                case UNEXISTS->  {
+                    if(fcdsl.getQuery()==null)fcdsl.addNewQuery();
+                    String[] values = valueStr.split(",");
+                    fcdsl.getQuery().addNewUnexists(values);
+                }
+                case EQUALS-> {
+                    if(fcdsl.getQuery()==null)fcdsl.addNewQuery();
+                    String[] values = valueStr.split(",");
+                    fcdsl.getQuery().addNewEquals().addNewFields(values[0]);
+                    String[] newValues = new String[values.length-1];
+                    System.arraycopy(values, 1, newValues, 0, values.length - 1);
+                    fcdsl.getQuery().getEquals().addNewValues(newValues);
+                }
+                case SORT-> {
+                    String[] values = valueStr.split(",");
+                    Iterator<String> iter = Arrays.stream(values).iterator();
+                    while(iter.hasNext()){
+                        String field = iter.next();
+                        String order = iter.next();
+                        if(!order.equals(DESC) && !order.equals(ASC)){
+                            System.out.println("Wrong order. It should be 'desc' or 'asc'.");
+                            return null;
+                        }
+                        fcdsl.addSort(field,order);
+                    }
+                }
+                case SIZE-> fcdsl.addSize(Integer.parseInt(valueStr));
+                case AFTER-> fcdsl.addAfter(List.of(valueStr.split(",")));
+                case OTHER-> fcdsl.addOther(valueStr);
+                default -> {}
+            }
+        }
+        return fcdsl;
+    }
+
+    public static Map<String,String> urlParamsStrToMap(String paramsStr){
+        if("".equals(paramsStr))return null;
+        Map<String,String> paramMap=new HashMap<>();
+        if(paramsStr.startsWith("?"))paramsStr = paramsStr.substring(1);
+        paramsStr = paramsStr.replaceAll(" ", "");
+        String[] params = paramsStr.split("&");
+        for(String param : params){
+            int splitIndex = param.indexOf("=");
+            String key = param.substring(0, splitIndex);
+            String valueStr = param.substring(splitIndex+1);
+            paramMap.put(key,valueStr);
+        }
+        return paramMap;
+    }
+    public static String fcdslToUrlParams(Fcdsl fcdsl){
+        if(fcdsl.isBadFcdsl()){
+            System.out.println("Bad fcdsl.");
+            return null;
+        }
+
+        if(fcdsl.getFilter()!=null||fcdsl.getExcept()!=null){
+            System.out.println("Filter or Except can not be set to URL query.");
+            return null;
+        }
+        boolean started = false;
+        StringBuilder stringBuilder = new StringBuilder();
+
+        if(fcdsl.getIndex()!=null) {
+            stringBuilder.append(INDEX + "=").append(fcdsl.getIndex());
+            started = true;
+        }
+
+        if(fcdsl.getIds()!=null) {
+            if(started)stringBuilder.append("&");
+            String ids = StringTools.listToString(fcdsl.getIds());
+            stringBuilder.append(IDS + "=").append(ids);
+            started = true;
+        }
+
+        if(fcdsl.getQuery()!=null){
+            FcQuery query = fcdsl.getQuery();
+            if(query.getTerms()!=null){
+                Terms terms = query.getTerms();
+                String termsStr = Terms.termsToUrlParam(terms);
+                if (termsStr != null){
+                    if(started)stringBuilder.append("&");
+                    stringBuilder.append(TERMS + "=").append(termsStr);
+                    started = true;
+                }
+            }
+
+            if(query.getMatch()!=null){
+
+                Match match = query.getMatch();
+                String matchStr = Match.matchToUrlParam(match);
+                if (matchStr != null) {
+                    if(started)stringBuilder.append("&");
+                    stringBuilder.append(MATCH + "=").append(matchStr);
+                    started = true;
+                }
+            }
+
+            if(query.getRange()!=null){
+
+                Range range = query.getRange();
+                String rangeStr = rangeToUrlParam(range);
+                if (rangeStr != null) {
+                    if(started)stringBuilder.append("&");
+                    stringBuilder.append(RANGE + "=").append(rangeStr);
+                    started = true;
+                }
+            }
+
+            if(query.getPart()!=null){
+
+                Part part = query.getPart();
+                String partStr = Part.partToUrlParam(part);
+                if (partStr != null) {
+                    if(started)stringBuilder.append("&");
+                    stringBuilder.append(PART + "=").append(partStr);
+                    started = true;
+                }
+            }
+
+            if(query.getExists()!=null){
+                if(started)stringBuilder.append("&");
+                String[] exists = query.getExists();
+                stringBuilder.append(EXISTS + "=").append(StringTools.arrayToString(exists));
+                started = true;
+            }
+
+            if(query.getUnexists()!=null){
+                if(started)stringBuilder.append("&");
+                String[] unexists = query.getUnexists();
+                stringBuilder.append(UNEXISTS + "=").append(StringTools.arrayToString(unexists));
+                started = true;
+            }
+
+            if(query.getEquals()!=null){
+                Equals equals = query.getEquals();
+                String equalsStr = Equals.equalsToUrlParam(equals);
+                if (equalsStr != null){
+                    if(started)stringBuilder.append("&");
+                    stringBuilder.append(EQUALS + "=").append(equalsStr);
+                    started = true;
+                }
+            }
+        }
+
+        if(fcdsl.getSort()!=null && fcdsl.getSort().size()>0){
+            List<Sort> sortList = fcdsl.getSort();
+            List<String> sortStrList = new ArrayList<>();
+            for(Sort sort1:sortList){
+                sortStrList.add(sort1.getField());
+                sortStrList.add(sort1.getOrder());
+            }
+            if(started)stringBuilder.append("&");
+            stringBuilder.append(SORT + "=").append(StringTools.listToString(sortStrList));
+            started=true;
+        }
+
+        if(fcdsl.getSize()!=null){
+            if(started)stringBuilder.append("&");
+            stringBuilder.append(SIZE + "=").append(fcdsl.getSize());
+            started=true;
+        }
+        if(fcdsl.getAfter()!=null){
+            if(started)stringBuilder.append("&");
+            stringBuilder.append(AFTER + "=").append(StringTools.listToString(fcdsl.getAfter()));
+            started=true;
+        }
+
+        if(fcdsl.getOther()!=null){
+            if(started)stringBuilder.append("&");
+            String otherStr = JsonTools.toJson(fcdsl.getOther());
+            stringBuilder.append(OTHER + "=").append(otherStr);
+        }
+        return stringBuilder.toString();
+    }
     public static boolean confirmAdd(String fieldName, BufferedReader br) {
         while (true) {
             System.out.println("Add " + fieldName + " ? y/n:");
@@ -101,32 +364,32 @@ public class Fcdsl {
         if (confirmAdd(AFTER, br)) inputAfter(br);
     }
 
-    public boolean checkFcdsl() {
+    public boolean isBadFcdsl() {
         //1. ids 不可有query，filter，except，matchAll
         if (ids != null) {
             if (query != null) {
                 System.out.println("With Ids search, there can't be a query.");
-                return false;
+                return true;
             }
             if (filter != null) {
                 System.out.println("With Ids search, there can't be a filter.");
-                return false;
+                return true;
             }
             if (except != null) {
                 System.out.println("With Ids search, there can't be an except.");
-                return false;
+                return true;
             }
             if (after != null) {
                 System.out.println("With Ids search, there can't be an after.");
-                return false;
+                return true;
             }
             if (size != null) {
                 System.out.println("With Ids search, there can't be a size.");
-                return false;
+                return true;
             }
             if (sort != null) {
                 System.out.println("With Ids search, there can't be a sort.");
-                return false;
+                return true;
             }
         }
 
@@ -134,11 +397,11 @@ public class Fcdsl {
         if (filter != null || except != null) {
             if (query == null) {
                 System.out.println("Filter and except have to be used with a query.");
-                return false;
+                return true;
             }
         }
 
-        return true;
+        return false;
     }
 
     public void addIndex(String index) {
@@ -146,7 +409,13 @@ public class Fcdsl {
     }
 
     public void addIds(String... ids) {
-        this.ids = ids;
+        if(this.ids==null)this.ids = new ArrayList<>();
+        this.ids.addAll(Arrays.asList(ids));
+        return;
+    }
+    public void addIds(List<String> ids) {
+        if(this.ids==null)this.ids = new ArrayList<>();
+        this.ids.addAll(ids);
         return;
     }
 
@@ -168,33 +437,35 @@ public class Fcdsl {
         return except;
     }
 
-    public Fcdsl addNewSort(String field, String order) {
-        ArrayList<Sort> sort = new ArrayList<>();
+    public Fcdsl addSort(String field, String order) {
+        if(this.sort==null)
+            sort = new ArrayList<>();
         Sort s = new Sort(field, order);
         sort.add(s);
         this.setSort(sort);
         return this;
     }
 
-    public void appendSort(String field, String order) {
-        Sort newSort = new Sort(field, order);
-        this.sort.add(newSort);
-    }
 
     public Fcdsl addSize(int size) {
         this.size = String.valueOf(size);
         return this;
     }
 
-    public Fcdsl addNewAfter(String... values) {
-        this.after = new ArrayList<>(List.of(values));
+    public Fcdsl addAfter(List<String> values) {
+        if(this.after==null)
+            this.after = new ArrayList<>();
+        this.after.addAll(values);
         return this;
     }
 
-    public Fcdsl appendAfter(String value) {
+    public Fcdsl addAfter(String value) {
+        if(this.after==null)
+            this.after = new ArrayList<>();
         this.after.add(value);
         return this;
     }
+
 
     public void setQueryTerms(String field, String value) {
         FcQuery fcQuery = new FcQuery();
@@ -242,20 +513,19 @@ public class Fcdsl {
     public void setOther(Object other) {
         this.other = other;
     }
+    public void addOther(Object other) {
+        this.other = other;
+    }
 
-    public String[] getIds() {
+    public List<String> getIds() {
         return ids;
     }
 
-    public void setIds(String[] ids) {
+    public void setIds(List<String> ids) {
         this.ids = ids;
     }
 
     public FcQuery getQuery() {
-        return query;
-    }
-
-    public FcQuery appendQuery() {
         return query;
     }
 
@@ -264,9 +534,6 @@ public class Fcdsl {
     }
 
     public Filter getFilter() {
-        return filter;
-    }
-    public Filter appendFilter() {
         return filter;
     }
     public void setFilter(Filter filter) {
@@ -281,11 +548,11 @@ public class Fcdsl {
         this.size = size;
     }
 
-    public ArrayList<Sort> getSort() {
+    public List<Sort> getSort() {
         return sort;
     }
 
-    public void setSort(ArrayList<Sort> sort) {
+    public void setSort(List<Sort> sort) {
         this.sort = sort;
     }
 
@@ -306,9 +573,6 @@ public class Fcdsl {
     }
 
     public Except getExcept() {
-        return except;
-    }
-    public Except appendExcept() {
         return except;
     }
     public void setExcept(Except except) {
@@ -390,8 +654,8 @@ public class Fcdsl {
 
 
     public void inputIds(BufferedReader br) {
-        String[] inputs = Inputer.inputStringArray(br, "Input the ID. Enter to end:", 0);
-        if (inputs.length > 0) ids = inputs;
+        List<String> inputs = Inputer.inputStringList(br, "Input the ID. Enter to end:", 0);
+        if (inputs.size() > 0) ids = inputs;
     }
 
     public void inputQuery(BufferedReader br) {

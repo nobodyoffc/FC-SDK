@@ -176,7 +176,7 @@ public class Aes256CbcP7 {
             HashFunction hashFunction = Hashing.sha256();
             Hasher hasherWholeFile = hashFunction.newHasher();
 
-            byte[] headBytes = JsonTools.getString(cryptoDataStr).getBytes();
+            byte[] headBytes = JsonTools.toJson(cryptoDataStr).getBytes();
             fos.write(headBytes);
             hasherWholeFile.putBytes(headBytes,0,headBytes.length);
 

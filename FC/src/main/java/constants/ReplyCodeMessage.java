@@ -53,7 +53,10 @@ public class ReplyCodeMessage {
     public static final String Msg1020OtherError = "Other error.";
     public static final int Code1021FidIsRequired = 1021;
     public static final String Msg1021FidIsRequired = "FID is Required.";
-
+    public static final int Code1022NoSuchMethod = 1022;
+    public static final String Msg1022NoSuchMethod = "No such method.";
+    public static final int Code1023MissSessionKey = 1023;
+    public static final String Msg1023MissSessionKey = "Miss sessionKey";
     public static final int Code2001FreeGetIsForbidden = 2001;
     public static final String Msg2001FreeGetIsForbidden = "Free API is not active now.";
     public static final int Code2002CidNoFound = 2002;
@@ -125,6 +128,8 @@ public class ReplyCodeMessage {
             case Code1019TimeMissed -> Msg1019TimeMissed;
             case Code1020OtherError -> Msg1020OtherError;
             case Code1021FidIsRequired -> Msg1021FidIsRequired;
+            case Code1022NoSuchMethod -> Msg1022NoSuchMethod;
+            case Code1023MissSessionKey -> Msg1023MissSessionKey;
             case Code2001FreeGetIsForbidden -> Msg2001FreeGetIsForbidden;
             case Code2002CidNoFound -> Msg2002CidNoFound;
             case Code2003IllegalFid -> Msg2003IllegalFid;

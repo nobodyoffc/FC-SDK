@@ -121,9 +121,9 @@ public final class MultiSigData {
     public String toString() {
         return "MultiSignData[\n" +
                 "rawTxHex=" + HexFormat.of().formatHex(rawTx) + ", \n" +
-                "p2SH=" + JsonTools.getNiceString(p2SH) + ", \n" +
-                "cashList=" + JsonTools.getNiceString(cashList) + ", \n" +
-                "fidSigMap=" + JsonTools.getNiceString(fidSigMap) + "\n]";
+                "p2SH=" + JsonTools.toNiceJson(p2SH) + ", \n" +
+                "cashList=" + JsonTools.toNiceJson(cashList) + ", \n" +
+                "fidSigMap=" + JsonTools.toNiceJson(fidSigMap) + "\n]";
     }
 
     public Map<String, List<byte[]>> getFidSigMap() {
@@ -178,7 +178,7 @@ public final class MultiSigData {
             dataMap.put("fidSigMap", getFidSigHexMap());
         }
 
-        return JsonTools.getNiceString(dataMap);
+        return JsonTools.toNiceJson(dataMap);
     }
 
     public String getRawTxId() {

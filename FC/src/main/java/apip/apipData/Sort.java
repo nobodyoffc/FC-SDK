@@ -79,7 +79,7 @@ public class Sort {
         return sortList;
     }
 
-    public static List<SortOptions> getSortList(ArrayList<Sort> sortList) {
+    public static List<SortOptions> getSortList(List<Sort> sortList) {
         List<SortOptions> soList = new ArrayList<>();
         for (Sort sort1 : sortList) {
             SortOrder order;

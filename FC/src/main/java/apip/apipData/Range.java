@@ -1,6 +1,10 @@
 package apip.apipData;
 
+import javaTools.StringTools;
+
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class Range {
     private String[] fields;
@@ -8,6 +12,36 @@ public class Range {
     private String gte;
     private String lt;
     private String lte;
+    public static final String GT = "gt";
+    public static final String GTE = "gte";
+    public static final String LT = "lt";
+    public static final String LTE = "lte";
+
+    public static String rangeToUrlParam(Range range) {
+        if(range.getFields().length>1){
+            System.out.println("To make terms into URL, the field can not more than one.");
+            return null;
+        }
+        List<String> stringList = new ArrayList<>();
+        stringList.add(range.getFields()[0]);
+        if(range.getGt()!=null){
+            stringList.add(GT);
+            stringList.add(range.getGt());
+        }
+        if(range.getGte()!=null){
+            stringList.add(GTE);
+            stringList.add(range.getGte());
+        }
+        if(range.getLt()!=null){
+            stringList.add(LT);
+            stringList.add(range.getLt());
+        }
+        if(range.getLte()!=null){
+            stringList.add(LTE);
+            stringList.add(range.getLte());
+        }
+        return StringTools.listToString(stringList);
+    }
 
     public Range addNewFields(String... fields) {
         this.fields = fields;

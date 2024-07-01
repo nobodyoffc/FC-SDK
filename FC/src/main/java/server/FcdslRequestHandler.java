@@ -1,6 +1,7 @@
 package server;
 
 import apip.apipData.*;
+import clients.esClient.EsTools;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.*;
@@ -14,11 +15,18 @@ import co.elastic.clients.json.JsonData;
 import constants.Constants;
 import constants.ReplyCodeMessage;
 import fcData.FcReplier;
+import fch.fchData.Address;
+import feip.feipData.Cid;
+import javaTools.http.AuthType;
+import org.jetbrains.annotations.Nullable;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.util.*;
+
+import static constants.Strings.DATA;
 
 public class FcdslRequestHandler {
     private final FcReplier replier;
@@ -26,14 +34,120 @@ public class FcdslRequestHandler {
     private final ElasticsearchClient esClient;
     private final RequestBody dataRequestBody;
 
-    public FcdslRequestHandler(RequestBody dataRequestBody, HttpServletResponse response, FcReplier replier, ElasticsearchClient esClient) throws IOException {
+    public FcdslRequestHandler(RequestBody dataRequestBody, HttpServletResponse response, FcReplier replier, ElasticsearchClient esClient) {
         this.dataRequestBody = dataRequestBody;
         this.esClient = esClient;
         this.response = response;
         this.replier = replier;
     }
 
-    public <T> List<T> doRequest(String index, ArrayList<Sort> defaultSortList, Class<T> tClass, Jedis jedis) {
+    public static void doIdsRequest(String sid, String indexName, HttpServletRequest request, HttpServletResponse response, AuthType authType, ElasticsearchClient esClient, JedisPool jedisPool) {
+        FcReplier replier = new FcReplier(sid,response);
+        //Check authorization
+        try (Jedis jedis = jedisPool.getResource()) {
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            if (requestCheckResult == null) {
+                return;
+            }
+
+            if (requestCheckResult.getRequestBody().getFcdsl().getIds() == null) {
+                replier.reply(ReplyCodeMessage.Code1012BadQuery, null, jedis);
+                return;
+            }
+
+            List<Cid> meetCidList;
+            List<Address> meetAddrList;
+            FcdslRequestHandler fcdslRequestHandler = new FcdslRequestHandler(requestCheckResult.getRequestBody(), response, replier, esClient);
+            ArrayList<Sort> defaultSortList = null;
+            meetAddrList = fcdslRequestHandler.doRequest(Settings.addSidBriefToName(sid, DATA), defaultSortList, Address.class, jedis);
+
+            if (meetAddrList == null) return;
+
+            EsTools.MgetResult<Cid> multiResult;
+            try {
+                multiResult = EsTools.getMultiByIdList(esClient, indexName, requestCheckResult.getRequestBody().getFcdsl().getIds(), Cid.class);
+            } catch (Exception e) {
+                replier.replyOtherError("Reading ES wrong.",null,jedis);
+                return;
+            }
+            meetCidList = multiResult.getResultList();
+
+            List<CidInfo> cidInfoList = CidInfo.mergeCidInfoList(meetCidList, meetAddrList);
+
+            if (cidInfoList == null || cidInfoList.size() == 0) {
+                replier.reply(ReplyCodeMessage.Code1011DataNotFound, null, jedis);
+                return;
+            }
+            for (CidInfo cidInfo : cidInfoList) {
+                cidInfo.reCalcWeight();
+            }
+
+            Map<String, CidInfo> meetMap = new HashMap<>();
+            for (CidInfo cidInfo : cidInfoList) {
+                meetMap.put(cidInfo.getFid(), cidInfo);
+            }
+            replier.setGot((long) meetMap.size());
+            replier.setTotal((long) meetMap.size());
+            replier.reply0Success(meetMap, jedis);
+        }
+    }
+
+    public static <T> void doSearchRequest(String sid, String indexName, List<Sort> sort, Class<T> tClass, HttpServletRequest request, HttpServletResponse response, AuthType authType, ElasticsearchClient esClient, JedisPool jedisPool) {
+        FcReplier replier = new FcReplier(sid,response);
+
+        try (Jedis jedis = jedisPool.getResource()) {
+
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            if (requestCheckResult == null) {
+                return ;
+            }
+
+            RequestBody requestBody = requestCheckResult.getRequestBody();
+            if(requestBody==null){
+                replier.reply(ReplyCodeMessage.Code1013BadRequest, null, jedis);
+                return;
+            }
+            Fcdsl fcdsl = requestBody.getFcdsl();
+            if (fcdsl == null) fcdsl = new Fcdsl();
+            if(fcdsl.getSort()==null){
+                fcdsl.setSort(sort);
+            }
+            //Request
+            FcdslRequestHandler fcdslRequestHandler = new FcdslRequestHandler(requestBody, response, replier, esClient);
+            ArrayList<Sort> defaultSortList = null;
+
+            List<T> meetList = fcdslRequestHandler.doRequest(indexName, defaultSortList, tClass, jedis);
+            if (meetList == null || meetList.isEmpty()) return;
+
+            replier.reply0Success(meetList, jedis);
+        }
+    }
+
+    @Nullable
+    public static Object checkOtherRequest(String sid, HttpServletRequest request, AuthType authType, FcReplier replier, Jedis jedis) {
+        RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+        if (requestCheckResult == null) {
+            return null;
+        }
+        String addr =requestCheckResult.getFid();
+        RequestBody requestBody = requestCheckResult.getRequestBody();
+        if (requestBody == null) {
+            replier.reply(ReplyCodeMessage.Code1013BadRequest, null, jedis);
+            return null;
+        }
+        Fcdsl fcdsl = requestBody.getFcdsl();
+
+        replier.setNonce(requestBody.getNonce());
+        //Check API
+        Object other = requestBody.getFcdsl().getOther();
+        if (fcdsl==null || other == null) {
+            replier.reply(ReplyCodeMessage.Code1013BadRequest, null, jedis);
+            return null;
+        }
+        return other;
+    }
+
+    public <T> List<T> doRequest(String index, List<Sort> defaultSortList, Class<T> tClass, Jedis jedis) {
         if(index==null||tClass==null)return null;
 
         SearchRequest.Builder searchBuilder = new SearchRequest.Builder();
@@ -212,7 +326,7 @@ public class FcdslRequestHandler {
 
     private <T> List<T> doIdsRequest(String index, Class<T> clazz, Jedis jedis) {
 
-        ArrayList<String> idList = new ArrayList<>(Arrays.asList(dataRequestBody.getFcdsl().getIds()));
+        List<String> idList = dataRequestBody.getFcdsl().getIds();
         if(idList.size()> Constants.MaxRequestSize) {
             Integer data = new HashMap<String, Integer>().put("maxSize", Constants.MaxRequestSize);
             replier.reply(ReplyCodeMessage.Code1010TooMuchData, data,jedis);

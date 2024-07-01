@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
@@ -53,7 +52,7 @@ public class JsonTools {
         }.getType();
     }
 
-    public static String getNiceString(Object ob) {
+    public static String toNiceJson(Object ob) {
         GsonBuilder gsonBuilder = new GsonBuilder();
         gsonBuilder.setPrettyPrinting();
         Gson gson = gsonBuilder.create();
@@ -70,14 +69,14 @@ public class JsonTools {
         return map;
     }
 
-    public static String getString(Object ob) {
+    public static String toJson(Object ob) {
         return new Gson().toJson(ob);
     }
 
 
     public static void gsonPrint(Object ob) {
 
-        System.out.println("----------\n" + ob.getClass().toString() + ": " + getNiceString(ob) + "\n----------");
+        System.out.println("----------\n" + ob.getClass().toString() + ": " + toNiceJson(ob) + "\n----------");
     }
 
     public static String strToJson(String rawStr) {

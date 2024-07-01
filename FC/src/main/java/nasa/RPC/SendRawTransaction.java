@@ -19,8 +19,6 @@ public class SendRawTransaction {
         String[] params = new String[]{hex};
         RpcRequest jsonRPC2Request = new RpcRequest(method, params);
 
-        JsonTools.gsonPrint(jsonRPC2Request);
-
         Object result = RpcRequest.requestRpc(url, username, password, "sendRawTransaction", jsonRPC2Request);
         return (String) result;
     }

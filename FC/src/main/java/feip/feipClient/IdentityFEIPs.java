@@ -11,6 +11,8 @@ import fcData.AlgorithmId;
 import javaTools.JsonTools;
 import crypto.KeyTools;
 import fch.fchData.SendTo;
+import javaTools.http.AuthType;
+import javaTools.http.HttpRequestMethod;
 
 import java.util.ArrayList;
 import java.util.Base64;
@@ -34,14 +36,14 @@ public class IdentityFEIPs {
 
         feip.setData(masterData);
 
-        return JsonTools.getString(feip);
+        return JsonTools.toJson(feip);
     }
 
     public static String setMaster(String priKeyCipher, String ownerOrItsPubKey, ApipClient apipClient) {
 
         String ownerPubKey;
         if (KeyTools.isValidFchAddr(ownerOrItsPubKey)) {
-            ownerPubKey = apipClient.getPubKey(ownerOrItsPubKey);
+            ownerPubKey = apipClient.getPubKey(ownerOrItsPubKey,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
         } else if (KeyTools.isValidPubKey(ownerOrItsPubKey)) {
             ownerPubKey = ownerOrItsPubKey;
         } else return null;
@@ -54,7 +56,6 @@ public class IdentityFEIPs {
         sendTo.setAmount(Dust);
         List<SendTo> sendToList = new ArrayList<>();
         sendToList.add(sendTo);
-        String txId = TxCreator.sendTxForMsgByAPIP(apipClient.getApiAccount(), apipClient.getSymKey(), priKey, sendToList, masterJson);
-        return txId;
+        return TxCreator.sendTxForMsgByAPIP(apipClient.getApiAccount(), apipClient.getSymKey(), priKey, sendToList, masterJson);
     }
 }

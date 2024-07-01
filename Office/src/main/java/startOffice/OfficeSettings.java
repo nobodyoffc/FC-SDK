@@ -4,6 +4,7 @@ import appTools.Menu;
 import clients.apipClient.ApipClient;
 import config.ApiAccount;
 import config.ApiProvider;
+import config.ApiType;
 import config.Configure;
 import feip.feipData.Service;
 import redis.clients.jedis.JedisPool;
@@ -23,19 +24,19 @@ public class OfficeSettings extends Settings {
         System.out.println("Initiating APP settings...");
         setInitForClient(fid, config, br);
 
-        apipAccount = checkApipAccount(apipAccountId,config,symKey,null);
+        apipAccount = checkApiAccount(apipAccountId, ApiType.APIP , config, symKey, null);
         if(apipAccount.getClient()!=null)apipAccountId=apipAccount.getId();
         else System.out.println("No APIP service.");
 
-        nasaAccount = checkNasaRPC(nasaAccountId, config, symKey,null);
+        nasaAccount = checkApiAccount(nasaAccountId, ApiType.NASA_RPC, config, symKey, null);
         if(nasaAccount.getClient()!=null)nasaAccountId=nasaAccount.getId();
         else System.out.println("No Nasa node RPC service.");
 
-        esAccount = checkEsAccount(esAccountId, config,symKey,null);
+        esAccount = checkApiAccount(esAccountId, ApiType.ES, config, symKey, null);
         if(esAccount.getClient()!=null)esAccountId = esAccount.getId();
         else System.out.println("No ES service.");
 
-        redisAccount = checkRedisAccount(redisAccountId,config,symKey,null);
+        redisAccount = checkApiAccount(redisAccountId,ApiType.REDIS,config,symKey,null );
         if(redisAccount.getClient()!=null)redisAccountId = redisAccount.getId();
         else System.out.println("No Redis service.");
 
@@ -85,7 +86,7 @@ public class OfficeSettings extends Settings {
             ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, symKey,apipClient);
 
             if (apiAccount != null) {
-                Object client = apiAccount.connectApi(config.getApiProviderMap().get(apiAccount.getSid()), symKey, br, null);
+                Object client = apiAccount.connectApi(config.getApiProviderMap().get(apiAccount.getProviderId()), symKey, br, null);
                 if (client != null) {
                     menu.show();
                     int choice = menu.choose(br);

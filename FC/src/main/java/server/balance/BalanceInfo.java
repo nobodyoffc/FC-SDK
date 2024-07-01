@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import server.Settings;
+import server.order.Order;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,18 +26,17 @@ import static clients.redisClient.RedisTools.readLong;
 import static server.Settings.addSidBriefToName;
 
 public class BalanceInfo {
-    private String user;
+    private String userBalanceMapStr;
     private long bestHeight;
-    private String consumeVia;
-    private String orderVia;
-    private String pending;
+    private String consumeViaMapStr;
+    private String orderViaMapStr;
+    private String rewardPendingMapStr;
 
 
     private static final Logger log = LoggerFactory.getLogger(BalanceInfo.class);
 //    public static final String BALANCE_BACKUP_JSON = "balanceBackup.json";
 
-    public static final String MAPPINGS = "{\"mappings\":{\"properties\":{\"user\":{\"type\":\"keyword\"},\"bestHeight\":{\"type\":\"long\"},\"consumeVia\":{\"type\":\"keyword\"},\"orderVia\":{\"type\":\"keyword\"},\"pending\":{\"type\":\"text\",\"fields\":{\"keyword\":{\"type\":\"keyword\",\"ignore_above\":256}}}}}}";
-
+    public static final String MAPPINGS = "{\"mappings\":{\"properties\":{\"userBalanceMapStr\":{\"type\":\"keyword\",\"ignore_above\":256},\"bestHeight\":{\"type\":\"long\"},\"consumeViaMapStr\":{\"type\":\"keyword\",\"ignore_above\":256},\"orderViaMapStr\":{\"type\":\"keyword\",\"ignore_above\":256},\"rewardPendingMapStr\":{\"type\":\"keyword\",\"ignore_above\":256}}}}";
     public static void recoverUserBalanceFromFile(String fileName,JedisPool jedisPool) {
         try(Jedis jedis = jedisPool.getResource()) {
             BalanceInfo balanceInfo = JsonTools.readObjectFromJsonFile(null,fileName, BalanceInfo.class);
@@ -47,12 +47,12 @@ public class BalanceInfo {
         }
     }
 
-    public String getPending() {
-        return pending;
+    public String getRewardPendingMapStr() {
+        return rewardPendingMapStr;
     }
 
-    public void setPending(String pending) {
-        this.pending = pending;
+    public void setRewardPendingMapStr(String rewardPendingMapStr) {
+        this.rewardPendingMapStr = rewardPendingMapStr;
     }
 
     public static void deleteOldBalance(String sid,ElasticsearchClient esClient) {
@@ -65,22 +65,20 @@ public class BalanceInfo {
             log.error("Delete old balances in ES error",e);
         }
     }
-    public String getConsumeVia() {
-        return consumeVia;
+    public String getConsumeViaMapStr() {
+        return consumeViaMapStr;
     }
 
-    public void setConsumeVia(String consumeVia) {
-        this.consumeVia = consumeVia;
+    public void setConsumeViaMapStr(String consumeViaMapStr) {
+        this.consumeViaMapStr = consumeViaMapStr;
     }
 
-    public static void recoverUserBalanceFromEs(ElasticsearchClient esClient, JedisPool jedisPool) {
-        Gson gson = new Gson();
-        String index = addSidBriefToName(BalanceManager.sid,BALANCE);
+    public static void recoverUserBalanceFromEs(String sid, ElasticsearchClient esClient, JedisPool jedisPool) {
 
-        String balancesStr = null;
-        String viaTStr = null;
+        String index = addSidBriefToName(sid,BALANCE);
+
+        BalanceInfo balanceInfo = null;
         try(Jedis jedis = jedisPool.getResource()) {
-            BalanceInfo balanceInfo = null;
             try {
                 SearchResponse<BalanceInfo> result = esClient.search(s -> s.index(index).size(1).sort(so -> so.field(f -> f.field(BEST_HEIGHT).order(SortOrder.Desc))), BalanceInfo.class);
                 if (result.hits().hits().size() == 0) {
@@ -89,45 +87,59 @@ public class BalanceInfo {
                 }
                 balanceInfo = result.hits().hits().get(0).source();
                 if(balanceInfo==null)return;
-                balancesStr = balanceInfo.getUser();
-                viaTStr = balanceInfo.getConsumeVia();
-            } catch (IOException e) {
-                log.error("Get balance from ES error when recovering balances and viaTStr.", e);
+            } catch (Exception e) {
+                log.error("Get balance from ES error when recovering balances:{}", e.getMessage());
             }
-            if (balancesStr != null) {
+
+
+            if (balanceInfo != null) {
                 recoverBalanceToRedis(balanceInfo, jedis);
             } else {
                 log.debug("Failed recovered balances from ES.");
             }
-
-            if (viaTStr != null) {
-                Map<String, String> viaTMap = gson.fromJson(viaTStr, new TypeToken<HashMap<String, String>>() {
-                }.getType());
-                for (String id : viaTMap.keySet()) {
-                    jedis.hset(BalanceManager.sidBrief + "_" + CONSUME_VIA, id, viaTMap.get(id));
-                }
-                log.debug("Consuming ViaT recovered from ES.");
-            } else {
-                log.debug("Failed recovered consuming ViaT from ES.");
-            }
+//
+//            if (viaTStr != null) {
+//                Map<String, String> viaTMap = gson.fromJson(viaTStr, new TypeToken<HashMap<String, String>>() {
+//                }.getType());
+//                for (String id : viaTMap.keySet()) {
+//                    jedis.hset(BalanceManager.sidBrief + "_" + CONSUME_VIA, id, viaTMap.get(id));
+//                }
+//                log.debug("Consuming ViaT recovered from ES.");
+//            } else {
+//                log.debug("Failed recovered consuming ViaT from ES.");
+//            }
         }
     }
 
     public static void recoverBalanceToRedis(BalanceInfo balanceInfo, Jedis jedis) {
         Gson gson = new Gson();
-        Map<String, String> balanceMap = gson.fromJson(balanceInfo.getUser(), new TypeToken<HashMap<String, String>>() {
+        Map<String, String> balanceMap = gson.fromJson(balanceInfo.getUserBalanceMapStr(), new TypeToken<HashMap<String, String>>() {
         }.getType());
 
-        Map<String, String> viaTMap = gson.fromJson(balanceInfo.getOrderVia(), new TypeToken<HashMap<String, String>>() {
+        Map<String, String> orderViaMap = gson.fromJson(balanceInfo.getOrderViaMapStr(), new TypeToken<HashMap<String, String>>() {
         }.getType());
+
+        Map<String, String> consumeViaMap = gson.fromJson(balanceInfo.getConsumeViaMapStr(), new TypeToken<HashMap<String, String>>() {
+        }.getType());
+
+        Map<String, String> rewardPendingMap = gson.fromJson(balanceInfo.getRewardPendingMapStr(), new TypeToken<HashMap<String, String>>() {
+        }.getType());
+
+
         for (String id : balanceMap.keySet()) {
             jedis.hset(BalanceManager.sidBrief + "_" + Strings.BALANCE, id, balanceMap.get(id));
         }
-        for (String id : viaTMap.keySet()) {
-
-
-            jedis.hset(BalanceManager.sidBrief + "_" + CONSUME_VIA, id, viaTMap.get(id));
+        for (String id : orderViaMap.keySet()) {
+            jedis.hset(BalanceManager.sidBrief + "_" + ORDER_VIA, id, orderViaMap.get(id));
         }
+        for (String id : consumeViaMap.keySet()) {
+            jedis.hset(BalanceManager.sidBrief + "_" + CONSUME_VIA, id, consumeViaMap.get(id));
+        }
+        for (String id : rewardPendingMap.keySet()) {
+            jedis.hset(BalanceManager.sidBrief + "_" + REWARD_PENDING_MAP, id, rewardPendingMap.get(id));
+        }
+        jedis.hset(BalanceManager.sidBrief + "_" + CONSUME_VIA, BEST_HEIGHT, String.valueOf(balanceInfo.getBestHeight()));
+
         log.debug("Balances recovered from ES.");
     }
 
@@ -146,10 +158,10 @@ public class BalanceInfo {
 
             BalanceInfo balanceInfo = new BalanceInfo();
 
-            balanceInfo.setUser(balanceStr);
-            balanceInfo.setConsumeVia(consumeViaStr);
-            balanceInfo.setOrderVia(orderViaStr);
-            balanceInfo.setPending(pendingStr);
+            balanceInfo.setUserBalanceMapStr(balanceStr);
+            balanceInfo.setConsumeViaMapStr(consumeViaStr);
+            balanceInfo.setOrderViaMapStr(orderViaStr);
+            balanceInfo.setRewardPendingMapStr(pendingStr);
 
             long bestHeight = readLong(BEST_HEIGHT);
 
@@ -219,20 +231,20 @@ public class BalanceInfo {
         this.bestHeight = bestHeight;
     }
 
-    public String getUser() {
-        return user;
+    public String getUserBalanceMapStr() {
+        return userBalanceMapStr;
     }
 
-    public void setUser(String user) {
-        this.user = user;
+    public void setUserBalanceMapStr(String userBalanceMapStr) {
+        this.userBalanceMapStr = userBalanceMapStr;
     }
 
-    public String getOrderVia() {
-        return orderVia;
+    public String getOrderViaMapStr() {
+        return orderViaMapStr;
     }
 
-    public void setOrderVia(String orderVia) {
-        this.orderVia = orderVia;
+    public void setOrderViaMapStr(String orderViaMapStr) {
+        this.orderViaMapStr = orderViaMapStr;
     }
 
 }

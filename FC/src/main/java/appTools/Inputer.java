@@ -113,6 +113,13 @@ public class Inputer {
     }
 
     public static String[] inputStringArray(BufferedReader br, String ask, int len) {
+        ArrayList<String> itemList = inputStringList(br, ask, len);
+        if (itemList.isEmpty()) return new String[0];
+        return itemList.toArray(new String[itemList.size()]);
+    }
+
+    @NotNull
+    public static ArrayList<String> inputStringList(BufferedReader br, String ask, int len) {
         ArrayList<String> itemList = new ArrayList<String>();
         System.out.println(ask);
         while (true) {
@@ -127,11 +134,7 @@ public class Inputer {
             itemList.add(item);
             System.out.println("Input next item if you want or enter to end:");
         }
-        if (itemList.isEmpty()) return new String[0];
-
-        String[] items = itemList.toArray(new String[itemList.size()]);
-
-        return items;
+        return itemList;
     }
 
 
@@ -368,7 +371,7 @@ public class Inputer {
     }
 
     public static boolean askIfYes(BufferedReader br, String ask) {
-        System.out.println(ask+"'y' to confirm. Other to ignore:");
+        System.out.println(ask+" 'y' to confirm. Other to ignore:");
         String input;
         try {
             input = br.readLine();
@@ -397,9 +400,12 @@ public class Inputer {
         return newValue.isEmpty() ? currentValue : Long.parseLong(newValue);
     }
 
-    public static boolean promptAndSet(BufferedReader reader, String fieldName, boolean currentValue) throws IOException {
-        System.out.print("Enter " + fieldName + ". It is '"+currentValue+ "' now. (Press Enter to keep it): ");
-        return Boolean.parseBoolean(reader.readLine());
+    public static Boolean promptAndSet(BufferedReader reader, String fieldName, Boolean currentValue) throws IOException {
+        if(currentValue!=null)System.out.print("Enter " + fieldName + "(true or false). It is '"+currentValue+ "' now. (Press Enter to keep it): ");
+        else System.out.println("Enter " + fieldName + "(true or false). Enter to ignore:");
+        String input = reader.readLine();
+        if("".equals(input)) return null;
+        return Boolean.parseBoolean(input);
     }
     public static long promptForLong(BufferedReader reader, String fieldName, long currentValue) throws IOException {
         System.out.print("Enter " + fieldName + " (Press Enter to skip): ");
@@ -530,7 +536,7 @@ public class Inputer {
             System.out.println((i+1)+" "+ key +" "+stringTMap.get(key).toString());
         }
         Shower.printUnderline(10);
-        int choice = inputInteger(br,"Choose the number. 0 to skip:",stringTMap.size());
+        int choice = inputInteger(br,"Choose the number. Enter to skip:",stringTMap.size());
         if(choice==0)return null;
         return keyList.get(choice-1);
     }

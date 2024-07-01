@@ -41,20 +41,22 @@ public class DiskManagerSettings extends Settings {
         System.out.println("Initiating service settings...");
         setInitForServer(sid, config, br);
 
-        apipAccount = checkApipAccount(apipAccountId,config,symKey,null);
+        apipAccount = checkApiAccount(apipAccountId,ApiType.APIP, config, symKey, null);
         if(apipAccount!=null)apipAccountId=apipAccount.getId();
         else System.out.println("No APIP service.");
 
-        esAccount = checkEsAccount(esAccountId, config,symKey,null);
+        esAccount = checkApiAccount(esAccountId, ApiType.ES, config, symKey, null);
         if(esAccount!=null)esAccountId = esAccount.getId();
         else System.out.println("No ES service.");
 
-        redisAccount = checkRedisAccount(redisAccountId,config,symKey,null);
+        redisAccount = checkApiAccount(redisAccountId,ApiType.REDIS,config,symKey,null);
         if(redisAccount!=null)redisAccountId = redisAccount.getId();
         else System.out.println("No Redis service.");
 
         ApipClient apipClient = (ApipClient) apipAccount.getClient();
         Service service = getMyService(sid, symKey, config, br, apipClient, DiskParams.class, ApiType.DISK);
+
+        writeParamsToRedis(service.getSid(), (DiskParams) service.getParams(),(JedisPool)redisAccount.getClient(), DiskParams.class);
 
         apipAccount = checkIfMainFidIsApiAccountUser(symKey,config,br,apipAccount);
         apipAccountId = apipAccount.getId();
@@ -317,7 +319,7 @@ public class DiskManagerSettings extends Settings {
         this.apipAccountId = apipAccountId;
     }
 
-    public long getWindowTime() {
+    public Long getWindowTime() {
         return windowTime;
     }
 

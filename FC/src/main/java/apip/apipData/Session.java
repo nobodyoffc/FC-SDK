@@ -26,11 +26,11 @@ public class Session {
     private String sessionKeyCipher;
 
     public String toJson(){
-        return JsonTools.getString(this);
+        return JsonTools.toJson(this);
     }
 
     public String toNiceJson(){
-        return JsonTools.getNiceString(this);
+        return JsonTools.toNiceJson(this);
     }
 
     public static String getSessionKeySign(byte[] sessionKeyBytes, byte[] dataBytes) {

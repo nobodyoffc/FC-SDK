@@ -3,8 +3,6 @@ package startClient;
 import apip.apipData.Fcdsl;
 import apip.apipData.RequestBody;
 import apip.apipData.Session;
-import feip.feipData.Service;
-import feip.feipData.serviceParams.DiskParams;
 import appTools.Inputer;
 import appTools.Menu;
 import appTools.Shower;
@@ -12,11 +10,11 @@ import clients.apipClient.ApipClient;
 import clients.diskClient.DiskClient;
 import clients.diskClient.DiskDataInfo;
 import config.ApiAccount;
-import config.ApiType;
 import config.Configure;
 import crypto.old.EccAes256K1P7;
 import javaTools.Hex;
 import javaTools.JsonTools;
+import javaTools.http.HttpRequestMethod;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -30,14 +28,13 @@ import static config.ApiAccount.updateSession;
 
 public class StartDiskClient {
     public static final int DEFAULT_SIZE = 20;
+    private static String fid;
     private static BufferedReader br;
     public static ApipClient apipClient;
     public static DiskClient diskClient;
     private static DiskClientSettings settings;
     private static byte[] symKey;
-    public Service diskService;
-    public DiskParams diskParams;
-    private static String fid;
+
 
     public static final String MY_DATA_DIR = System.getProperty("user.home")+"/myData";
 
@@ -62,26 +59,23 @@ public class StartDiskClient {
 
         Menu menu = new Menu();
         menu.setName("Disk Client");
-        menu.add("Ping free","Ping","PUT free","PUT","GET free","GET","GET by Post","CHECK free","CHECK","LIST free","LIST","LIST post","SignIn","SignIn encrypted","Settings");
+        menu.add("Ping free","Ping","PUT","GET","GET by Post","CHECK","LIST","LIST post","SignIn","SignIn encrypted","Settings");
         while (true) {
             menu.show();
             int choice = menu.choose(br);
             switch (choice) {
                 case 1 -> pingFree(br);
                 case 2 -> ping(br);
-                case 3 -> putFree(br);
-                case 4 -> put(br);
-                case 5 -> getFree(br);
-                case 6 -> get(br);
-                case 7 -> getPost(br);
-                case 8 -> checkFree(br);
-                case 9 -> check(br);
-                case 10 -> list(br);
-                case 11 -> list(br);
-                case 12 -> listPost(br);
-                case 13 -> signIn(configure);
-                case 14 -> signInEcc(configure);
-                case 15 -> settings.setting(symKey, br);
+                case 3 -> put(br);
+                case 4 -> get(HttpRequestMethod.GET,br);
+                case 5 -> get(HttpRequestMethod.POST,br);
+                case 6 -> check(br);
+                case 7 -> list(br);
+                case 8 -> list(br);
+                case 9 -> listPost(br);
+                case 10 -> signIn(configure);
+                case 11 -> signInEcc(configure);
+                case 12 -> settings.setting(symKey, br);
                 case 0 -> {
                     return;
                 }
@@ -90,28 +84,28 @@ public class StartDiskClient {
     }
 
     private static void signInEcc(Configure configure) {
-        Session session = diskClient.signInEcc(settings.getDiskAccount(), ApiType.DISK, RequestBody.SignInMode.NORMAL, symKey);
+        Session session = diskClient.signInEcc(settings.getDiskAccount(), RequestBody.SignInMode.NORMAL, symKey);
         JsonTools.gsonPrint(session);
-        configure.saveConfigToFile();
+        configure.saveConfig();
         Menu.anyKeyToContinue(br);
     }
 
     private static void signIn(Configure configure) {
-        Session session = diskClient.signIn(settings.getDiskAccount(), ApiType.DISK,RequestBody.SignInMode.NORMAL,symKey);
+        Session session = diskClient.signIn(settings.getDiskAccount(), RequestBody.SignInMode.NORMAL,symKey);
         JsonTools.gsonPrint(session);
-        configure.saveConfigToFile();
+        configure.saveConfig();
         Menu.anyKeyToContinue(br);
     }
 
     public static void pingFree(BufferedReader br){
-        boolean done = diskClient.pingFree(ApiType.DISK);
+        boolean done = diskClient.pingFree();
         if(done) System.out.println("OK!");
         else System.out.println("Failed!");
         Menu.anyKeyToContinue(br);
     }
 
     public static void ping(BufferedReader br){
-        Long rest = diskClient.ping(ApiType.DISK);
+        Long rest = diskClient.ping();
         if(rest!=null) System.out.println("OK! "+rest+" KB/requests are available.");
         else System.out.println("Failed!");
 
@@ -142,29 +136,29 @@ public class StartDiskClient {
         Menu.anyKeyToContinue(br);
     }
 
-    public static void putFree(BufferedReader br){
-        String fileName;
-        while(true) {
-            fileName = Inputer.inputPath(br, "Input the file path and name:");
-            if (new File(fileName).isDirectory()) {
-                System.out.println("It is a directory. A file name is required.");
-                continue;
-            }
-            break;
-        }
-        if(Inputer.askIfYes(br,"Encrypt it?")) {
-            fileName = DiskClient.encryptFile(fileName, diskClient.getApiAccount().getUserPubKey());
-            System.out.println("Encrypted to: "+fileName);
-        }
-        String dataResponse = diskClient.putFree(fileName);
-        if(Hex.isHexString(dataResponse)) {
-            if(!new File(dataResponse).delete()){
-                System.out.println("Failed to delete the local cipher file.");
-            };
-            System.out.println("Put: " + dataResponse);
-        }else System.out.println(dataResponse);
-        Menu.anyKeyToContinue(br);
-    }
+//    public static void putFree(BufferedReader br){
+//        String fileName;
+//        while(true) {
+//            fileName = Inputer.inputPath(br, "Input the file path and name:");
+//            if (new File(fileName).isDirectory()) {
+//                System.out.println("It is a directory. A file name is required.");
+//                continue;
+//            }
+//            break;
+//        }
+//        if(Inputer.askIfYes(br,"Encrypt it?")) {
+//            fileName = DiskClient.encryptFile(fileName, diskClient.getApiAccount().getUserPubKey());
+//            System.out.println("Encrypted to: "+fileName);
+//        }
+//        String dataResponse = diskClient.putFree(fileName);
+//        if(Hex.isHexString(dataResponse)) {
+//            if(!new File(dataResponse).delete()){
+//                System.out.println("Failed to delete the local cipher file.");
+//            };
+//            System.out.println("Put: " + dataResponse);
+//        }else System.out.println(dataResponse);
+//        Menu.anyKeyToContinue(br);
+//    }
     public static void getFree(BufferedReader br){
         String filename = Inputer.inputString(br,"Input the DID of the file");
         String path = Inputer.inputString(br,"Input the destination path");
@@ -177,10 +171,10 @@ public class StartDiskClient {
         Menu.anyKeyToContinue(br);
     }
 
-    public static void get(BufferedReader br){
+    public static void get(HttpRequestMethod method,BufferedReader br){
         String filename = Inputer.inputString(br,"Input the DID of the file:");
         String path = Inputer.inputString(br,"Input the destination path");
-        String gotFile = diskClient.get(filename,path);
+        String gotFile = diskClient.get(method,filename,path);
         System.out.println("Got:"+Path.of(path,gotFile));
         if(!Hex.isHexString(gotFile))return;
         String did = DiskClient.decryptFile(path, gotFile,symKey,diskClient.getApiAccount().getUserPriKeyCipher());
@@ -188,16 +182,16 @@ public class StartDiskClient {
         Menu.anyKeyToContinue(br);
     }
 
-    public static void getPost(BufferedReader br){
-        String filename = Inputer.inputString(br,"Input the DID of the file:");
-        String path = Inputer.inputString(br,"Input the destination path");
-        String gotFile = diskClient.getPost(filename,path );
-        System.out.println("Got:"+gotFile);
-        if(!Hex.isHexString(gotFile))return;
-        String did = DiskClient.decryptFile(path, gotFile,symKey,diskClient.getApiAccount().getUserPriKeyCipher());
-        if(did!= null) System.out.println("Decrypted to:"+Path.of(path,did));
-        Menu.anyKeyToContinue(br);
-    }
+//    public static void getPost(BufferedReader br){
+//        String filename = Inputer.inputString(br,"Input the DID of the file:");
+//        String path = Inputer.inputString(br,"Input the destination path");
+//        String gotFile = diskClient.get(HttpRequestMethod.POST,filename,path );
+//        System.out.println("Got:"+gotFile);
+//        if(!Hex.isHexString(gotFile))return;
+//        String did = DiskClient.decryptFile(path, gotFile,symKey,diskClient.getApiAccount().getUserPriKeyCipher());
+//        if(did!= null) System.out.println("Decrypted to:"+Path.of(path,did));
+//        Menu.anyKeyToContinue(br);
+//    }
     public static void check(BufferedReader br){
         System.out.println("Check...");
         String did = Inputer.inputString(br,"Input the DID of the file:");
@@ -209,7 +203,7 @@ public class StartDiskClient {
     public static void checkFree(BufferedReader br){
         System.out.println("Check...");
         String did = Inputer.inputString(br,"Input the DID of the file:");
-        String dataResponse = diskClient.checkFree(did);
+        String dataResponse = diskClient.check(did);
         System.out.println("Got:"+dataResponse);
         Menu.anyKeyToContinue(br);
     }

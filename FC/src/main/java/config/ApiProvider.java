@@ -1,16 +1,14 @@
 package config;
 
 
+import clients.Client;
 import feip.feipData.serviceParams.ApipParams;
 import feip.feipData.serviceParams.DiskParams;
 import feip.feipData.serviceParams.Params;
 import feip.feipData.serviceParams.SwapParams;
 import clients.apipClient.ApipClient;
-import clients.apipClient.ApipClientTask;
-import clients.apipClient.OpenAPIs;
 import feip.feipData.Service;
 import appTools.Inputer;
-import com.google.gson.Gson;
 import javaTools.JsonTools;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -19,7 +17,6 @@ import server.Settings;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 import static appTools.Inputer.promptAndUpdate;
@@ -27,7 +24,7 @@ import static appTools.Inputer.promptAndUpdate;
 
 public class ApiProvider {
     private static final Logger log = LoggerFactory.getLogger(ApiProvider.class);
-    private String sid;
+    private String id;
     private ApiType type;
     private String orgUrl;
     private String docUrl;
@@ -41,7 +38,7 @@ public class ApiProvider {
     public ApiProvider() {}
     public boolean fromFcService(Service service) {
         if(service==null)return false;
-        this.sid =service.getSid();
+        this.id =service.getSid();
         Params params = Params.getParamsFromService(service, Params.class);
         if(params==null) return false;
         this.apiUrl=params.getUrlHead();
@@ -63,7 +60,7 @@ public class ApiProvider {
     public static ApiProvider apiProviderFromFcService(Service service,ApiType type) {
         if(service==null)return null;
         ApiProvider apiProvider = new ApiProvider();
-        apiProvider.setSid(service.getSid());
+        apiProvider.setId(service.getSid());
         Params params = null;
         switch (type){
             case APIP -> params = Params.getParamsFromService(service, ApipParams.class);
@@ -121,22 +118,16 @@ public class ApiProvider {
     public ApiProvider makeApipProvider(BufferedReader br) {
         apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service. Enter to choose one:");
         if("".equals(apiUrl)) {
-            apiUrl = Inputer.chooseOne(Settings.freeApipUrlList,"Choose an default APIP service:",br);
+            apiUrl = Inputer.chooseOne(Settings.freeApiMap,"Choose an default APIP service:",br);
             if(apiUrl==null)return null;
         }
-        ApipClientTask apipClientData = OpenAPIs.getService(apiUrl);
-        if(apipClientData.checkResponse()!=0){
-            System.out.println("Failed to get the APIP service from "+apiUrl);
-            return null;
-        }
 
-        Gson gson = new Gson();
-        service = gson.fromJson(gson.toJson(apipClientData.getResponseBody().getData()),Service.class);
-        apiParams = Params.getParamsFromService(service,Params.class);
-        service.setParams(apiParams);
+        service = Client.getService(apiUrl, ApipParams.class);//OpenAPIs.getService(apiUrl);
+        if(service==null)return null;
+        apiParams = (Params) service.getParams();
         System.out.println("Got the service:");
         JsonTools.gsonPrint(service);
-        sid = service.getSid();
+        id = service.getSid();
         owner = service.getOwner();
         protocols = service.getProtocols();
         ticks = new String[]{"fch"};
@@ -162,15 +153,15 @@ public class ApiProvider {
                     do {
                         inputTicks(br);
                     }while(this.ticks==null|| ticks.length==0);
-                    sid = ticks[0]+"@"+apiUrl;
+                    id = ticks[0]+"@"+apiUrl;
                 }
                 case ES -> {
                     inputApiURL(br,"http://127.0.0.1:9200");
-                    sid = "ES@"+apiUrl;
+                    id = "ES@"+apiUrl;
                 }
                 case REDIS -> {
                     inputApiURL(br, "http://127.0.0.1:6379");
-                    sid = "Redis@"+apiUrl;
+                    id = "Redis@"+apiUrl;
                 }
                 case DISK -> {
                     if(apipClient==null)throw new RuntimeException("The initial APIP client is null.");
@@ -199,9 +190,9 @@ public class ApiProvider {
 
     private void inputSid(BufferedReader br) throws IOException {
         while(true) {
-            String input = Inputer.promptAndSet(br, "sid", this.sid);
+            String input = Inputer.promptAndSet(br, "sid", this.id);
             if(input!=null){
-                this.sid = input;
+                this.id = input;
                 break;
             }
             System.out.println("Sid is necessary. Input again.");
@@ -250,14 +241,8 @@ public class ApiProvider {
                 if(Inputer.askIfYes(br,"The apiUrl is "+apiUrl+". Update it?")){
                     apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service:");
                     if(apiUrl==null)return;
-                    ApipClientTask apipClientData = OpenAPIs.getService(apiUrl);
-                    if(apipClientData.checkResponse()!=0){
-                        System.out.println("Failed to get the APIP service from "+apiUrl);
-                        return;
-                    }
-                    Gson gson = new Gson();
-                    service = gson.fromJson(gson.toJson(apipClientData.getResponseBody().getData()),Service.class);
-                    apiParams = Params.getParamsFromService(service,Params.class);
+                    service = ApipClient.getService(apiUrl,ApipParams.class);//OpenAPIs.getService(apiUrl);
+                    apiParams = (ApipParams) service.getParams();
                     orgUrl = promptAndUpdate(br, "url of the organization", this.orgUrl);
                     docUrl = promptAndUpdate(br, "url of the API documents", this.docUrl);
                     inputDocUrl(br);
@@ -267,7 +252,7 @@ public class ApiProvider {
                 }
             }
 
-            this.sid = promptAndUpdate(br, "sid of API request", this.sid);
+            this.id = promptAndUpdate(br, "sid of API request", this.id);
             this.apiUrl = promptAndUpdate(br, "url of the API requests", this.apiUrl);
             this.docUrl = promptAndUpdate(br, "url of the API documents", this.docUrl);
             this.orgUrl = promptAndUpdate(br, "url of the organization", this.orgUrl);
@@ -285,12 +270,12 @@ public class ApiProvider {
 
 
 
-    public String getSid() {
-        return sid;
+    public String getId() {
+        return id;
     }
 
-    public void setSid(String sid) {
-        this.sid = sid;
+    public void setId(String id) {
+        this.id = id;
     }
 
     public ApiType getType() {

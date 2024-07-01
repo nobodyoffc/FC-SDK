@@ -1,10 +1,8 @@
 package apip;
 
 import fch.fchData.Cash;
-import clients.apipClient.ApipClientTask;
+import clients.apipClient.ApipClientEvent;
 import clients.apipClient.DataGetter;
-import clients.apipClient.FreeGetAPIs;
-import clients.apipClient.OpenAPIs;
 import feip.feipData.serviceParams.ApipParams;
 
 
@@ -73,38 +71,8 @@ public class ApipTools {
         return HexFormat.of().formatHex(Arrays.copyOf(sessionKey, 6));
     }
 
-    public static List<Cash> getFreeCashes(String apiUrl, String fid) {
-        ApipClientTask apipClientData = FreeGetAPIs.getCashes(apiUrl, fid, 0);
-        if(apipClientData.checkResponse()!=0)return null;
-
-        List<Cash> cashList = DataGetter.getCashList(apipClientData.getResponseBody().getData());
-        if (cashList == null || cashList.isEmpty()) {
-            System.out.println("No FCH of " + fid + ". Send at lest 0.001 fch to it.");
-            return null;
-        }
-        return cashList;
-    }
-
-
     @Nullable
-
-
-    public static Service getApipService(String urlHead){
-        if(urlHead.contains(ApiNames.APIP0V1Path + ApiNames.GetServiceAPI))
-            urlHead.replaceAll(ApiNames.APIP0V1Path + ApiNames.GetServiceAPI,"");
-
-        ApipClientTask apipClientData = OpenAPIs.getService(urlHead);
-        if(apipClientData.checkResponse()!=0)return null;
-        Gson gson = new Gson();
-        Service service = gson.fromJson(gson.toJson(apipClientData.getResponseBody().getData()),Service.class);
-        ApipParams apipParams = ApipParams.fromObject(service.getParams());
-        service.setParams(apipParams);
-
-        return service;
-    }
-
-    @Nullable
-    public static Map<String, Service> parseApipServiceMap(ApipClientTask apipClientData) {
+    public static Map<String, Service> parseApipServiceMap(ApipClientEvent apipClientData) {
         if(apipClientData.checkResponse()!=0) {
             System.out.println("Failed to buy APIP service. Code:"+ apipClientData.getCode()+", Message:"+ apipClientData.getMessage());
             return null;

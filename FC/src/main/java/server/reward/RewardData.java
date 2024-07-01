@@ -3,15 +3,15 @@ package server.reward;
 import static constants.Strings.REWARD;
 
 public class RewardData {
-    private String rewardId;
+    private String sid;
     private String op = REWARD;
 
-    public String getRewardId() {
-        return rewardId;
+    public String getSid() {
+        return sid;
     }
 
-    public void setRewardId(String rewardId) {
-        this.rewardId = rewardId;
+    public void setSid(String sid) {
+        this.sid = sid;
     }
 
     public String getOp() {

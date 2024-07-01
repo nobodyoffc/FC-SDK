@@ -88,18 +88,15 @@ public class StartDiskManager {
         }
 
         //Check webhooks for new orders.
-        if(settings.isFromWebhook())
+        if(settings.getFromWebhook()!=null && settings.getFromWebhook().equals(Boolean.TRUE))
             if (!Order.checkWebhook(ApiNames.NewCashByFidsAPI, sid, params, settings.getApipAccount(), br, jedisPool)){
                 close();
                 return;
             }
 
-        Rewarder.checkRewarderParams(sid, params, apipClient, esClient, jedisPool, br);
+        Rewarder.checkRewarderParams(sid, params,jedisPool, br);
 
-        List<ApiAccount> chargedAccountList = new ArrayList<>();
-        chargedAccountList.add(settings.getApipAccount());
-
-        Counter counter = new Counter(settings, params,chargedAccountList,symKey);
+        Counter counter = new Counter(settings, params,symKey);
         //Show the main menu
         Menu menu = new Menu();
         menu.setName("Disk Manager");
@@ -118,7 +115,7 @@ public class StartDiskManager {
                 case 2 -> new DiskManager(service, settings.getApipAccount(),br,symKey, DiskParams.class).menu();
                 case 3 -> Order.resetNPrices(br, sid, jedisPool);
                 case 4 -> recreateAllIndices(esClient, br);
-                case 5 -> new RewardManager(sid,params.getAccount(),apipClient,esClient,jedisPool,br)
+                case 5 -> new RewardManager(sid,params.getAccount(),apipClient,esClient,null,jedisPool,br)
                         .menu(params.getConsumeViaShare(), params.getOrderViaShare());
                 case 6 -> settings.setting(symKey, br);
                 case 0 -> {

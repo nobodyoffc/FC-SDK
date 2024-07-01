@@ -1,8 +1,7 @@
 package server.serviceManagers;
 
 import clients.apipClient.ApipClient;
-import clients.apipClient.ApipClientTask;
-import clients.apipClient.ConstructAPIs;
+import clients.apipClient.ApipClientEvent;
 import feip.feipData.DataOnChain;
 import feip.feipData.Service;
 import feip.feipData.ServiceData;
@@ -87,20 +86,16 @@ public abstract class ServiceManager {
 
     private void reloadServices(BufferedReader br, byte[] symKey) {
         String sid = service.getSid();
-
-        ApipClientTask apipClientData = ConstructAPIs.serviceByIdsPost(apipAccount.getApiUrl(), new String[]{sid}, apipAccount.getVia(),symKey);
-        if(apipClientData ==null)return;
-        if(apipClientData.checkResponse()!=0){
-            Menu.anyKeyToContinue(br);
-            return;
-        }
-        checkBalance(apipAccount, apipClientData, symKey, (ApipClient) apipAccount.getClient());
+        ApipClient apipClient = (ApipClient) apipAccount.getClient();
+        Service service1 = apipClient.serviceById(sid);
+        if(service1==null)return;
+        service = service1;
+        checkBalance(apipAccount, apipClient.getClientData(), symKey, apipClient);
     }
 
     private void showService() {
-        System.out.println(JsonTools.getNiceString(service));
+        System.out.println(JsonTools.toNiceJson(service));
     }
-
 
     public void publishService() {
         System.out.println("Publish service services...");
@@ -229,7 +224,7 @@ public abstract class ServiceManager {
         dataOnChain.setData(data);
 
         System.out.println("The owner can send a TX with below json in OpReturn to "+op+" the service: "+service.getSid());
-        System.out.println(JsonTools.getNiceString(dataOnChain));
+        System.out.println(JsonTools.toNiceJson(dataOnChain));
 
         System.out.println("you can replace the value of 'data.sid' to "+op+" other your own service services.");
         Menu.anyKeyToContinue(br);

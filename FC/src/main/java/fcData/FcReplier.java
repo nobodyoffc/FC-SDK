@@ -49,6 +49,21 @@ public class FcReplier {
         this.response = response;
     }
 
+    public void Set0Success() {
+        this.code = ReplyCodeMessage.Code0Success;
+        this.message = ReplyCodeMessage.Msg0Success;
+    }
+
+    public void Set1020Other(String message) {
+        this.code = ReplyCodeMessage.Code1020OtherError;
+        if(message==null)this.message = ReplyCodeMessage.Msg1020OtherError;
+        else this.message = message;
+    }
+    public void SetCodeMessage(Integer code) {
+        this.code = code;
+        this.message = ReplyCodeMessage.getMsg(code);
+    }
+
     public void printCodeMessage(){
         System.out.println(code+":"+message);
     }
@@ -153,18 +168,48 @@ public class FcReplier {
         reply(0,null,data,jedis);
     }
 
-    public void reply0Success() {
+    public void reply0Success(Jedis jedis) {
+        reply(0,null,data,jedis);
+    }
+    public void set0Success() {
+        set0Success(null);
+    }
+
+    public void set0Success(Object data) {
         code = ReplyCodeMessage.Code0Success;
         message = ReplyCodeMessage.getMsg(code);
+        this.data = data;
+    }
+    public void reply0Success(Object data, HttpServletResponse response) {
+        code = ReplyCodeMessage.Code0Success;
+        message = ReplyCodeMessage.getMsg(code);
+        this.data = data;
+        try {
+            response.getWriter().write(this.toNiceJson());
+        } catch (IOException ignore) {
+            System.out.println("Failed to reply success.");
+        }
     }
 
     public void replyOtherError(String otherError,Object data, Jedis jedis) {
         reply(9,otherError,data,jedis);
     }
-    public void replyOtherError(String otherError) {
+    public void setOtherError(String otherError) {
         code = ReplyCodeMessage.Code1020OtherError;
         if(otherError!=null)message = otherError;
         else message = ReplyCodeMessage.getMsg(code);
+    }
+
+    public void replyOtherError(String otherError, HttpServletResponse response) {
+        code = ReplyCodeMessage.Code1020OtherError;
+        if(otherError!=null)message = otherError;
+        else message = ReplyCodeMessage.getMsg(code);
+        String replyStr = this.toNiceJson();
+        try {
+            response.getWriter().write(replyStr);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void reply(int code,String otherError, Object data, Jedis jedis) {
@@ -176,7 +221,7 @@ public class FcReplier {
         else this.message=ReplyCodeMessage.getMsg(code);
         if(data!=null)this.data=data;
         updateBalance(sid, requestCheckResult.getApiName(), jedis);
-        if(code!=0)response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+//        if(code!=0)response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         String sessionKey = requestCheckResult.getSessionKey();
         String replyStr = this.toNiceJson();
         if(sessionKey !=null){
@@ -203,7 +248,7 @@ public class FcReplier {
         return new Gson().toJson(this);
     }
     public String toNiceJson(){
-        return JsonTools.getNiceString(this);
+        return JsonTools.toNiceJson(this);
     }
 
     public Integer getCode() {

@@ -3,8 +3,8 @@ package server;
 import apip.apipData.CidInfo;
 import apip.apipData.Fcdsl;
 import clients.apipClient.ApipClient;
-import clients.apipClient.DataGetter;
 import clients.esClient.EsTools;
+import clients.redisClient.RedisTools;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import config.ApiProvider;
 import config.ApiType;
@@ -24,11 +24,12 @@ import crypto.CryptoDataByte;
 import crypto.Decryptor;
 import crypto.Encryptor;
 import fcData.AlgorithmId;
-import feip.feipData.serviceParams.DiskParams;
 import feip.feipData.serviceParams.Params;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.JsonTools;
+import javaTools.http.AuthType;
+import javaTools.http.HttpRequestMethod;
 import org.bitcoinj.core.ECKey;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -47,35 +48,42 @@ import static appTools.Inputer.askIfYes;
 import static appTools.Inputer.chooseOne;
 import static config.Configure.getSymKeyFromPasswordAndNonce;
 import static constants.Strings.*;
+import static javaTools.CollectionTools.listToMap;
 
 public abstract class Settings {
+    public static final long DEFAULT_WINDOW_TIME = 1000 * 60 * 5;
     final static Logger log = LoggerFactory.getLogger(Settings.class);
     protected String sid;
-    protected transient Configure config;
-    protected transient BufferedReader br;
     protected String mainFid;
     protected String mainFidPriKeyCipher;
     protected String listenPath;
-    protected boolean fromWebhook;
-    protected transient ApiAccount apipAccount;
-    protected transient ApiAccount esAccount;
-    protected transient ApiAccount redisAccount;
+    protected Long windowTime;
+    protected Boolean fromWebhook;
+    protected Boolean forbidFreeApi;
     protected String apipAccountId;
     protected String esAccountId;
     protected String redisAccountId;
+    protected String nasaAccountId;
+    protected Map<String,Long> bestHeightMap;
+    protected transient Configure config;
+    protected transient BufferedReader br;
+    protected transient ApiAccount apipAccount;
+    protected transient ApiAccount esAccount;
+    protected transient ApiAccount redisAccount;
+    protected transient ApiAccount nasaAccount;
+    protected transient List<ApiAccount> paidAccountList;
+
     private transient JedisPool jedisPool;
     private static String fileName;
     public static String SETTINGS_DOT_JSON = "settings.json";
-    protected String nasaAccountId;
-    protected transient ApiAccount nasaAccount;
-    protected Map<String,Long> bestHeightMap;
-    public static List<String> freeApipUrlList;
+    public static Map<String ,FreeApi> freeApiMap;
 
     public Settings(Configure config, BufferedReader br, JedisPool jedisPool) {
         this.config = config;
         this.br = br;
         this.jedisPool = jedisPool;
-        freeApipUrlList = config.getFreeApipUrlList();
+        freeApiMap = listToMap(config.getFreeApipUrlList(),URL_HEAD);
+
     }
 
     public Settings(Configure config, BufferedReader br) {
@@ -91,10 +99,12 @@ public abstract class Settings {
     public static ApipClient getFreeApipClient(BufferedReader br){
         ApipClient apipClient = new ApipClient();
         ApiAccount apipAccount = new ApiAccount();
-        for(String url : freeApipUrlList){
+        if(freeApiMap ==null) freeApiMap = new HashMap<>();
+        for(String url : freeApiMap.keySet()){
             apipAccount.setApiUrl(url);
             apipClient.setApiAccount(apipAccount);
-            if(apipClient.pingFree(ApiType.APIP))
+            apipClient.setUrlHead(url);
+            if(apipClient.pingFree())
                 return apipClient;
         }
         if(br !=null) {
@@ -103,8 +113,9 @@ public abstract class Settings {
                     String url = fch.Inputer.inputString(br, "Input the urlHead of the APIP service:");
                     apipAccount.setApiUrl(url);
                     apipClient.setApiAccount(apipAccount);
-                    if (apipClient.pingFree(ApiType.APIP)) {
-                        freeApipUrlList.add(url);
+                    if (apipClient.pingFree()) {
+                        FreeApi freeApi = new FreeApi(url,true);
+                        freeApiMap.put(url,freeApi);
                         return apipClient;
                     }
                 } while (askIfYes(br, "Failed to ping this APIP Service. Try more?"));
@@ -114,7 +125,8 @@ public abstract class Settings {
     }
     public static String makeFileName(String id){
         if(id==null)return SETTINGS_DOT_JSON;
-        return id.substring(0,6)+"_" +SETTINGS_DOT_JSON;
+        if(Hex.isHexString(id)) return id.substring(0,6)+"_" +SETTINGS_DOT_JSON;
+        else return id.substring(id.length()-6)+"_" +SETTINGS_DOT_JSON;
     }
 
 
@@ -130,12 +142,72 @@ public abstract class Settings {
 
     public static void setNPrices(String sid, String[] ApiNames, Jedis jedis, BufferedReader br) {
         for(String api : ApiNames){
-            String ask = "Set the price multiplier for " + api + "?y/n Enter to leave default 1:";
+            String ask = "Set the price multiplier for " + api + "? y/n. Enter to leave default 1:";
             int input = Inputer.inputInteger(br, ask,0);
             if(input==0)input=1;
             jedis.hset(addSidBriefToName(sid,Strings.N_PRICE),api, String.valueOf(input));
         }
     }
+
+//
+//    static void initNPrices(String sid, String[] ApiNames, Jedis jedis,BufferedReader br) {
+//        Map<Integer, String> apiMap = loadAPIs();
+//        showAllAPIs(apiMap);
+//
+//        while (true) {
+//            System.out.println("""
+//                    Set nPrices:
+//                    \t'a' to set all nPrices,
+//                    \t'one' to set all nPrices by 1,
+//                    \t'zero' to set all nPrices by 0,
+//                    \tan integer to set the corresponding API,
+//                    \tor 'q' to quit.\s""");
+//            String str = null;
+//            try {
+//                str = br.readLine();
+//                if ("".equals(str)) str = br.readLine();
+//                if (str.equals("q")) return;
+//                if (str.equals("a")) {
+//                    setAllNPrices(apiMap, br);
+//                    System.out.println("Done.");
+//                    return;
+//                }
+//            }catch (Exception e){
+//                log.error("Set nPrice wrong. ",e);
+//            }
+//            if(str==null){
+//                log.error("Set nPrice failed. ");
+//            }
+//            try(Jedis jedis = StartAPIP.jedisPool.getResource()) {
+//                if (str.equals("one")) {
+//                    for (int i = 0; i < apiMap.size(); i++) {
+//                        jedis.hset(StartAPIP.serviceName + "_" + Strings.N_PRICE, apiMap.get(i + 1), "1");
+//                    }
+//                    System.out.println("Done.");
+//                    return;
+//                }
+//                if (str.equals("zero")) {
+//                    for (int i = 0; i < apiMap.size(); i++) {
+//                        jedis.hset(StartAPIP.serviceName + "_" + Strings.N_PRICE, apiMap.get(i + 1), "0");
+//                    }
+//                    System.out.println("Done.");
+//                    return;
+//                }
+//                try {
+//                    int i = Integer.parseInt(str);
+//                    if (i > apiMap.size()) {
+//                        System.out.println("The integer should be no bigger than " + apiMap.size());
+//                    } else {
+//                        setNPrice(i, apiMap, br);
+//                        System.out.println("Done.");
+//                    }
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                    System.out.println("Wrong input.");
+//                }
+//            }
+//        }
+//    }
 
     public CidInfo checkFidInfo(ApipClient apipClient, BufferedReader br) {
         CidInfo fidInfo = getCidInfo(mainFid,apipClient);
@@ -144,7 +216,7 @@ public abstract class Settings {
             long bestHeight = apipClient.getClientData().getResponseBody().getBestHeight();
 
             bestHeightMap.put(IndicesNames.CID,bestHeight);
-            System.out.println("My information:\n" + JsonTools.getNiceString(fidInfo));
+            System.out.println("My information:\n" + JsonTools.toNiceJson(fidInfo));
             Menu.anyKeyToContinue(br);
             if(fidInfo.getBalance()==0){
                 System.out.println("No fch yet. Send some fch to "+mainFid);
@@ -160,35 +232,24 @@ public abstract class Settings {
     @Nullable
     public static CidInfo getCidInfo(String fid,ApipClient apipClient) {
         System.out.println("Get CID information...");
-        apipClient.cidInfoByIds(new String[]{fid});
-        Object data = apipClient.checkResult();
-        if(data==null) {
-            apipClient.getClientData().getResponseBody().printCodeMessage();
-            return null;
-        }
-        Map<String,CidInfo> cidInfoMap = DataGetter.getCidInfoMap(data);
-        CidInfo fidInfo = cidInfoMap.get(fid);
-        if(fidInfo==null){
-            System.out.println("Fid is not found on chain.");
-            return null;
-        }
-        return fidInfo;
+        Map<String,CidInfo> cidInfoMap = apipClient.cidInfoByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY , fid);
+        return cidInfoMap==null ? null:cidInfoMap.get(fid);
     }
 
     protected void setInitForClient(String fid, Configure config, BufferedReader br) {
         this.config= config;
         this.br= br;
-        freeApipUrlList = config.getFreeApipUrlList();
+        freeApiMap = listToMap(config.getFreeApipUrlList(),URL_HEAD);
         this.mainFid = fid;
         if(bestHeightMap==null)bestHeightMap=new HashMap<>();
     }
 
     public abstract Service initiateServer(String sid, byte[] symKey, Configure config, BufferedReader br);
     public Service getMyService(String sid, byte[] symKey, Configure config, BufferedReader br, ApipClient apipClient, Class<?> paramsClass, ApiType apiType) {
-        return getMyService(sid, symKey, config, br, apipClient,null,DiskParams .class, ApiType.DISK);
+        return getMyService(sid, symKey, config, br, apipClient,null,paramsClass, apiType);
     }
     public Service getMyService(String sid, byte[] symKey, Configure config, BufferedReader br, ElasticsearchClient esClient,  Class<?> paramsClass, ApiType apiType) {
-        return getMyService(sid, symKey, config, br, null,esClient,DiskParams .class, ApiType.DISK);
+        return getMyService(sid, symKey, config, br, null,esClient,paramsClass, apiType);
     }
     public Service getMyService(String sid, byte[] symKey, Configure config, BufferedReader br, ApipClient apipClient, ElasticsearchClient esClient, Class<?> paramsClass, ApiType apiType) {
         Service service = null;
@@ -225,8 +286,19 @@ public abstract class Settings {
     protected void setInitForServer(String sid, Configure config, BufferedReader br) {
         this.config= config;
         this.br = br;
-        this.sid = sid;
-        freeApipUrlList = config.getFreeApipUrlList();
+        if(sid==null) {
+            System.out.println("No service yet. We will set it later.");
+            Menu.anyKeyToContinue(br);
+        }
+        else this.sid = sid;
+        freeApiMap = listToMap(config.getFreeApipUrlList(),URL_HEAD);
+    }
+
+    protected void writeParamsToRedis(String sid, Params params, JedisPool jedisPool, Class<? extends Params> tClass) {
+        try(Jedis jedis = jedisPool.getResource()) {
+            String key = Settings.addSidBriefToName(sid,PARAMS);
+            RedisTools.writeToRedis(params, key,jedis,tClass);
+        }
     }
 
     public abstract String initiateClient(String fid, byte[] symKey, Configure config, BufferedReader br);
@@ -251,7 +323,7 @@ public abstract class Settings {
         if(onlyActive)fcdsl.addNewExcept().addNewTerms().addNewFields(Strings.ACTIVE).addNewValues(Values.FALSE);
         fcdsl.addSize(100);
 
-        fcdsl.addNewSort(FieldNames.LAST_HEIGHT,Strings.DESC);
+        fcdsl.addSort(FieldNames.LAST_HEIGHT,Strings.DESC);
         return apipClient.serviceSearch(fcdsl);
     }
 
@@ -308,13 +380,13 @@ public abstract class Settings {
         if(accountId ==null) {
             ApiProvider apiProvider = config.selectFcApiProvider((ApipClient)apipAccount.getClient(),apiType);
             if(apiProvider==null)return null;
-            config.getApiProviderMap().put(apiProvider.getSid(),apiProvider);
+            config.getApiProviderMap().put(apiProvider.getId(),apiProvider);
             apiProvider.setType(apiType);
             fcApiAccount = config.chooseApiProvidersAccount(apiProvider,symKey,apipClient);
         }else {
             fcApiAccount = config.getApiAccountMap().get(accountId);
             fcApiAccount.setApipClient((ApipClient) apipAccount.getClient());
-            Object result = fcApiAccount.connectApi(config.getApiProviderMap().get(fcApiAccount.getSid()), symKey);
+            Object result = fcApiAccount.connectApi(config.getApiProviderMap().get(fcApiAccount.getProviderId()), symKey);
             if(result==null) {
                 if( Inputer.askIfYes(this.br,"Failed to connected the "+apiType+" server. Continue?")){
                     return null;
@@ -328,64 +400,103 @@ public abstract class Settings {
     }
 
 
-
-
-
-    public ApiAccount checkApipAccount(String apipAccountId, Configure config, byte[] symKey,ApipClient apipClient) {
+    public ApiAccount checkApiAccount(String apipAccountId, ApiType apiType, Configure config, byte[] symKey, @Nullable ApipClient apipClient) {
         ApiAccount apipAccount;
         if (apipAccountId == null) {
-            apipAccount = config.checkAPI(apipAccountId, ApiType.APIP, symKey,apipClient);
+            apipAccount = config.checkAPI(apipAccountId, apiType, symKey,apipClient);
         }else {
             apipAccount = config.getApiAccountMap().get(apipAccountId);
-            Object client = apipAccount.connectApi(config.getApiProviderMap().get(apipAccount.getSid()), symKey);
+            if(apipAccount==null) {
+                apipAccountId=null;
+                apipAccount = config.checkAPI(apipAccountId,apiType, symKey, apipClient);
+            }
+            if(apipAccount.getProviderId()==null){
+                apipAccount = config.setApiService(symKey,apiType, apipClient);
+            }
+            Object client = apipAccount.connectApi(config.getApiProviderMap().get(apipAccount.getProviderId()), symKey);
             apipAccount.setApipClient((ApipClient) client);
         }
-
         return checkIfMainFidIsApiAccountUser(symKey,config,br,apipAccount);
     }
 
-    public ApiAccount checkEsAccount(String esAccountId, Configure config, byte[] symKey,ApipClient apipClient) {
-        ApiAccount esAccount = null;
-        if(esAccountId==null) {
-            esAccount = config.checkAPI(esAccountId, ApiType.ES, symKey,null);
-        }else {
-            esAccount = config.getApiAccountMap().get(esAccountId);
-            Object client = esAccount.connectApi(config.getApiProviderMap().get(esAccount.getSid()), symKey);
-            esAccount.setClient(client);
-        }
-        return esAccount;
-    }
 
-    public ApiAccount checkRedisAccount(String redisAccountId, Configure config, byte[] symKey,ApipClient apipClient) {
-        ApiAccount redisAccount = null;
-        if(redisAccountId==null) {
-                redisAccount = config.checkAPI(redisAccountId, ApiType.REDIS, symKey,apipClient);
-        }else {
-            redisAccount = config.getApiAccountMap().get(redisAccountId);
-            Object client = redisAccount.connectApi(config.getApiProviderMap().get(redisAccount.getSid()), symKey);
-            redisAccount.setClient(client);
-        }
-        return redisAccount;
-    }
+//        public ApiAccount checkApipAccount(String apipAccountId, ApiType apiType, Configure config, byte[] symKey, ApipClient apipClient) {
+//        ApiAccount apipAccount;
+//        if (apipAccountId == null) {
+//            apipAccount = config.checkAPI(apipAccountId, ApiType.APIP, symKey,apipClient);
+//        }else {
+//            apipAccount = config.getApiAccountMap().get(apipAccountId);
+//            if(apipAccount==null) {
+//                apipAccountId=null;
+//                apipAccount = config.checkAPI(apipAccountId, ApiType.APIP, symKey, apipClient);
+//            }
+//            if(apipAccount.getProviderId()==null){
+//                apipAccount = config.setApiService(symKey,ApiType.APIP, apipClient);
+//            }
+//            Object client = apipAccount.connectApi(config.getApiProviderMap().get(apipAccount.getProviderId()), symKey);
+//            apipAccount.setApipClient((ApipClient) client);
+//        }
+//
+//        return checkIfMainFidIsApiAccountUser(symKey,config,br,apipAccount);
+//    }
 
-    public ApiAccount checkNasaRPC(String nasaAccountId, Configure config, byte[] symKey,ApipClient apipClient) {
-        ApiAccount apiAccount = null;
-        if(nasaAccountId==null) {
-            apiAccount = config.checkAPI(nasaAccountId, ApiType.NASA_RPC, symKey,apipClient);
-        }else {
-            apiAccount = config.getApiAccountMap().get(nasaAccountId);
-            Object result = apiAccount.connectApi(config.getApiProviderMap().get(apiAccount.getSid()), symKey);
-            if(result==null) {
-                if( Inputer.askIfYes(this.br,"Failed to connected the Nasa node RPC. Continue?")){
-                    return null;
-                }else {
-                    System.exit(0);
-                }
-            }
-            apiAccount.setClient(result);
-        }
-        return apiAccount;
-    }
+//    public ApiAccount checkEsAccount(String esAccountId, Configure config, byte[] symKey,ApipClient apipClient) {
+//        ApiAccount esAccount = null;
+//        if(esAccountId==null) {
+//            esAccount = config.checkAPI(esAccountId, ApiType.ES, symKey,null);
+//        }else {
+//            esAccount = config.getApiAccountMap().get(esAccountId);
+//            if(esAccount==null) {
+//                esAccountId=null;
+//                esAccount = config.checkAPI(esAccountId, ApiType.ES, symKey, null);
+//            }
+//            Object client = esAccount.connectApi(config.getApiProviderMap().get(esAccount.getProviderId()), symKey);
+//            esAccount.setClient(client);
+//        }
+//        return esAccount;
+//    }
+
+
+//    public ApiAccount checkRedisAccount(String redisAccountId, Configure config, byte[] symKey,ApipClient apipClient) {
+//        ApiAccount redisAccount = null;
+//        if(redisAccountId==null) {
+//                redisAccount = config.checkAPI(redisAccountId, ApiType.REDIS, symKey,apipClient);
+//        }else {
+//            redisAccount = config.getApiAccountMap().get(redisAccountId);
+//            if(redisAccount==null){
+//                redisAccountId=null;
+//                redisAccount = config.checkAPI(redisAccountId, ApiType.REDIS, symKey,apipClient);
+//            }
+//            Object client = redisAccount.connectApi(config.getApiProviderMap().get(redisAccount.getProviderId()), symKey);
+//            if(client!=null)Shower.printUnderline(10);
+//            redisAccount.setClient(client);
+//        }
+//        return redisAccount;
+//    }
+
+//    public ApiAccount checkNasaRPC(String nasaAccountId, Configure config, byte[] symKey,ApipClient apipClient) {
+//        ApiAccount apiAccount = null;
+//        if(nasaAccountId==null) {
+//            apiAccount = config.checkAPI(nasaAccountId, ApiType.NASA_RPC, symKey,apipClient);
+//        }else {
+//            apiAccount = config.getApiAccountMap().get(nasaAccountId);
+//            if(apiAccount==null){
+//                nasaAccountId=null;
+//                apiAccount = config.checkAPI(nasaAccountId, ApiType.NASA_RPC, symKey,apipClient);
+//            }
+//            Object result = apiAccount.connectApi(config.getApiProviderMap().get(apiAccount.getProviderId()), symKey);
+//            if(result==null) {
+//                if( Inputer.askIfYes(this.br,"Failed to connected the Nasa node RPC. Continue?")){
+//                    return null;
+//                }else {
+//                    System.exit(0);
+//                }
+//            }
+//            Shower.printUnderline(10);
+//            apiAccount.setClient(result);
+//        }
+//        return apiAccount;
+//    }
 
     public String chooseFid(Configure config, BufferedReader br, byte[] symKey) {
         String fid = fch.Inputer.chooseOne(config.getFidCipherMap().keySet().toArray(new String[0]), "Choose fid:",br);
@@ -421,7 +532,8 @@ public abstract class Settings {
             );
             menu.show();
             int choice = menu.choose(br);
-            ApipClient apipClient = (ApipClient) apipAccount.getClient();
+            ApipClient apipClient = null;
+            if(apipAccount!=null)apipClient = (ApipClient) apipAccount.getClient();
             switch (choice) {
                 case 1 -> {
                     byte[] newSymKey=resetPassword();
@@ -542,12 +654,16 @@ public abstract class Settings {
         if(mainFid.equals(apiAccount.getUserId())) {
             mainFidPriKeyCipher = apiAccount.getUserPriKeyCipher();
             config.getFidCipherMap().put(mainFid,mainFidPriKeyCipher);
+            if(paidAccountList ==null) paidAccountList = new ArrayList<>();
+            paidAccountList.add(apipAccount);
         }else{
             if(askIfYes(br,"Your service account "+mainFid+" is not the user of the API account "+apiAccount.getUserId()+". \nReset API account?")){
                 while(true) {
                     apiAccount = config.setApiService(symKey, ApiType.APIP,null);
                     if(mainFid.equals(apiAccount.getUserId())){
                         mainFidPriKeyCipher = config.getApiAccountMap().get(apiAccountId).getUserPriKeyCipher();
+                        if(paidAccountList ==null) paidAccountList = new ArrayList<>();
+                        paidAccountList.add(apipAccount);
                         break;
                     }
                     System.out.println("The API user is still not your service account. Reset API account again.");
@@ -571,7 +687,7 @@ public abstract class Settings {
         ApiProvider apiProvider = config.chooseApiProviderOrAdd(config.getApiProviderMap(), type, apipClient);
         ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, symKey, apipClient);
         if (apiAccount != null) {
-            Object client = apiAccount.connectApi(config.getApiProviderMap().get(apiAccount.getSid()), symKey, br, null);
+            Object client = apiAccount.connectApi(config.getApiProviderMap().get(apiAccount.getProviderId()), symKey, br, null);
             if (client != null) {
                 config.saveConfig();
                 System.out.println("Done.");
@@ -632,14 +748,6 @@ public abstract class Settings {
 
     public void setListenPath(String listenPath) {
         this.listenPath = listenPath;
-    }
-
-    public boolean isFromWebhook() {
-        return fromWebhook;
-    }
-
-    public void setFromWebhook(boolean fromWebhook) {
-        this.fromWebhook = fromWebhook;
     }
 
     public ApiAccount getApipAccount() {
@@ -728,5 +836,37 @@ public abstract class Settings {
 
     public void setBestHeightMap(Map<String, Long> bestHeightMap) {
         this.bestHeightMap = bestHeightMap;
+    }
+
+    public List<ApiAccount> getPaidAccountList() {
+        return paidAccountList;
+    }
+
+    public void setPaidAccountList(List<ApiAccount> paidAccountList) {
+        this.paidAccountList = paidAccountList;
+    }
+
+    public Long getWindowTime() {
+        return windowTime;
+    }
+
+    public void setWindowTime(Long windowTime) {
+        this.windowTime = windowTime;
+    }
+
+    public Boolean getFromWebhook() {
+        return fromWebhook;
+    }
+
+    public void setFromWebhook(Boolean fromWebhook) {
+        this.fromWebhook = fromWebhook;
+    }
+
+    public Boolean getForbidFreeApi() {
+        return forbidFreeApi;
+    }
+
+    public void setForbidFreeApi(Boolean forbidFreeApi) {
+        this.forbidFreeApi = forbidFreeApi;
     }
 }

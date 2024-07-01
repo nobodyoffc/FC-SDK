@@ -1,5 +1,6 @@
 package config;
 
+import appTools.Menu;
 import feip.feipData.serviceParams.*;
 import appTools.Inputer;
 import clients.apipClient.ApipClient;
@@ -18,14 +19,17 @@ import constants.IndicesNames;
 import crypto.*;
 import fcData.AlgorithmId;
 import javaTools.BytesTools;
-import javaTools.FileTools;
 import javaTools.Hex;
 import javaTools.JsonTools;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import server.FreeApi;
 import server.ServiceType;
+import server.Settings;
 import server.serviceManagers.ChatManager;
 import server.serviceManagers.DiskManager;
 import server.serviceManagers.SwapManager;
@@ -33,14 +37,17 @@ import server.serviceManagers.SwapManager;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
 
 import static appTools.Inputer.askIfYes;
+import static constants.FieldNames.FORBID_FREE_API;
 import static constants.FieldNames.OWNER;
 import static constants.Strings.*;
 import static fch.Inputer.inputPriKey;
 import static fch.Inputer.makePriKeyCipher;
+import static server.Settings.addSidBriefToName;
 
 public class Configure {
     protected String nonce;
@@ -59,7 +66,7 @@ public class Configure {
     public static String CONFIG_DOT_JSON = "config.json";
 
     private static BufferedReader br;
-    private List<String> freeApipUrlList;
+    private List<FreeApi> freeApipUrlList;
 //    public static List<String> freeApipUrls;
 
     public Configure(BufferedReader br) {
@@ -70,12 +77,47 @@ public class Configure {
     public Configure() {
         initiateFreeApipServices();
     }
+
+    public static void makeWebConfig(String sid, Configure configure,Settings settings, byte[] symKey, ApiType apiType, JedisPool jedisPool,BufferedReader br) {
+        String fileName = apiType.name() + "_" + CONFIG + DOT_JSON;
+        if (!new File(fileName).exists()) {
+            if(askIfYes(br,"Creat config file for the web server?")) {
+                makeWebConfig(sid, configure, settings,symKey, apiType, jedisPool);
+                Menu.anyKeyToContinue(br);
+            }
+        }
+    }
+    public static void makeWebConfig(String sid, Configure configure,Settings settings, byte[] symKey, ApiType apiType, JedisPool jedisPool) {
+        String fileName = apiType.name()+"_"+CONFIG+DOT_JSON;
+
+        WebServerConfig webServerConfig = new WebServerConfig();
+        webServerConfig.setSid(sid);
+        String confDir = getConfDir();
+        webServerConfig.setConfigPath(Path.of(confDir,CONFIG+DOT_JSON).toString());
+        webServerConfig.setSettingPath(Path.of(confDir,addSidBriefToName(sid,SETTINGS+DOT_JSON)).toString());
+        webServerConfig.setDataPath(Settings.getLocalDataDir(sid));
+        CryptoDataByte result = new Encryptor(AlgorithmId.FC_Aes256Cbc_No1_NrC7).encryptByPassword(symKey, configure.getNonce().toCharArray());
+        if(result.getCode()!=0){
+            System.out.println("Failed to encrypt symKey for web server.");
+            return;
+        }
+        String symKeyCipher = result.toJson();
+        try(Jedis jedis = jedisPool.getResource()){
+            jedis.hset(addSidBriefToName(sid,WEB_PARAMS),SYM_KEY_CIPHER,symKeyCipher);
+            jedis.hset(addSidBriefToName(sid,WEB_PARAMS),FORBID_FREE_API, String.valueOf(settings.getForbidFreeApi()));
+        }
+        JsonTools.writeObjectToJsonFile(webServerConfig,fileName,false);
+
+        System.out.println("Copy the file of '"+fileName+"' to the bin directory of Tomcat.");
+    }
+
     public void initiateFreeApipServices(){
         if(freeApipUrlList==null){
             freeApipUrlList = new ArrayList<>();
-            freeApipUrlList.add("https://cid.cash/APIP");
-            freeApipUrlList.add("https://help.cash/APIP");
-            freeApipUrlList.add("https://apip.cash/APIP");
+            FreeApi freeApiHelp = new FreeApi("https://help.cash/APIP",true);
+            FreeApi freeApiApip = new FreeApi("https://apip.cash/APIP",true);
+            freeApipUrlList.add(freeApiHelp);
+            freeApipUrlList.add(freeApiApip);
         }
     }
 
@@ -106,124 +148,40 @@ public class Configure {
         if(fidCipherMap.get(fid)!=null){
             if(!Inputer.askIfYes(br,fid +" exists. Replace it?"))return fid;
         }
-        while(true){
-            if(fid==null)System.out.println("Add new user...");
-            else System.out.println("Add "+fid+" to users...");
-            byte[] priKeyBytes;
-            if(askIfYes(br,"Add a watch FID without private Key?")) {
-                if(fid==null)
-                    fid = fch.Inputer.inputGoodFid(br, "Input the FID for watching");
-                fidCipherMap.put(fid,"");
-            }else {
-                while(true) {
-                    priKeyBytes = inputPriKey(br);
-                    String newFid = KeyTools.priKeyToFid(priKeyBytes);
-                    if(fid==null) {
-                            fid = newFid;
-                            break;
-                    }
-                    if (newFid.equals(fid)) break;
-                    System.out.println("The cipher is of "+newFid+" instead of "+fid+". \nTry again.");
+
+        if(fid==null)System.out.println("Add new user...");
+        else System.out.println("Add "+fid+" to users...");
+        byte[] priKeyBytes;
+        if(askIfYes(br,"Add a watch FID without private Key?")) {
+            if(fid==null)
+                fid = fch.Inputer.inputGoodFid(br, "Input the FID for watching");
+            fidCipherMap.put(fid,"");
+        }else {
+            while(true) {
+                priKeyBytes = inputPriKey(br);
+                String newFid = KeyTools.priKeyToFid(priKeyBytes);
+                if(fid==null) {
+                        fid = newFid;
+                        break;
                 }
-                String cipher = makePriKeyCipher(priKeyBytes, symKey);
-                fidCipherMap.put(fid, cipher);
+                if (newFid.equals(fid)) break;
+                System.out.println("The cipher is of "+newFid+" instead of "+fid+". \nTry again.");
             }
-            if(!askIfYes(br,"Add more?"))
-                return fid;
+            String cipher = makePriKeyCipher(priKeyBytes, symKey);
+            fidCipherMap.put(fid, cipher);
         }
+        return fid;
     }
 
-//    public Service initiateServerByApip(byte[] symKey, ApiType typeOfMyService){
-//        System.out.println("Initiating config...");
-//        if(apiProviderMap==null)apiProviderMap = new HashMap<>();
-//        if(apiAccountMap == null)apiAccountMap = new HashMap<>();
-//
-//        if(apipAccountId ==null) {
-//            apipAccount = checkAPI(apipAccountId, ApiType.APIP,symKey);
-//            apipAccountId = apipAccount.getId();
-//        }else {
-//            apipAccount = getApiAccountMap().get(apipAccountId);
-//            apipAccount.connectApi(getApiProviderMap().get(apipAccount.getSid()),symKey);
-//        }
-//
-//        initApipClient = (ApipClient) apipAccount.getClient();
-//
-//        Service service = chooseOwnerService(symKey,typeOfMyService,initApipClient );
-//        saveConfig();
-//        System.out.println("Config initiated.");
-//        return service;
-//    }
-
-//    @Nullable
-//    private ApiAccount checkApiClient(byte[] symKey, String apiAccountId, ApiType type) {
-//        ApiAccount apiAccount;
-//        ApipClient apiClient = null;
-//        if(apiAccountId !=null){
-//            apiAccount = apiAccountMap.get(apiAccountId);
-//            if(!Inputer.askIfYes(br,"Current FID is:\n\t"+apiAccount.getUserId()+"\nChange to another one?")) {
-//                System.out.println("Connect with "+apiAccount.getUserId()+"...");
-//                apiAccount.connectApip(apiProviderMap.get(apiAccount.getSid()), symKey, br);
-//            }else {
-//                System.out.println("Connect by other ID...");
-//                List<String> accountUserIdUrlList = new ArrayList<>();
-//                Map<String,String> map = new HashMap<>();
-//                for(String id:apiAccountMap.keySet()){
-//                    apiAccount = apiAccountMap.get(id);
-//                    ApiProvider apiProvider = apiProviderMap.get(apiAccount.getSid());
-//                    if(type.equals(apiProvider.getType())) {
-//                        String tempId = apiAccount.getUserId() + "@" + apiAccount.getApiUrl();
-//                        accountUserIdUrlList.add(tempId);
-//                        map.put(tempId, apiAccount.getId());
-//                    }
-//                }
-//
-//                if(!map.isEmpty()) {
-//                    String choice = (String) Inputer.chooseOne(accountUserIdUrlList.toArray(), "Choose your account", br);
-//                    if(choice!=null) {
-//                        apiAccountId = map.get(choice);
-//                        apiAccount=apiAccountMap.get(apiAccountId);
-//                        apiAccount.connectApip(apiProviderMap.get(apiAccount.getSid()), symKey, br);
-//                    }
-//                }
-//
-//                if(!Inputer.askIfYes(br,"Current FID "+apiAccount.getUserId()+". Change to another?")){
-//                    apiClient = apiAccount.connectApip(apiProviderMap.get(apiAccount.getSid()), symKey, br);
-//                }else {
-//                    apiAccount = chooseApi(symKey, type);
-//                }
-//            }
-//        }else{
-//            ApiProvider apiProvider = chooseApiProvider(apiProviderMap,type);
-//            if(apiProvider==null)apiProvider = addApiProvider(type);
-//            if(apiProvider==null) return null;
-//            apiAccount = chooseApiProvidersAccount(apiProvider,symKey);
-//            if(apiAccount.getClient()==null)apiAccount.connectApi(apiProvider, symKey, br, initApipClient);
-//        }
-//        if(apiAccount!=null && apiClient!=null)
-//            apiAccount.setClient(apiClient);
-//        return apiAccount;
-//    }
-
-//    public Service getMyService(byte[] symKey, ApiType type){
-//        if(owner==null)
-//            owner = inputOwner();
-//        System.out.println();
-//        System.out.println("The owner: "+owner);
-//        System.out.println();
-//        Service service = chooseOwnerService(symKey,type, apipClient);
-//
-//        saveConfig();
-//        System.out.println("Config initiated.");
-//        return service;
-//    }
-//    private Service chooseOwnerService(byte[] symKey) {
-//        return chooseOwnerService(symKey,null, apipClient);
-//    }
     private Service chooseOwnerService(String owner,byte[] symKey, ApiType apiType, ApipClient apipClient) {
         return chooseOwnerService(owner,symKey,apiType,null, apipClient);
     }
 
-    public List<Service> getServiceListByOwnerFromEs(String owner, ElasticsearchClient esClient) {
+    private Service chooseOwnerService(String owner,byte[] symKey, ApiType apiType, ElasticsearchClient esClient) {
+        return chooseOwnerService(owner,symKey,apiType,esClient,null);
+    }
+
+    public List<Service> getServiceListByOwnerAndTypeFromEs(String owner, @Nullable ApiType type, ElasticsearchClient esClient) {
         List<Service> serviceList;
 
         SearchRequest.Builder sb = new SearchRequest.Builder();
@@ -232,6 +190,7 @@ public class Configure {
         BoolQuery.Builder bb = QueryBuilders.bool();
         bb.must(b->b.term(t->t.field(OWNER).value(owner)));
         bb.must(m->m.term(t1->t1.field(ACTIVE).value(true)));
+        if(type!=null)bb.must(m2->m2.match(m3->m3.field(TYPES).query(type.name())));
         BoolQuery boolQuery = bb.build();
         sb.query(q->q.bool(boolQuery));
         sb.size(EsTools.READ_MAX);
@@ -251,33 +210,15 @@ public class Configure {
     @Nullable
     public Service chooseOwnerService(String owner,byte[] symKey, ApiType type, ElasticsearchClient esClient, ApipClient apipClient) {
         List<Service> serviceList;
-        if(myServiceIdMap.isEmpty()){
-            if(esClient==null)
-                serviceList = apipClient.getServiceListByOwner(owner);
-            else serviceList = getServiceListByOwnerFromEs(owner,esClient);
-        }else {
-            String[] ids = myServiceIdMap.keySet().toArray(new String[0]);
-            if(esClient==null) {
-                Map<String, Service> serviceMap = apipClient.serviceMapByIds(ids);
-                serviceList = new ArrayList<>(serviceMap.values());
-            } else {
-                try {
-                    EsTools.MgetResult<Service> result = EsTools.getMultiByIdList(esClient, IndicesNames.SERVICE, Arrays.asList(ids), Service.class);//getServiceListByOwnerFromEs(owner,esClient);
-                    serviceList = result.getResultList();
-                } catch (Exception e) {
-                    System.out.println("Getting service from ES wrong.");
-                    return null;
-                }
-            }
-        }
+
+        if(esClient==null)
+            serviceList = apipClient.getServiceListByOwnerAndType(owner,type);
+        else serviceList = getServiceListByOwnerAndTypeFromEs(owner,type,esClient);
 
         if(serviceList.isEmpty()){
             System.out.println("No any service on chain of the owner.");
             return null;
         }
-
-        if(type!=null)
-            filterServiceByType(type, serviceList);
 
         Service service;
         if(symKey!=null)service = selectService(serviceList, symKey, apiAccountMap.get(apipAccountId));
@@ -382,7 +323,7 @@ public class Configure {
         return apiAccount;
     }
     public ApiAccount addApiAccount(@NotNull ApiProvider apiProvider, byte[] symKey, ApipClient initApipClient) {
-        System.out.println("Add API account for provider "+ apiProvider.getSid()+"...");
+        System.out.println("Add API account for provider "+ apiProvider.getId()+"...");
         if(apiAccountMap==null)apiAccountMap = new HashMap<>();
         ApiAccount apiAccount;
         while(true) {
@@ -391,7 +332,7 @@ public class Configure {
 //            if(initApipClient !=null)apiAccount.setApipClient(initApipClient);
             if (apiAccountMap.get(apiAccount.getId()) != null) {
                 ApiAccount apiAccount1 = apiAccountMap.get(apiAccount.getId());
-                if (!Inputer.askIfYes(br, "There has an account for user " + apiAccount1.getUserName() + " on SID " + apiAccount1.getSid() + ".\n Cover it?")) {
+                if (!Inputer.askIfYes(br, "There has an account for user " + apiAccount1.getUserName() + " on SID " + apiAccount1.getProviderId() + ".\n Cover it?")) {
                     System.out.println("Add again.");
                     continue;
                 }
@@ -404,7 +345,7 @@ public class Configure {
                     continue;
                 }
             }catch (Exception e){
-                System.out.println("Can't connect the API provider of "+apiProvider.getSid());
+                System.out.println("Can't connect the API provider of "+apiProvider.getId());
                 if(Inputer.askIfYes(br,"Do you want to revise the API provider?")){
                     apiProvider.updateAll(br);
                     saveConfig();
@@ -425,7 +366,7 @@ public class Configure {
         List<List<Object>> valueListList = new ArrayList<>();
         for (ApiProvider apiProvider : apiProviderMap.values()) {
             List<Object> valueList = new ArrayList<>();
-            valueList.add(apiProvider.getSid());
+            valueList.add(apiProvider.getId());
             valueList.add(apiProvider.getType());
             valueList.add(apiProvider.getApiUrl());
             valueList.add(Arrays.toString(apiProvider.getTicks()));
@@ -445,7 +386,7 @@ public class Configure {
             valueList.add(apiAccount.getUserName());
             valueList.add(apiAccount.getUserId());
             valueList.add(apiAccount.getApiUrl());
-            valueList.add(apiAccount.getSid());
+            valueList.add(apiAccount.getProviderId());
             valueListList.add(valueList);
         }
         Shower.showDataTable("API accounts", fields, widths, valueListList);
@@ -476,50 +417,13 @@ public class Configure {
     }
 
     public void saveConfig() {
-        saveConfigToFile();
+//        String confDir = Configure.getConfDir();
+//        File file = new File(confDir, Configure.CONFIG_DOT_JSON);
+//        if(!file.exists()) {
+//            FileTools.createFileWithDirectories(confDir+ Configure.CONFIG_DOT_JSON);
+//        }
         javaTools.JsonTools.writeObjectToJsonFile(this, Configure.getConfDir()+ Configure.CONFIG_DOT_JSON,false);
     }
-
-    public void saveConfigToFile() {
-        String confDir = Configure.getConfDir();
-        File file = new File(confDir, Configure.CONFIG_DOT_JSON);
-        if(!file.exists()) {
-            FileTools.createFileWithDirectories(confDir+ Configure.CONFIG_DOT_JSON);
-        }
-    }
-
-//    public void saveConfigToJedis(JedisPool jedisPool) {
-//        if(jedisPool !=null)try(Jedis jedis = jedisPool.getResource()){
-//            String configStr = JsonTools.getNiceString(this);
-//            String key = owner.substring(30,34)+CONFIG;
-//            jedis.set(key, configStr);
-//        }
-//    }
-//
-//
-//    public String getRedisAccountId() {
-//        return redisAccountId;
-//    }
-//
-//    public void setRedisAccountId(String memDatabaseSid) {
-//        this.redisAccountId = memDatabaseSid;
-//    }
-//
-//    public String getEsAccountId() {
-//        return esAccountId;
-//    }
-//
-//    public void setEsAccountId(String mainDatabaseSid) {
-//        this.esAccountId = mainDatabaseSid;
-//    }
-//
-//    public String getApipAccountId() {
-//        return apipAccountId;
-//    }
-//
-//    public void setApipAccountId(String apipAccountId) {
-//        this.apipAccountId = apipAccountId;
-//    }
 
 
     public List<String> getOwnerList() {
@@ -570,7 +474,7 @@ public class Configure {
                 saveConfig();
             }else return null;
         }
-        System.out.println("Add API provider "+apiProvider.getSid()+" is added.");
+        System.out.println("Add API provider "+apiProvider.getId()+" is added.");
         return apiAccountId;
     }
 
@@ -578,8 +482,8 @@ public class Configure {
         ApiProvider apiProvider = new ApiProvider();
         apiProvider.makeApiProvider(br,apiType,apipClient);
         if(apiProviderMap==null)apiProviderMap= new HashMap<>();
-        apiProviderMap.put(apiProvider.getSid(),apiProvider);
-        System.out.println(apiProvider.getSid()+" on "+apiProvider.getApiUrl() + " added.");
+        apiProviderMap.put(apiProvider.getId(),apiProvider);
+        System.out.println(apiProvider.getId()+" on "+apiProvider.getApiUrl() + " added.");
         saveConfig();
         return apiProvider;
     }
@@ -591,7 +495,7 @@ public class Configure {
         if(apiProvider==null)apiAccount = chooseApiAccount(symKey,initApipClient);
         else apiAccount = chooseApiProvidersAccount(apiProvider, symKey,initApipClient);
         if(apiAccount!=null) {
-            System.out.println("Update API account: "+apiAccount.getSid()+"...");
+            System.out.println("Update API account: "+apiAccount.getProviderId()+"...");
             apiAccount.updateAll(symKey, apiProvider,br);
             getApiAccountMap().put(apiAccount.getId(), apiAccount);
             saveConfig();
@@ -604,9 +508,9 @@ public class Configure {
         ApiProvider apiProvider = chooseApiProviderOrAdd(apiProviderMap, apipClient);
         if(apiProvider!=null) {
             apiProvider.updateAll(br);
-            getApiProviderMap().put(apiProvider.getSid(), apiProvider);
+            getApiProviderMap().put(apiProvider.getId(), apiProvider);
             saveConfig();
-            System.out.println("Api provider "+apiProvider.getSid()+" is updated.");
+            System.out.println("Api provider "+apiProvider.getId()+" is updated.");
         }
     }
 
@@ -615,17 +519,17 @@ public class Configure {
         ApiProvider apiProvider = chooseApiProvider(apiProviderMap);
         if(apiProvider==null) return;
         for(ApiAccount apiAccount: getApiAccountMap().values()){
-            if(apiAccount.getSid().equals(apiProvider.getSid())){
-                if(Inputer.askIfYes(br,"There is the API account "+apiAccount.getId()+" of "+apiProvider.getSid()+". \nDelete it?")){
+            if(apiAccount.getProviderId().equals(apiProvider.getId())){
+                if(Inputer.askIfYes(br,"There is the API account "+apiAccount.getId()+" of "+apiProvider.getId()+". \nDelete it?")){
                     getApiAccountMap().remove(apiAccount.getId());
                     System.out.println("Api account "+apiAccount.getId()+" is deleted.");
                     saveConfig();
                 }
             }
         }
-        if(Inputer.askIfYes(br,"Delete API provider "+apiProvider.getSid()+"?")){
-            getApiProviderMap().remove(apiProvider.getSid());
-            System.out.println("Api provider " + apiProvider.getSid() + " is deleted.");
+        if(Inputer.askIfYes(br,"Delete API provider "+apiProvider.getId()+"?")){
+            getApiProviderMap().remove(apiProvider.getId());
+            System.out.println("Api provider " + apiProvider.getId() + " is deleted.");
             saveConfig();
         }
     }
@@ -719,7 +623,7 @@ public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMa
             apiAccount = addApiAccount(apiProvider, symKey, initApipClient);
         } else {
             for (ApiAccount apiAccount1 : getApiAccountMap().values()) {
-                if (apiAccount1.getSid().equals(apiProvider.getSid()))
+                if (apiAccount1.getProviderId().equals(apiProvider.getId()))
                     hitApiAccountMap.put(apiAccount1.getId(), apiAccount1);
             }
             if (hitApiAccountMap.size() == 0) {
@@ -748,7 +652,7 @@ public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMa
                 System.out.println("No " + apiType + " service set yet. Add it.");
                 try{
                     apiAccount = setApiService(symKey,apiType, apipClient);
-                }catch (Exception ignore){
+                }catch (Exception e){
                     return null;//apiAccount = setApiService(symKey,apipClient);
                 }
             }
@@ -757,7 +661,7 @@ public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMa
                 continue;
             }
             if (apiAccount.getClient() == null) {
-                Object apiClient = apiAccount.connectApi(getApiProviderMap().get(apiAccount.getSid()), symKey, br, null);
+                Object apiClient = apiAccount.connectApi(getApiProviderMap().get(apiAccount.getProviderId()), symKey, br, null);
                 if (apiClient == null) {
                     System.out.println("Failed to connect " + apiAccount.getApiUrl() + ". Try again.");
                     continue;
@@ -1094,14 +998,14 @@ public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMa
     }
 
     public String chooseSid(byte[] symKey) {
-        return Inputer.chooseOne(myServiceIdMap, "Choose the SID:",br);
+        return Inputer.chooseOne(myServiceIdMap, "Choose your SID:",br);
     }
 
-    public List<String> getFreeApipUrlList() {
+    public List<FreeApi> getFreeApipUrlList() {
         return freeApipUrlList;
     }
 
-    public void setFreeApipUrlList(List<String> freeApipUrlList) {
+    public void setFreeApipUrlList(List<FreeApi> freeApipUrlList) {
         this.freeApipUrlList = freeApipUrlList;
     }
 }

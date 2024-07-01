@@ -70,7 +70,7 @@ public class ConfigBase {
                 config(br);
                 t = JsonTools.readObjectFromJsonFile(configFilePath, configFileName, tClass);
             } else {
-                System.out.println("Config json: " + JsonTools.getNiceString(t));
+                System.out.println("Config json: " + JsonTools.toNiceJson(t));
             }
         } else {
             createConfigFile(configFilePath, configFileName);
@@ -92,7 +92,7 @@ public class ConfigBase {
                 System.out.println("Can't get parameters from config file. Config again...\n");
                 t = JsonTools.readObjectFromJsonFile(configFilePath, configFileName, tClass);
             } else {
-                System.out.println("Config json: " + JsonTools.getNiceString(t));
+                System.out.println("Config json: " + JsonTools.toNiceJson(t));
             }
         } else {
             createConfigFile(configFilePath, configFileName);

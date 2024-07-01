@@ -1,0 +1,46 @@
+{
+  "rewardId": "d2777f23f21039883581cf18a697d0c8ac39a1e001dc2b96581f2a31b9f471ad",
+  "rewardT": 97399993629,
+  "state": "paid",
+  "time": 1718676285284,
+  "builderList": [
+    {
+      "fid": "FJYN3D7x4yiLF692WUAe7Vfo2nQpYDNrC7",
+      "share": 10000,
+      "amount": 97299993629
+    }
+  ],
+  "orderViaList": [],
+  "consumeViaList": [],
+  "costList": [
+    {
+      "fid": "FJYN3D7x4yiLF692WUAe7Vfo2nQpYDNrC7",
+      "fixed": 100000000,
+      "amount": 100000000
+    }
+  ],
+  "apiCost": 0
+}{
+  "rewardId": "5006974fdbc6d5da47321957fcda2b42230a5bc7833fe816f1394fab05c17978",
+  "rewardT": 9999999747,
+  "state": "paid",
+  "time": 1718677739405,
+  "bestHeight": "2295876",
+  "builderList": [
+    {
+      "fid": "FJYN3D7x4yiLF692WUAe7Vfo2nQpYDNrC7",
+      "share": 10000,
+      "amount": 9899999747
+    }
+  ],
+  "orderViaList": [],
+  "consumeViaList": [],
+  "costList": [
+    {
+      "fid": "FJYN3D7x4yiLF692WUAe7Vfo2nQpYDNrC7",
+      "fixed": 100000000,
+      "amount": 100000000
+    }
+  ],
+  "apiCost": 0
+}

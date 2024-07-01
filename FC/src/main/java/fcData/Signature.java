@@ -176,7 +176,7 @@ public class Signature {
     }
 
     public String toJsonAsyShortNice() {
-        return JsonTools.getNiceString(new ShortSign(fid, msg, sign, alg));
+        return JsonTools.toNiceJson(new ShortSign(fid, msg, sign, alg));
     }
 
     public String toJsonAsyLong() {

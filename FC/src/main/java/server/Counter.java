@@ -17,6 +17,7 @@ import clients.esClient.EsTools;
 import clients.redisClient.RedisTools;
 import config.ApiAccount;
 import constants.*;
+import nasa.NaSaRpcClient;
 import redis.clients.jedis.JedisPool;
 import server.balance.BalanceInfo;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
@@ -30,7 +31,7 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import server.order.Order;
 import server.order.OrderOpReturn;
-import server.reward.RewardReturn;
+import server.reward.RewardInfo;
 import server.reward.Rewarder;
 import server.rollback.Rollbacker;
 
@@ -60,31 +61,35 @@ public class Counter implements Runnable {
      */
     protected volatile AtomicBoolean running = new AtomicBoolean(true);
     protected static final Logger log = LoggerFactory.getLogger(Counter.class);
-    protected final ElasticsearchClient esClient; //for the data of this service
+    protected ElasticsearchClient esClient; //for the data of this service
     protected ApipClient apipClient; //for the data of the FCH and FEIP
+    protected NaSaRpcClient naSaRpcClient;//for the data of the FCH
     protected final JedisPool jedisPool; //for the running data of this service
     protected final Gson gson = new Gson();
     protected final String account;
     protected final String minPayment;
     protected final String listenPath;
-    protected final boolean fromWebhook;
+    protected boolean fromWebhook;
     protected final String sid;
-    protected final List<ApiAccount> chargedAccountList;
+    protected final List<ApiAccount> paidApiAccountList;
     protected byte[] counterPriKey;
 
-    public Counter(Settings settings, Params params, List<ApiAccount> chargedAccountList, byte[] symKey) {
+
+    public Counter(Settings settings, Params params, byte[] symKey) {
         this.sid = settings.getSid();
         this.listenPath = settings.getListenPath();
-        this.fromWebhook = settings.isFromWebhook();
-
+        if(settings.getFromWebhook()!=null)
+            this.fromWebhook = settings.getFromWebhook();
         this.account= params.getAccount();
         this.minPayment  = params.getMinPayment();
 
-        this.esClient = (ElasticsearchClient) settings.getEsAccount().getClient();
+        if(settings.getEsAccount()!=null)this.esClient = (ElasticsearchClient) settings.getEsAccount().getClient();
+        if(settings.getNasaAccount()!=null)
+            this.naSaRpcClient = (NaSaRpcClient) settings.getNasaAccount().getClient();
         if(settings.getApipAccount()!=null)
             this.apipClient =(ApipClient)settings.getApipAccount().getClient();
         this.jedisPool = (JedisPool) settings.getRedisAccount().getClient();
-        this.chargedAccountList = chargedAccountList;
+        this.paidApiAccountList = settings.getPaidAccountList();
         CryptoDataByte result = new Decryptor().decryptJsonBySymKey(settings.getMainFidPriKeyCipher(), symKey);
         if(result.getCode()!=0)log.error("Failed to decrypt the priKey of the counter.");
         else this.counterPriKey=result.getData();
@@ -93,12 +98,12 @@ public class Counter implements Runnable {
     public static boolean checkUserBalance(String sid, JedisPool jedisPool, ElasticsearchClient esClient, BufferedReader br) {
         try(Jedis jedis = jedisPool.getResource()) {
             Map<String, String> balanceMap = jedis.hgetAll(addSidBriefToName(sid, Strings.BALANCE));
-            if(balanceMap==null){
+            if(balanceMap==null||balanceMap.isEmpty()){
                 String fileName = Settings.getLocalDataDir(sid)+BALANCE;
                 File file = new File(fileName + 0 + DOT_JSON);
                 if(!file.exists()||file.length()==0){
                     while(true) {
-                        if (Inputer.askIfYes(br, "No balance in redis and files. Import from file? y/n")) {
+                        if (Inputer.askIfYes(br, "No balance in redis and files. Import from file?")) {
                             String importFileName = Inputer.inputString(br, "Input the path and file name");
                             File file1 = new File(importFileName);
                             if(!file1.exists()){
@@ -107,8 +112,8 @@ public class Counter implements Runnable {
                             }
                             BalanceInfo.recoverUserBalanceFromFile(file1.getPath(), jedisPool);
                             return true;
-                        }else if(Inputer.askIfYes(br, "Import from ES? y/n")) {
-                            BalanceInfo.recoverUserBalanceFromEs(esClient, jedisPool);
+                        }else if(Inputer.askIfYes(br, "Import from ES?")) {
+                            BalanceInfo.recoverUserBalanceFromEs(sid,esClient, jedisPool);
                             return true;
                         }else return false;
                     }
@@ -149,9 +154,7 @@ public class Counter implements Runnable {
         System.out.println("The counter is running...");
         int countBackUpBalance = 0;
         int countReward = 0;
-        Rewarder rewarder;
-
-        rewarder = new Rewarder(sid,account,this.apipClient,this.esClient,this.jedisPool);
+        Rewarder rewarder = new Rewarder(sid,account,this.apipClient,this.esClient,this.naSaRpcClient,this.jedisPool);
         checkIfNewStart();
 
         while (running.get()) {
@@ -166,15 +169,10 @@ public class Counter implements Runnable {
             }
 
             if (countReward == RewardInterval) {
-                try {
-                    RewardReturn result = rewarder.doReward(account,chargedAccountList,counterPriKey);
-                    if (result.getCode() != 0) {
-                        log.debug(result.getClass() + ": [" + result.getCode() + "] " + result.getMsg());
-                    }
-                } catch (Exception e) {
-                    log.error("Do reward wrong.", e);
-                }
-                countReward = 0;
+                RewardInfo rewardInfo= rewarder.doReward(paidApiAccountList,counterPriKey);
+                if(rewardInfo!=null) log.info("Reward is done: " +
+                        "\n\tTotal amount: " + ParseTools.satoshiToCoin(rewardInfo.getRewardT()) +
+                        "\n\tBestHeight:" + rewardInfo.getBestHeight());
             }
 
             try {
@@ -493,7 +491,7 @@ protected void waitNewOrder() {
 
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.addNewQuery().addNewRange().addNewFields(BIRTH_HEIGHT).addGt(String.valueOf(lastHeight));
-        fcdsl.addNewSort(BIRTH_HEIGHT,DESC).appendSort(FieldNames.CASH_ID,ASC);
+        fcdsl.addSort(BIRTH_HEIGHT,DESC).addSort(FieldNames.CASH_ID,ASC);
         fcdsl.addNewFilter().addNewTerms().addNewFields(OWNER).addNewValues(account);
         fcdsl.setSize(String.valueOf(3000));
         apipClient.cashSearch(fcdsl);
@@ -599,5 +597,8 @@ protected void waitNewOrder() {
         return fromWebhook;
     }
 
+    public List<ApiAccount> getPaidApiAccountList() {
+        return paidApiAccountList;
+    }
 }
 

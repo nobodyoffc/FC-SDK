@@ -1,15 +1,12 @@
 package fch;
 
-import clients.apipClient.ApipClientTask;
+import clients.apipClient.ApipClient;
 import config.ApiAccount;
 import fch.fchData.SendTo;
+import javaTools.http.AuthType;
+import javaTools.http.HttpRequestMethod;
 import nasa.data.TxInput;
 import nasa.data.TxOutput;
-import clients.apipClient.DataGetter;
-import clients.apipClient.BlockchainAPIs;
-import clients.apipClient.WalletAPIs;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import constants.Constants;
 import crypto.KeyTools;
 import javaTools.Hex;
@@ -30,7 +27,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Type;
 import java.util.*;
 
 
@@ -84,16 +80,17 @@ public class TxTest {
         System.out.println("Multisig address:" + mFid);
         //Get multisig address information
         String urlHead = Constants.UrlHead_CID_CASH;
-        BlockchainAPIs blockchainAPIs = new BlockchainAPIs();
-        ApipClientTask apipClientData = blockchainAPIs.p2shByIdsPost(urlHead, new String[]{mFid}, null, sessionKey);
-        Object responseData = apipClientData.getResponseBody().getData();
-        Map<String, P2SH> p2SHMap = DataGetter.getP2SHMap(responseData);
 
+        ApipClient apipClient = new ApipClient();
+        apipClient.setUrlHead(urlHead);
+        apipClient.setSessionKey(sessionKey);
+
+        Map<String, P2SH> p2SHMap = apipClient.p2shByIds(HttpRequestMethod.POST,AuthType.FC_SIGN_BODY , mFid);
+        if(p2SHMap==null)return;
         P2SH p2sh = p2SHMap.get(mFid);
         JsonTools.gsonPrint(p2sh);
 
         //Get cashes of the multisig address
-        WalletAPIs walletAPIs = new WalletAPIs();
 
         List<SendTo> sendToList = new ArrayList<>();
         SendTo sendTo = new SendTo();
@@ -109,15 +106,9 @@ public class TxTest {
 
         long fee = calcSizeMultiSign(0, sendToList.size(), msg.length(), 2, 3);
 
-        ApipClientTask apipClientData1 = walletAPIs.cashValidForPayPost(urlHead, mFid, 0.1 + ((double) fee / COIN_TO_SATOSHI), null, sessionKey);
+        List<Cash> cashList = apipClient.cashValidForPay(HttpRequestMethod.POST, mFid, 0.1 + ((double) fee / COIN_TO_SATOSHI), AuthType.FC_SIGN_BODY);
 
-        if (apipClientData.checkResponse() != 0) {
-            JsonTools.gsonPrint(apipClientData1);
-            return;
-        }
-
-        responseData = apipClientData1.getResponseBody().getData();
-        List<Cash> cashList = DataGetter.getCashList(responseData);
+        if(cashList==null)return;
 
         JsonTools.gsonPrint(cashList);
 
@@ -182,7 +173,7 @@ public class TxTest {
         return sessionKey;
     }
 
-    private static void lockTimeTxTest() {
+    private static void lockTimeTxTest(ApipClient apipClient) {
         String priKey = "L2bHRej6Fxxipvb4TiR5bu1rkT3tRp8yWEsUy4R1Zb8VMm2x7sd8";
         String priKey32 = Hex.toHex(getPriKey32(priKey));
         if (priKey32 == null) return;
@@ -195,7 +186,6 @@ public class TxTest {
         byte[] sessionKey = getSessionKey(br);
         if (sessionKey == null) return;
 
-        WalletAPIs walletAPIs = new WalletAPIs();
         String urlHead = Constants.UrlHead_CID_CASH;
 
         List<SendTo> sendToList = new ArrayList<>();
@@ -208,13 +198,7 @@ public class TxTest {
 
         long fee = calcTxSize(0, sendToList.size(), msg.length());
 
-        ApipClientTask apipClientData = walletAPIs.cashValidForPayPost(urlHead, fid, 0.1 + ((double) fee / COIN_TO_SATOSHI), null, sessionKey);
-
-        Object responseData = apipClientData.getResponseBody().getData();
-        Type t = new TypeToken<ArrayList<Cash>>() {
-        }.getType();
-        Gson gson = new Gson();
-        List<Cash> cashList = new Gson().fromJson(gson.toJson(responseData), t);
+        List<Cash> cashList  = apipClient.cashValidForPay(HttpRequestMethod.POST, fid, 0.1 + ((double) fee / COIN_TO_SATOSHI), AuthType.FC_SIGN_BODY);
 
         String txSigned = createTimeLockedTransaction(cashList, priKeyBytes, sendToList, 1999900, msg);
         System.out.println(txSigned);
@@ -239,7 +223,7 @@ public class TxTest {
         verify = Wallet.schnorrMsgVerify(msg + " ", sign, fid);
         System.out.println("verify '" + msg + " " + "':" + verify);
         Signature signature = new Signature(fid, msg, sign, Constants.Schnorr_No1_NrC7);
-        System.out.println(JsonTools.getNiceString(signature));
+        System.out.println(JsonTools.toNiceJson(signature));
     }
 
     public static void schnorrTxTest() {

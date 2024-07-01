@@ -1,11 +1,22 @@
 package apip.apipData;
 
+import javaTools.StringTools;
+
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class Part {
     private String[] fields;
     private String value;
     private String isCaseInsensitive;
+
+    public static String partToUrlParam(Part part) {
+        if(part==null)return null;
+        List<String> stringList = new ArrayList<>(Arrays.asList(part.getFields()));
+        stringList.add(part.getValue());
+        return StringTools.listToString(stringList);
+    }
 
 
     public Part addNewValue(String value) {

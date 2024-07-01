@@ -40,6 +40,7 @@ public class Strings {
     public static final String LOCAL_DATA_PATH = "localDataPath";
     public static final String CONSUME_VIA = "consumeVia";
     public static final String ORDER_VIA = "orderVia";
+    public static final String UNPAID_COST = "unpaidCost";
     public static final String REWARD_PENDING_MAP = "rewardPendingMap";
     public static final String FROM_FID = "fromFid";
     public static final String PUBLIC = "public";
@@ -101,6 +102,8 @@ public class Strings {
     public static final String UNSIGNED_TX_FOR_CS = "unsignedTxForCs";
     public static final String IGNORE = "ignore";
     public static final String INIT_SYM_KEY_CIPHER = "initSymKeyCipher";
+    public static final String SYM_KEY_CIPHER = "symKeyCipher";
+    public static final String WEB_PARAMS = "webParams";
     public static final String API = "api";
     public static final String USER_ID = "userId";
     public static final String CHECK = "check";

@@ -8,10 +8,10 @@ public enum AlgorithmId {
     ECC256k1_AES256CBC("ECC256k1_AES256CBC"),//The earliest one from bitcore which is the same as EccAes256BitPay@No1_NrC7.
     BitPay_EccAes256_No1_NrC7("BitPay-EccAes256@No1_NrC7"),
     EccAes256K1P7_No1_NrC7("EccAes256K1P7@No1_NrC7"),
-    FC_EccK1AesCbc256_No1_NrC7("FC-EccK1AesCbc256K1@No1_NrC7"),
+    FC_EccK1AesCbc256_No1_NrC7("EccK1AesCbc256@No1_NrC7"),
     BTC_EcdsaSignMsg_No1_NrC7("BTC-EcdsaSignMsg@No1_NrC7"),
-    FC_SchnorrSignTx_No1_NrC7("FC-SchnorrSignTx@No1_NrC7"),
-    FC_Aes256Cbc_No1_NrC7("Aes256Cbc@No1_NrC7");
+    FC_SchnorrSignTx_No1_NrC7("SchnorrSignTx@No1_NrC7"),
+    FC_Aes256Cbc_No1_NrC7("AesCbc256@No1_NrC7");
 
 //    private final String name;
 

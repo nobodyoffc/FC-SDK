@@ -100,23 +100,23 @@ public class MempoolScanner implements Runnable {
     }
 
     private void addTxToRedis(Tx tx,Jedis jedis) {
-        jedis.hset("tx",tx.getTxId(), JsonTools.getNiceString(tx));
+        jedis.hset("tx",tx.getTxId(), JsonTools.toNiceJson(tx));
     }
 
     private void addSpendCashesToRedis(List<Cash> inList, Jedis jedis) {
         for(Cash cash:inList){
             if(jedis.hget("spendCashes",cash.getCashId())==null) {
-                jedis.hset("spendCashes", cash.getCashId(), JsonTools.getNiceString(cash));
+                jedis.hset("spendCashes", cash.getCashId(), JsonTools.toNiceJson(cash));
             }
             else{
-                log.debug("Double spend : "+ JsonTools.getNiceString(cash));
+                log.debug("Double spend : "+ JsonTools.toNiceJson(cash));
             }
         }
     }
 
     private void addNewCashesToRedis(List<Cash> outList, Jedis jedis) {
         for(Cash cash:outList){
-            jedis.hset("newCashes",cash.getCashId(), JsonTools.getNiceString(cash));
+            jedis.hset("newCashes",cash.getCashId(), JsonTools.toNiceJson(cash));
         }
     }
 
@@ -181,9 +181,9 @@ public class MempoolScanner implements Runnable {
 
             jedis.hset(fid, spendValueKey, String.valueOf(spendValue));
             jedis.hset(fid, spendCountKey, String.valueOf(spendCount));
-            jedis.hset(fid,spendCashesKey, JsonTools.getNiceString(newSpendCashes));
+            jedis.hset(fid,spendCashesKey, JsonTools.toNiceJson(newSpendCashes));
             jedis.hset(fid, netKey, String.valueOf(net));
-            jedis.hset(fid, txValueMapKey, JsonTools.getNiceString(txValueMap));
+            jedis.hset(fid, txValueMapKey, JsonTools.toNiceJson(txValueMap));
         }
 
         for (Cash cash : outList) {
@@ -228,9 +228,9 @@ public class MempoolScanner implements Runnable {
 
             jedis.hset(fid, incomeValueKey, String.valueOf(incomeValue));
             jedis.hset(fid, incomeCountKey, String.valueOf(incomeCount));
-            jedis.hset(fid,newCashesKey, JsonTools.getNiceString(newIncomeCashes));
+            jedis.hset(fid,newCashesKey, JsonTools.toNiceJson(newIncomeCashes));
             jedis.hset(fid, netKey, String.valueOf(net));
-            jedis.hset(fid, txValueMapKey, JsonTools.getNiceString(txValueMap));
+            jedis.hset(fid, txValueMapKey, JsonTools.toNiceJson(txValueMap));
         }
 
     }

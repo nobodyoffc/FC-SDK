@@ -64,9 +64,8 @@ public class ApiUrl{
         if(!urlPath.endsWith("/"))urlPath = urlPath+"/";
         return urlPath;
     }
-    public ApiUrl(String urlHead, String type,String sn, String ver, String api, @Nullable Map<String,String>paramMap, @Nullable Boolean isSignUrl, @Nullable String via) {
+    public ApiUrl(String urlHead, String sn, String ver, String api, @Nullable Map<String,String>paramMap, @Nullable Boolean isSignUrl, @Nullable String via) {
         this.urlHead = formatUrlPath(urlHead);
-        this.type = type;
         this.sn = sn;
         this.ver = ver;
         this.api = api;
@@ -76,11 +75,28 @@ public class ApiUrl{
     }
 
     public static String makeUrl(String urlHead, String type,String sn, String ver, String apiName, Map<String,String> paramMap){
-        String urlTailPath =makeUrlTailPath(type,sn,ver);
+        String urlTailPath =makeUrlTailPath(sn,ver);
         return makeUrl(urlHead,urlTailPath,apiName,paramMap);
     }
 
-    public static String makeUrlTailPath(String type,String sn, String ver){
+    public static String makeUrlTailPath(String sn, String ver){
+
+        StringBuilder stringBuilder = new StringBuilder();
+        if(sn!=null){
+            stringBuilder.append(sn);
+            stringBuilder.append("/");
+        }
+        if(ver!=null){
+            stringBuilder.append(ver);
+            stringBuilder.append("/");
+        }
+        String urlTailPath=stringBuilder.toString();
+        if("".equals(urlTailPath))urlTailPath=null;
+
+        return urlTailPath;
+    }
+
+    public static String makeUrlTailPathV1(String type,String sn, String ver){
 
         StringBuilder stringBuilder = new StringBuilder();
         if(type!=null){
@@ -249,10 +265,10 @@ public class ApiUrl{
 
     public void makeUrlTailPath(){
         StringBuilder stringBuilder = new StringBuilder();
-        if(type!=null){
-            stringBuilder.append(type);
-            stringBuilder.append("/");
-        }
+//        if(type!=null){
+//            stringBuilder.append(type);
+//            stringBuilder.append("/");
+//        }
         if(sn!=null){
             stringBuilder.append(sn);
             stringBuilder.append("/");

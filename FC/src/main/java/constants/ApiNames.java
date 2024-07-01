@@ -1,9 +1,41 @@
 package constants;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class ApiNames {
-    public static final String SN_0 = "0";
+    public static final String Version1 ="v1";
+    public static final String Version2 ="v2";
+    public static final String ApipApiType ="APIP";
+    public static final String DiskApiType ="DISK";
+    public static final String SN_0 = "sn0";
+    public static final String SN_1 = "sn1";
+    public static final String SN_2 = "sn2";
+    public static final String SN_3 = "sn3";
+    public static final String SN_4 = "sn4";
+    public static final String SN_5 = "sn5";
+    public static final String SN_6 = "sn6";
+    public static final String SN_7 = "sn7";
+    public static final String SN_8 = "sn8";
+    public static final String SN_9 = "sn9";
+    public static final String SN_10 = "sn10";
+
+    public static final String SN_11 = "sn11";
+    public static final String SN_12 = "sn12";
+    public static final String SN_13 = "sn13";
+    public static final String SN_14 = "sn14";
+    public static final String SN_15 = "sn15";
+    public static final String SN_16 = "sn16";
+    public static final String SN_17 = "sn17";
+    public static final String SN_18 = "sn18";
+    public static final String SN_19 = "sn19";
+    public static final String SN_20 = "sn20";
+    public static final String SN_21 = "sn21";
+
+    public static String makeUrlTailPath(String sn,String ver){
+        return "/"+sn+"/"+ver+"/";
+    }
+
     public static String[] OpenAPIs;
     public static String[] FreeGetAPIs;
     public static String[] SwapHallAPIs;
@@ -16,6 +48,7 @@ public class ApiNames {
     public static String[] WalletAPIs;
     public static String[] CryptoToolsAPIs;
     public static String[] DiskAPIs;
+    public static String[] ApipAPIs;
     //APIP path
     public static final String APIP0V1Path = "/apip0/v1/";
     public static final String APIP1V1Path = "/apip1/v1/";
@@ -42,10 +75,8 @@ public class ApiNames {
     public static final String FreeGetPath = "/freeGet/v1/";
     public static final String SwapHallPath = "/swapHall/v1/";
     public static final String ToolsPath = "/tools/";
-    public static final String VersionV1 ="v1";
-    public static final String DiskApiType ="disk";
     public static final String SignInAPI = "signIn";
-    public static final String PingAPI = "ping";
+    public static final String PingApi = "ping";
     public static final String SignInEccAPI = "signInEcc";
     public static final String GeneralAPI = "general";
     public static final String TotalsAPI = "totals";
@@ -137,6 +168,7 @@ public class ApiNames {
     public static final String GetAvatarAPI = "getAvatar";
     public static final String DecodeRawTxAPI = "decodeRawTx";
     public static final String BroadcastTxAPI = "broadcastTx";
+    public static final String FeeRateAPI = "feeRate";
     public static final String BroadcastAPI = "broadcast";
     public static final String CashValidLiveAPI = "cashValidLive";
     public static final String CashValidForCdAPI = "cashValidForCd";
@@ -194,7 +226,7 @@ public class ApiNames {
     static {
 
         OpenAPIs = new String[]{
-                PingAPI,GetServiceAPI,SignInAPI,SignInEccAPI,TotalsAPI,GeneralAPI
+                PingApi,GetServiceAPI,SignInAPI,SignInEccAPI,TotalsAPI,GeneralAPI
         };
 
         BlockchainAPIs = new String[]{
@@ -245,7 +277,7 @@ public class ApiNames {
         WalletAPIs = new String[]{
                 BroadcastTxAPI,DecodeRawTxAPI,
                 CashValidForPayAPI,CashValidForCdAPI,
-                UnconfirmedAPI
+                UnconfirmedAPI,FeeRateAPI
         };
 
         CryptoToolsAPIs = new String[]{
@@ -255,8 +287,21 @@ public class ApiNames {
                 OffLineTxAPI,OffLineTxByCdAPI
         };
 
+        List<String> apipApiList = new ArrayList<>();
+
+        apipApiList.addAll(List.of(OpenAPIs));
+        apipApiList.addAll(List.of(BlockchainAPIs));
+        apipApiList.addAll(List.of(IdentityAPIs));
+        apipApiList.addAll(List.of(OrganizeAPIs));
+        apipApiList.addAll(List.of(ConstructAPIs));
+        apipApiList.addAll(List.of(PersonalAPIs));
+        apipApiList.addAll(List.of(PublishAPIs));
+        apipApiList.addAll(List.of(WalletAPIs));
+        apipApiList.addAll(List.of(CryptoToolsAPIs));
+
+        ApipAPIs = apipApiList.toArray(new String[0]);
         DiskAPIs = new String[]{
-                PutApi, GetApi, CheckApi,ListApi,PingAPI,SignInAPI,SignInEccAPI
+        PutApi, GetApi, CheckApi,ListApi, PingApi,SignInAPI,SignInEccAPI
         };
 
         FreeGetAPIs = new String[]{
@@ -279,7 +324,7 @@ public class ApiNames {
         diskApiList.add(GetApi);
         diskApiList.add(CheckApi);
         diskApiList.add(ListApi);
-        diskApiList.add(PingAPI);
+        diskApiList.add(PingApi);
 
         SwapHallAPIs = new String[]{
                 SwapRegisterAPI,SwapUpdateAPI,SwapStateAPI,
@@ -396,6 +441,7 @@ public class ApiNames {
         ApiNames.apiList.add(ApiNames.CashValidForPayAPI);
         ApiNames.apiList.add(ApiNames.DecodeRawTxAPI);
         ApiNames.apiList.add(ApiNames.BroadcastTxAPI);
+        ApiNames.apiList.add(ApiNames.FeeRateAPI);
 
         ApiNames.apiList.add(ApiNames.OffLineTxAPI);
         ApiNames.apiList.add(ApiNames.OffLineTxByCdAPI);

@@ -1,6 +1,7 @@
 package constants;
 
 public class Constants {
+    public static final int EMPTY_BLOCK_SIZE = 283;
     public static long CDD_CHECK_HEIGHT =3000000;
     public static long CDD_REQUIRED =1;
     public static final Long COIN_TO_SATOSHI = 100000000L;

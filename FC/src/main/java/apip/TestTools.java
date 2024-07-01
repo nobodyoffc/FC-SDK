@@ -185,7 +185,7 @@ public class TestTools {
         dataRequestBody.setFcdsl(fcdsl);
 
         String[] ids = Inputer.inputStringArray(br, "Input the IDs.", 0);
-        dataRequestBody.getFcdsl().setIds(ids);
+        dataRequestBody.getFcdsl().setIds(List.of(ids));
 
         GsonBuilder gb = new GsonBuilder();
         Gson gson = gb.setPrettyPrinting().create();
@@ -344,7 +344,7 @@ public class TestTools {
             String input = Inputer.inputString(br);
             if ("y".equals(input)) {
                 String[] ids = Inputer.inputStringArray(br, "Input the IDs.", 0);
-                dataRequestBody.getFcdsl().setIds(ids);
+                dataRequestBody.getFcdsl().setIds(List.of(ids));
                 return true;
             } else if ("n".equals(input)) {
                 return false;

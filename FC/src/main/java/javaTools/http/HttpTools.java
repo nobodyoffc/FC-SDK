@@ -1,7 +1,6 @@
 package javaTools.http;
 
 import clients.ApiUrl;
-import clients.ClientTask;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.HttpHostConnectException;
@@ -21,11 +20,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-import static constants.ApiNames.apiList;
-import static constants.ApiNames.freeApiList;
-
 public class HttpTools {
+
+
     private static final Logger log = LoggerFactory.getLogger(HttpTools.class);
+    public static final String CONTENT_TYPE = "Content-Type";
+
     public static String getApiNameFromUrl(String url) {
         int lastSlashIndex = url.lastIndexOf('/');
         int firstQuestionIndex = url.indexOf('?');

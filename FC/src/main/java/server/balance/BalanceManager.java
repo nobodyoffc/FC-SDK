@@ -65,7 +65,7 @@ public class BalanceManager {
 
                 case 1 -> findUsers(br);
                 case 2 -> BalanceInfo.backupBalance(sid,esClient,jedisPool);
-                case 3 -> BalanceInfo.recoverUserBalanceFromEs(esClient,jedisPool);
+                case 3 -> BalanceInfo.recoverUserBalanceFromEs(sid, esClient,jedisPool);
                 case 4 -> BalanceInfo.recoverUserBalanceFromFile(balance0FileName,jedisPool);
                 case 5 -> recreateBalanceIndex(br, esClient,  BALANCE, balanceMappingJsonStr);
                 case 0 -> {
@@ -104,15 +104,15 @@ public class BalanceManager {
             Set<String> addrSet = jedis0Common.hkeys(sidBrief+"_"+Strings.FID_SESSION_NAME);
             for (String addr : addrSet) {
                 User user = getUser(addr, jedis0Common, jedis1Session);
-                System.out.println(JsonTools.getNiceString(user));
+                System.out.println(JsonTools.toNiceJson(user));
             }
         } else {
             if (jedis0Common.hget(sidBrief+"_"+Strings.FID_SESSION_NAME, str) != null) {
                 User user = getUser(str, jedis0Common, jedis1Session);
-                System.out.println(JsonTools.getNiceString(user));
+                System.out.println(JsonTools.toNiceJson(user));
             } else if (jedis1Session.hgetAll(str) != null) {
                 User user = getUser(jedis1Session.hget(str, "addr"), jedis0Common, jedis1Session);
-                System.out.println(JsonTools.getNiceString(user));
+                System.out.println(JsonTools.toNiceJson(user));
             }
         }
         Menu.anyKeyToContinue(br);

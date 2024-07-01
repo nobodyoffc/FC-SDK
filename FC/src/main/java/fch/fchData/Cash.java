@@ -1,5 +1,10 @@
 package fch.fchData;
 
+import java.util.List;
+
+import static constants.Constants.COINBASE;
+import static constants.Constants.OneDayInterval;
+
 public class Cash {
 
 	//calculated
@@ -49,6 +54,19 @@ public class Cash {
 		this.birthBlockId = blockId;
 		this.birthTime = birthTime;
 		this.birthHeight = birthHeight;
+	}
+
+    public static long sumCashValue(List<Cash> cashList) {
+        if(cashList==null||cashList.isEmpty())return 0;
+        long sum = 0;
+        for(Cash cash :cashList){
+            sum+=cash.getValue();
+        }
+        return sum;
+    }
+
+	public static void checkImmatureCoinbase(List<Cash> cashList, long bestHeight) {
+		cashList.removeIf(cash -> COINBASE.equals(cash.getIssuer()) && bestHeight != 0 && (bestHeight - cash.getBirthHeight()) < OneDayInterval * 10);
 	}
 
 	public String getBirthBlockId() {

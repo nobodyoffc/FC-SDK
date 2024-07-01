@@ -75,7 +75,7 @@ public class AffairMaker {
         RewardData rewardData = new RewardData();
 
         rewardData.setOp(REWARD);
-        rewardData.setRewardId(rewardInfo.getRewardId());
+        rewardData.setSid(rewardInfo.getRewardId());
         feip.setData(rewardData);
 
         msg = gson.toJson(feip);
@@ -115,7 +115,7 @@ public class AffairMaker {
         affairReward.setOp(Op.sign);
         affairReward.setData(dataSignTx);
 
-        return JsonTools.getNiceString(affairReward);
+        return JsonTools.toNiceJson(affairReward);
     }
 
     private void addQualifiedPendingToPay(HashMap<String, SendTo> sendToMap) {
@@ -137,7 +137,7 @@ public class AffairMaker {
         }
     }
 
-    private void pendingDust(HashMap<String, SendTo> sendToMap,JedisPool jedisPool) {
+    public void pendingDust(HashMap<String, SendTo> sendToMap,JedisPool jedisPool) {
         Iterator<Map.Entry<String, SendTo>> iterator = sendToMap.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, SendTo> entry = iterator.next();
@@ -185,7 +185,7 @@ public class AffairMaker {
         }
     }
 
-    private void addToPending(String fid, Long amount,JedisPool jedisPool) {
+    public  void addToPending(String fid, Long amount,JedisPool jedisPool) {
         Long pendingValue = 0L;
         try(Jedis jedis = jedisPool.getResource()) {
             pendingValue = Long.parseLong(jedis.hget(REWARD_PENDING_MAP, fid));

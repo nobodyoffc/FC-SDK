@@ -102,21 +102,28 @@ public class RedisTools {
         }
     }
 
-    public static <T> void writeToRedis(Object obj,String key, Jedis jedis, Class<T> tClass) {
+    public static <T> void writeToRedis(Object obj, String key, Jedis jedis, Class<T> tClass) {
         Map<String, String> settingMap = new HashMap<>();
-        for (Field field : tClass.getDeclaredFields()) {
-            field.setAccessible(true); // to access private fields
-            try {
-                Object value = field.get(obj);
-                if (value != null) {
-                    settingMap.put(field.getName(), String.valueOf(value));
+
+        Class<?> currentClass = tClass;
+        while (currentClass != null) {
+            for (Field field : currentClass.getDeclaredFields()) {
+                field.setAccessible(true); // to access private fields
+                try {
+                    Object value = field.get(obj);
+                    if (value != null) {
+                        settingMap.put(field.getName(), String.valueOf(value));
+                    }
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException("Failed to access field: " + field.getName(), e);
                 }
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException("Failed to access field: " + field.getName(), e);
             }
+            currentClass = currentClass.getSuperclass();
         }
+
         jedis.hmset(key, settingMap);
     }
+
 //
 //    public static <T> T readObjectFromRedisHash(Jedis jedis, String key, Class<T> clazz) {
 //        Map<String, String> properties = jedis.hgetAll(key);

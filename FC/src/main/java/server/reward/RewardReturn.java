@@ -14,17 +14,15 @@ public class RewardReturn {
         return switch (code){
             case 0 -> "Success.";
             case 1 -> "Get account failed. Check the service parameters in redis.";
-            case 2 -> "Get last order id failed.";
+            case 2 -> "Failed to get last order id.";
             case 3 -> "No income.";
-            case 4 -> "Get reward parameters failed. Check redis.";
+            case 4 -> "Failed to get reward parameters. Check redis.";
             case 5 -> "Making rewardInfo wrong.";
-            case 6 -> "The balance is less than the reward sum.";
-//            case 2 ->
-//            case 2 ->
-//            case 2 ->
-//            case 2 ->
-//            case 2 ->
-//            case 2 ->
+            case 6 -> "Failed to save affairSignTxJson to tomcat directory. Check tomcat directory.";
+            case 7 -> "BackUp payment failed. Check ES.";
+            case 8 -> "Failed to get cash list.";
+            case 9 -> "The balance is insufficient to send rewards.";
+            case 10 -> "Failed to make TX.";
 
             default -> throw new IllegalStateException("Unexpected value: " + code);
         };
@@ -44,6 +42,7 @@ public class RewardReturn {
 
     public void setCode(int code) {
         this.code = code;
+        this.msg = codeToMsg(code);
     }
 
     public String getMsg() {

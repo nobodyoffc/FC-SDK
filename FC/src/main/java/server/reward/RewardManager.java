@@ -13,6 +13,7 @@ import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import clients.esClient.EsTools;
 import javaTools.JsonTools;
+import nasa.NaSaRpcClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -35,18 +36,19 @@ public class RewardManager {
     public static final String UNSIGNED_REWARD_TX_FILE = "unsigned.txt";
     private final ElasticsearchClient esClient;
     private final ApipClient apipClient;
+    private NaSaRpcClient naSaRpcClient;//for the data of the FCH
     private final JedisPool jedisPool;
     private final BufferedReader br;
     private final String sid;
     private final String account;
     Rewarder rewarder;
 
-    public RewardManager(String sid, String account,ApipClient apipClient,ElasticsearchClient esClient,JedisPool jedisPool, BufferedReader br) {
+    public RewardManager(String sid, String account,ApipClient apipClient,ElasticsearchClient esClient,NaSaRpcClient naSaRpcClient,JedisPool jedisPool, BufferedReader br) {
         this.esClient = esClient;
         this.apipClient = apipClient;
         this.jedisPool = jedisPool;
         this.br = br;
-        this.rewarder = new Rewarder(sid,account,apipClient,esClient,jedisPool);
+        this.rewarder = new Rewarder(sid,account,apipClient,esClient,naSaRpcClient,jedisPool);
         this.sid =sid;
         this.account = account;
     }
@@ -59,7 +61,7 @@ public class RewardManager {
         menuItemList.add("Show all unpaid rewards");
         menuItemList.add("Get all unsignedTxCs for paying ");
         menuItemList.add("Delete rewards");
-        menuItemList.add("Make a fixed incomeT rewardInfo");
+//        menuItemList.add("Make a fixed incomeT rewardInfo");
         menuItemList.add("Backup reward history to file");
         menuItemList.add("Set reward parameters");
 
@@ -72,10 +74,10 @@ public class RewardManager {
                 case 2 -> showAllUnpaidRewards(esClient,br);
                 case 3 -> getAllUnsignedTxCsToPay(esClient,br);
                 case 4 -> deleteRewards(br, esClient);
-                case 5 -> makeFixedIncomeTReward(br,account);
-                case 6 -> backupRewardHistoryToFile(br,esClient);
-                case 7 -> {
-                    new Rewarder(sid,account,apipClient,esClient,jedisPool).setRewardParameters(br,consumeViaShare,orderViaShare);
+//                case 5 -> makeFixedIncomeTReward(br,account);
+                case 5 -> backupRewardHistoryToFile(br,esClient);
+                case 6 -> {
+                   Rewarder.setRewardParameters(sid,consumeViaShare,orderViaShare,jedisPool,br);
                 }
                 case 0 -> {
                     return;
@@ -266,7 +268,7 @@ public class RewardManager {
 
     private void showLastReward(ElasticsearchClient esClient, BufferedReader br) {
         RewardInfo reward = getLastRewardInfo(sid, esClient);
-        System.out.println(JsonTools.getNiceString(reward));
+        System.out.println(JsonTools.toNiceJson(reward));
         Menu.anyKeyToContinue(br);
     }
 
@@ -347,33 +349,32 @@ public class RewardManager {
             log.error("Delete reward {} wrong.",rewardId,e);
         }
     }
-
-    private void makeFixedIncomeTReward(BufferedReader br,String account) {
-        long incomeT;
-        try {
-            long balance = getFidBalance(account, esClient);
-            System.out.println("The balance of "+account+" is "+ (double)balance/FchToSatoshi);
-        }catch (Exception ignore){}
-        while (true){
-            System.out.println("Input the fixed income in FCH, 'q' to quit:");
-            try {
-                String input = br.readLine();
-                if("q".equals(input))return;
-                incomeT = (long)Double.parseDouble(input)*FchToSatoshi;
-                break;
-            }catch (Exception e){
-                System.out.println("It's not a number. Try again.");
-            }
-        }
-        rewarder.setIncomeT(incomeT);
-
-        RewardReturn result = rewarder.doReward(account);
-        if(result.getCode()>0){
-            System.out.println("Make fixed income reward failed:");
-            System.out.println(result.getMsg());
-        }
-        Menu.anyKeyToContinue(br);
-    }
+//
+//    private void makeFixedIncomeTReward(BufferedReader br,String account) {
+//        long incomeT;
+//        try {
+//            long balance = getFidBalance(account, esClient);
+//            System.out.println("The balance of "+account+" is "+ (double)balance/FchToSatoshi);
+//        }catch (Exception ignore){}
+//        while (true){
+//            System.out.println("Input the fixed income in FCH, 'q' to quit:");
+//            try {
+//                String input = br.readLine();
+//                if("q".equals(input))return;
+//                incomeT = (long)Double.parseDouble(input)*FchToSatoshi;
+//                break;
+//            }catch (Exception e){
+//                System.out.println("It's not a number. Try again.");
+//            }
+//        }
+//        rewarder.setIncomeT(incomeT);
+//        RewardReturn result = rewarder.doReward1(account);
+//        if(result.getCode()>0){
+//            System.out.println("Make fixed income reward failed:");
+//            System.out.println(result.getMsg());
+//        }
+//        Menu.anyKeyToContinue(br);
+//    }
 
     private long getFidBalance(String fid,ElasticsearchClient esClient) {
         try {

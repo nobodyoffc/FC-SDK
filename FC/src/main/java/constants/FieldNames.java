@@ -5,7 +5,7 @@ public class FieldNames {
     public static final String TYPES = "types";
     public static final String LAST_HEIGHT = "lastHeight";
     public static final String BIRTH_HEIGHT = "birthHeight";
-
+    public static final String HEIGHT = "height";
     public static final String LAST_TIME = "lastTime";
     public static final String VALUE = "value";
     public static final String SUM = "sum";

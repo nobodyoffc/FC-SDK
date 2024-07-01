@@ -3,7 +3,6 @@ package startClient;
 import appTools.Menu;
 import clients.apipClient.ApipClient;
 import config.ApiAccount;
-import config.ApiProvider;
 import config.ApiType;
 import feip.feipData.Service;
 import redis.clients.jedis.JedisPool;
@@ -33,7 +32,7 @@ public class DiskClientSettings extends Settings {
         setInitForClient(fid, config, br);
 
         mainFidPriKeyCipher = config.getFidCipherMap().get(mainFid);
-        apipAccount = checkApipAccount(apipAccountId,config,symKey,null);
+        apipAccount = checkApiAccount(apipAccountId, ApiType.APIP, config, symKey, null);
         if(apipAccount.getClient()!=null)apipAccountId=apipAccount.getId();
         else System.out.println("No APIP service.");
 

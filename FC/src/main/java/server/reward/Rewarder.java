@@ -1,92 +1,67 @@
 package server.reward;
 
-import apip.apipData.CidInfo;
-import clients.apipClient.DataGetter;
-import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
-import co.elastic.clients.elasticsearch._types.aggregations.AggregationBuilders;
-import co.elastic.clients.elasticsearch._types.aggregations.SumAggregation;
-import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
-import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
+import fcData.FcReplier;
 import fch.TxCreator;
+import fch.Wallet;
 import feip.feipData.serviceParams.Params;
 import clients.apipClient.ApipClient;
-import apip.apipData.Fcdsl;
 import apip.apipData.Sort;
-import apip.apipData.TxInfo;
 import fch.ParseTools;
 import fch.fchData.*;
 import feip.feipData.DataOnChain;
 import fch.Inputer;
 import appTools.Menu;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.FieldValue;
-import co.elastic.clients.elasticsearch._types.SortOptions;
-import co.elastic.clients.elasticsearch._types.SortOrder;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
-import co.elastic.clients.json.JsonData;
-import com.google.gson.Gson;
-import clients.esClient.EsTools;
 import config.ApiAccount;
-import constants.IndicesNames;
 import javaTools.JsonTools;
+import javaTools.NumberTools;
+import nasa.NaSaRpcClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import server.Counter;
 import server.Settings;
-import server.order.Order;
 
-import javax.annotation.Nullable;
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static constants.FieldNames.*;
-import static constants.Values.TRUE;
-import static feip.FeipTools.parseFeip;
 import static constants.Constants.*;
-import static constants.IndicesNames.ORDER;
 import static constants.Strings.*;
 import static server.Settings.addSidBriefToName;
-import static server.reward.RewardManager.getLastRewardInfo;
 
 public class Rewarder {
     private static final Logger log = LoggerFactory.getLogger(Rewarder.class);
     private final ElasticsearchClient esClient;
     private ApipClient apipClient;
+    private NaSaRpcClient naSaRpcClient;
     private final JedisPool jedisPool;
     private String account;
     private String lastOrderId;
-    private long incomeT=0;
     private long paidSum;
+    private long bestHeight;
     private Map<String, Long> pendingMap;
     private final String sid;
+    private Map<String, String> unpaidCostMap;
 
-    private final int recover4Decimal = 10000;
+    private final int Cover4Decimal = 10000;
 
-    public Rewarder(String sid,String account,ApipClient apipClient,ElasticsearchClient esClient,JedisPool jedisPool) {
+    public Rewarder(String sid,String account,ApipClient apipClient,ElasticsearchClient esClient,NaSaRpcClient naSaRpcClient,JedisPool jedisPool) {
         this.esClient = esClient;
         if(apipClient!=null)this.apipClient=apipClient;
         this.jedisPool = jedisPool;
         this.sid =sid;
         this.account = account;
+        this.naSaRpcClient = naSaRpcClient;
     }
-    public static void checkRewarderParams(String sid, Params params, ElasticsearchClient esClient, JedisPool jedisPool, BufferedReader br) {
-        checkRewarderParams(sid,params,null,esClient,jedisPool,br);
-    }
-    public static void checkRewarderParams(String sid, Params params, @Nullable ApipClient apipClient, @Nullable ElasticsearchClient esClient, JedisPool jedisPool, BufferedReader br) {
-        Rewarder rewarder = new Rewarder(sid, params.getAccount(), apipClient, esClient, jedisPool);
-        RewardParams rewardParams = Rewarder.getRewardParams(rewarder.sid, rewarder.jedisPool);
+
+    public static void checkRewarderParams(String sid, Params params, JedisPool jedisPool, BufferedReader br) {
+        RewardParams rewardParams = Rewarder.getRewardParams(sid, jedisPool);
 
         if(rewardParams==null) {
-            rewardParams = rewarder.setRewardParameters(br, params.getConsumeViaShare(), params.getOrderViaShare());
+            rewardParams = Rewarder.setRewardParameters(sid, params.getConsumeViaShare(), params.getOrderViaShare(),jedisPool,br);
             writeRewardParamsToRedis(sid,rewardParams,jedisPool);
         }
 
@@ -103,206 +78,170 @@ public class Rewarder {
         System.out.println("Check the reward parameters:");
         JsonTools.gsonPrint(rewardParams);
         Menu.anyKeyToContinue(br);
-
     }
+    public RewardInfo doReward(List<ApiAccount> chargedAccountList,byte[] priKey) {
 
-    public RewardReturn doReward(String account, List<ApiAccount> chargedAccountList,byte[] priKey){
-        long reservedFee = 100000;
-        RewardReturn rewardReturn = new RewardReturn();
+        Wallet wallet = new Wallet(apipClient,esClient,naSaRpcClient);
+        bestHeight = wallet.getBestHeight();
 
-        lastOrderId = getLastOrderIdFromEs(esClient);
+        ArrayList<Sort> sortList = new ArrayList<>();
+        Sort sort1 = new Sort(VALUE, ASC);
+        Sort sort2 = new Sort(CASH_ID, ASC);
+        sortList.add(sort1);
+        sortList.add(sort2);
+        List<Cash> cashList;
 
-        if(account ==null){
-            rewardReturn.setCode(1);
-            return rewardReturn;
+        cashList = wallet.getAllCashList(account, true, 0, sortList, null);
+        if (cashList == null || cashList.isEmpty()) {
+            log.debug("No cash.");
+            return null;
         }
 
-        Map<String, RewardInfo> unpaidRewardInfoMap = getUnpaidRewardInfoMapFromEs(esClient);
+        Cash.checkImmatureCoinbase(cashList, bestHeight);
 
-        checkPayment(apipClient,esClient,unpaidRewardInfoMap);
-
-        if(incomeT==0){
-            incomeT = makeIncomeT(lastOrderId,esClient);
-        }else{
-            System.out.println("Set income: "+incomeT);
-            long sum = makeIncomeT(lastOrderId,esClient);
-            if(sum<incomeT){
-                System.out.println("Notice: New order sum is "+sum+", while you are paying "+incomeT+".");
+        if (cashList.size() > 200) {
+            wallet.mergeCashList(cashList, priKey);
+            try {
+                TimeUnit.SECONDS.sleep(600);
+            } catch (InterruptedException ignore) {
             }
-            if(lastOrderId==null){
-                lastOrderId = Objects.requireNonNull(getLastRewardInfo(sid,esClient)).getRewardId();
-                if(lastOrderId==null){
-                    rewardReturn.setCode(2);
-                    return rewardReturn;
-                }
-            }
+            cashList = wallet.getAllCashList(account, true, 0, sortList, null);
         }
 
-        if(incomeT==0){
-            rewardReturn.setCode(3);
-            log.debug("No income.");
-            return rewardReturn;
+        long total = Cash.sumCashValue(cashList);
+        log.debug("Ready to reward "+ParseTools.satoshiToCoin(total)+" F from "+cashList.get(0).getOwner()+"...");
+        double sumApiMinPaymentDouble = sumApiMinPayment(chargedAccountList);
+        long sumApiMinPayment = ParseTools.coinToSatoshi(sumApiMinPaymentDouble);
+        total -= sumApiMinPayment;
+
+        if (total < 0) {
+            log.debug("The balance is insufficient to send rewards.");
+            return null;
         }
+
+        Map<String, String> orderViaMap;
+        Map<String, String> consumeViaMap;
+        Map<String, String> builderShareMap;
+        Map<String, String> costMap;
+        try (Jedis jedis = jedisPool.getResource()) {
+            orderViaMap = jedis.hgetAll(Settings.addSidBriefToName(sid, ORDER_VIA));
+            consumeViaMap = jedis.hgetAll(Settings.addSidBriefToName(sid, CONSUME_VIA));
+            builderShareMap = jedis.hgetAll(Settings.addSidBriefToName(sid, BUILDER_SHARE_MAP));
+            costMap = jedis.hgetAll(Settings.addSidBriefToName(sid, COST_MAP));
+        } catch (Exception e) {
+            log.error("Getting {},{},{} or {} from redis wrong.", Settings.addSidBriefToName(sid, ORDER_VIA), Settings.addSidBriefToName(sid, CONSUME_VIA), Settings.addSidBriefToName(sid, BUILDER_SHARE_MAP), Settings.addSidBriefToName(sid, COST_MAP), e);
+            return null;
+        }
+
+        String opReturn = makeRewardOpReturn();
+
+        int sendToCount = 0;
+        if (orderViaMap != null) sendToCount += orderViaMap.size();
+        if (consumeViaMap != null) sendToCount += consumeViaMap.size();
+        if (builderShareMap != null) sendToCount += builderShareMap.size();
+        if (costMap != null) sendToCount += costMap.size();
+
+        long fee = TxCreator.calcTxSize(cashList.size(), sendToCount, opReturn.length());
+        total -= fee;
 
         RewardParams rewardParams = getRewardParams(sid, jedisPool);
 
-        if(rewardParams == null){
-            rewardReturn.setCode(4);
-            log.debug(RewardReturn.codeToMsg(4));
-            return rewardReturn;
+        pendingMap = getPendingMapFromRedis(jedisPool);
+
+        RewardInfo rewardInfo = makeRewardInfo(total, rewardParams);
+
+        Map<String, SendTo> sendToMap = makeSendToMap(rewardInfo);
+
+        pendingDust(sendToMap, jedisPool);
+        addQualifiedPendingToPay(sendToMap);
+        backUpPending();
+
+        double feeRate = wallet.getFeeRate();
+        String txSigned = TxCreator.createTransactionSignFch(cashList, priKey, sendToMap.values().stream().toList(), opReturn, feeRate);
+
+        FcReplier fcReplier = Wallet.sendTx(txSigned, apipClient, naSaRpcClient);
+        if (fcReplier.getCode() != 0) {
+            log.debug("The balance is insufficient to send rewards.");
+            if (fcReplier.getData() != null) log.debug((String) fcReplier.getData());
+            return null;
         }
+        rewardInfo.setRewardId((String) fcReplier.getData());
+        rewardInfo.setState(RewardState.paid);
 
+        long apiCost = sumApiCost(chargedAccountList);
+        rewardInfo.setApiCost(apiCost);
+        resetApiCost(chargedAccountList);
 
-        incomeT -= reservedFee; // for tx fee
-        long apiCost = 0;
-        if(chargedAccountList!=null){
-            apiCost = sumApiCost(chargedAccountList);
-            incomeT -= apiCost;
-        }
+        if (esClient != null)
+            backUpRewardInfo(rewardInfo, esClient);
 
-        RewardInfo rewardInfo = makeRewardInfo(incomeT, rewardParams);
-        if(apiCost!=0)rewardInfo.setApiCost(apiCost);
-
-        if(rewardInfo==null){
-            rewardReturn.setCode(5);
-            log.debug(RewardReturn.codeToMsg(5));
-            return rewardReturn;
-        }
-
-        log.debug("Made a rewardInfo. The sum of payment is {}.",calcSumPay(rewardInfo));
-
-        List<SendTo> sendToList = new ArrayList<>();
-        addPaymentsToSendToList(rewardInfo.getCostList(), sendToList);
-        addPaymentsToSendToList(rewardInfo.getOrderViaList(),sendToList);
-        addPaymentsToSendToList(rewardInfo.getConsumeViaList(),sendToList);
-        addPaymentsToSendToList(rewardInfo.getBuilderList(),sendToList);
-
-        String opReturnJson = makeRewardOpReturn(rewardInfo);
-
-        long fee = TxCreator.calcTxSize(0, sendToList.size(), opReturnJson.length());
-
-        /*
-        1. check the balance
-        2. get cash list
-        3. create tx
-        4. sign tx
-        5. broadcast
-        6. update reword state
-         */
-
-        if(apipClient!=null){
-            apipClient.cidInfoByIds(new String[]{account});
-            Object data = apipClient.checkApipV1Result();
-            if(data==null)return null;
-            Map<String, CidInfo> result= DataGetter.getCidInfoMap(data);
-            long balance = result.get(account).getBalance();
-
-            if(balance<(rewardInfo.getRewardT()+fee)){
-                rewardReturn.setCode(6);
-                log.error(RewardReturn.codeToMsg(6));
-                return null;
-            }
-        }else {
-            SearchRequest.Builder srb = new SearchRequest.Builder();
-            srb.index(IndicesNames.CASH);
-
-            TermQuery.Builder tb = QueryBuilders.term();
-            tb.field(OWNER).value(account);
-            TermQuery tq = tb.build();
-
-            TermQuery.Builder tb1 = QueryBuilders.term();
-            tb1.field(VALID).value(TRUE);
-            TermQuery tq1 = tb1.build();
-
-            List<Query> querieList = new ArrayList<>();
-            querieList.add(new Query.Builder().term(tq).build());
-            querieList.add(new Query.Builder().term(tq1).build());
-
-            BoolQuery.Builder bu = QueryBuilders.bool();
-            bu.must(querieList);
-
-            BoolQuery boolQuery = bu.build();
-
-            SumAggregation.Builder as = AggregationBuilders.sum();
-            as.field(VALUE);
-
-            srb.query(new Query.Builder().bool(boolQuery).build());
-            srb.aggregations(SUM,new Aggregation.Builder().sum(as.build()).build());
-
-
-            try {
-                esClient.search(srb.build(),Cash.class);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-
-        }
-
-
-
-//
-//
-//
-//        String urlHead = Constants.UrlHead_CID_CASH;
-//
-//        System.out.println("Input the opreturn message. Enter to ignore:");
-//        String msg = appTools.Inputer.inputString(br);
-//
-//        long fee = TxCreator.calcTxSize(0, sendToList.size(), msg.length());
-//
-//
-//        System.out.println("Getting cashes from " + urlHead + " ...");
-//
-//        apipClientData = WalletAPIs.cashValidForPayPost(urlHead, sender, sum + ((double) fee / COIN_TO_SATOSHI), initApiAccount.getVia(), sessionKey);
-//        if (apipClientData == null || apipClientData.checkResponse() != 0) {
-//            System.out.println("Failed to get cashes." + apipClientData.getMessage() + apipClientData.getResponseBody().getData());
-//            return;
-//        }
-//
-//        List<Cash> cashList = DataGetter.getCashList(apipClientData.getResponseBody().getData());
-//
-//        String txSigned = TxCreator.createTransactionSignFch(cashList, priKey, sendToList, msg);
-//
-//        System.out.println("Signed tx:");
-//        Shower.printUnderline(10);
-//        System.out.println(txSigned);
-//        Shower.printUnderline(10);
-//
-//        System.out.println("Broadcast with " + urlHead + " ...");
-//        apipClientData = WalletAPIs.broadcastTxPost(urlHead, txSigned, initApiAccount.getVia(), sessionKey);
-//        if (apipClientData.checkResponse() != 0) {
-//            System.out.println(apipClientData.getCode() + ": " + apipClientData.getMessage());
-//            if (apipClientData.getResponseBody().getData() != null)
-//                System.out.println(apipClientData.getResponseBody().getData());
-//            return;
-//        }
-
-//
-//        AffairMaker affairMaker = new AffairMaker(sid,account, rewardInfo,esClient,jedisPool);
-//
-//        String affairSignTxJson = affairMaker.makeAffair();
-//
-//        pendingMap = affairMaker.getPendingMapFromRedis(jedisPool);
-//        if(pendingMap!=null && !pendingMap.isEmpty()) {
-//            if (!backUpPending()) log.debug("Backup pendingMap failed.");
-//        }
-//        if(!makeSignTxAffairHtml(affairSignTxJson)){
-//            rewardReturn.setCode(5);
-//            rewardReturn.setMsg("Save affairSignTxJson to tomcat directory failed. Check tomcat directory.");
-//            return rewardReturn;
-//        }
-//
-//        if(!backUpRewardInfo(rewardInfo,esClient)){
-//            rewardReturn.setCode(6);
-//            rewardReturn.setMsg("BackUp payment failed. Check ES.");
-//            return rewardReturn;
-//        }
-//        rewardReturn.setCode(0);
-        return rewardReturn;
+        return rewardInfo;
     }
 
-    private static String makeRewardOpReturn(RewardInfo rewardInfo) {
+    public Map<String, Long> getPendingMapFromRedis(JedisPool jedisPool) {
+        try(Jedis jedis = jedisPool.getResource()) {
+            Map<String, String> pendingStrMap = jedis.hgetAll(Settings.addSidBriefToName(sid,REWARD_PENDING_MAP));
+            for (String key : pendingStrMap.keySet()) {
+                Long amount = Long.parseLong(pendingStrMap.get(key));
+                pendingMap.put(key, amount);
+            }
+        }
+        return pendingMap;
+    }
+    public void pendingDust(Map<String, SendTo> sendToMap,JedisPool jedisPool) {
+        Iterator<Map.Entry<String, SendTo>> iterator = sendToMap.entrySet().iterator();
+        try(Jedis jedis = jedisPool.getResource()) {
+            while (iterator.hasNext()) {
+                Map.Entry<String, SendTo> entry = iterator.next();
+                SendTo sendTo = entry.getValue();
+                String fid = sendTo.getFid();
+                double amount = sendTo.getAmount();
+                if (amount < MinPayValue) {
+                    addToPending(fid, ParseTools.coinToSatoshi(amount), jedis);
+                    iterator.remove();
+                }
+            }
+        }
+    }
+    private void addQualifiedPendingToPay(Map<String, SendTo> sendToMap) {
+        if(pendingMap==null || pendingMap.isEmpty())return;
+        for(String key: pendingMap.keySet()){
+            double amount = ParseTools.satoshiToCoin(pendingMap.get(key));
+            SendTo sendTo = new SendTo();
+            if (amount >= MinPayValue){
+                if(sendToMap.get(key)!=null){
+                    sendTo = sendToMap.get(key);
+                    sendTo.setFid(key);
+                    sendTo.setAmount(sendTo.getAmount()+amount);
+                }else {
+                    sendTo.setFid(key);
+                    sendTo.setAmount(amount);
+                }
+                sendToMap.put(key,sendTo);
+                pendingMap.remove(key);
+            }
+        }
+    }
+    public void addToPending(String fid, Long amount,Jedis jedis) {
+        Long pendingValue = 0L;
+
+        pendingValue = Long.parseLong(jedis.hget(Settings.addSidBriefToName(sid,REWARD_PENDING_MAP), fid));
+
+        if(pendingMap.get(fid)!=null) pendingValue += pendingMap.get(fid);
+        pendingMap.put(fid,pendingValue+ amount);
+    }
+
+
+    public static double sumApiMinPayment(List<ApiAccount> chargedAccountList) {
+        if(chargedAccountList==null||chargedAccountList.isEmpty())return 0;
+        long sum = 0;
+        for(ApiAccount apiAccount :chargedAccountList){
+            sum+=apiAccount.getMinPayment();
+        }
+        return sum;
+    }
+
+    private String makeRewardOpReturn() {
         String opReturnJson;
         DataOnChain dataOnChain = new DataOnChain();
         dataOnChain.setType(FBBP);
@@ -312,23 +251,16 @@ public class Rewarder {
         RewardData rewardData = new RewardData();
 
         rewardData.setOp(REWARD);
-        rewardData.setRewardId(rewardInfo.getRewardId());
+        rewardData.setSid(sid);
         dataOnChain.setData(rewardData);
 
-        opReturnJson = JsonTools.getString(dataOnChain);
+        opReturnJson = JsonTools.toJson(dataOnChain);
         return opReturnJson;
     }
 
-    private static void addPaymentsToSendToList(List<Payment> paymentList, List<SendTo> sendToList) {
-        for(Payment payment: paymentList){
-            SendTo sendTo = new SendTo();
-            sendTo.setFid(payment.getFid());
-            sendTo.setAmount(payment.getAmount().doubleValue());
-            sendToList.add(sendTo);
-        }
-    }
 
     private static long sumApiCost(List<ApiAccount> chargedAccountList) {
+        if(chargedAccountList==null || chargedAccountList.size()==0)return 0;
         long apiCost = 0;
         for(ApiAccount apiAccount: chargedAccountList){
             for(String key:apiAccount.getPayments().keySet()){
@@ -338,92 +270,14 @@ public class Rewarder {
         }
         return apiCost;
     }
-
-    public RewardReturn doReward(String account){
-        long reservedFee = 100000;
-        RewardReturn rewardReturn = new RewardReturn();
-        lastOrderId = getLastOrderIdFromEs(esClient);
-
-        if(account ==null){
-            rewardReturn.setCode(2);
-            rewardReturn.setMsg("Get account failed. Check the service parameters in redis.");
-            return rewardReturn;
+    private static void resetApiCost(List<ApiAccount> chargedAccountList) {
+        if(chargedAccountList==null || chargedAccountList.size()==0)return;
+        for(ApiAccount apiAccount: chargedAccountList){
+            apiAccount.setPayments(new HashMap<>());
         }
-
-        Map<String, RewardInfo> unpaidRewardInfoMap = getUnpaidRewardInfoMapFromEs(esClient);
-
-        checkPayment(apipClient,esClient,unpaidRewardInfoMap);
-
-        if(incomeT==0){
-            incomeT = makeIncomeT(lastOrderId,esClient);
-        }else{
-            System.out.println("Set income: "+incomeT);
-            long sum = makeIncomeT(lastOrderId,esClient);
-            if(sum<incomeT){
-                System.out.println("Notice: New order sum is "+sum+", while you are paying "+incomeT+".");
-            }
-            if(lastOrderId==null){
-                lastOrderId = Objects.requireNonNull(getLastRewardInfo(sid,esClient)).getRewardId();
-                if(lastOrderId==null){
-                    rewardReturn.setCode(2);
-                    rewardReturn.setMsg("Get last order id failed.");
-                    return rewardReturn;
-                }
-            }
-        }
-
-        if(incomeT==0){
-            rewardReturn.setCode(2);
-            rewardReturn.setMsg("No income.");
-            log.debug("No income.");
-            return rewardReturn;
-        }
-
-        RewardParams rewardParams = getRewardParams(sid, jedisPool);
-
-        if(rewardParams == null){
-            rewardReturn.setCode(3);
-            rewardReturn.setMsg("Get reward parameters failed. Check redis.");
-            log.debug("Get reward parameters failed. Check redis.");
-            return rewardReturn;
-        }
-
-
-        incomeT -= reservedFee; // for tx fee
-        RewardInfo rewardInfo = makeRewardInfo(incomeT, rewardParams);
-        if(rewardInfo==null){
-            rewardReturn.setCode(4);
-            rewardReturn.setMsg("Making rewardInfo wrong.");
-            log.debug("Making rewardInfo wrong.");
-            return rewardReturn;
-        }
-
-        log.debug("Made a rewardInfo. The sum of payment is {}.",calcSumPay(rewardInfo));
-
-        AffairMaker affairMaker = new AffairMaker(sid,account, rewardInfo,esClient,jedisPool);
-
-        String affairSignTxJson = affairMaker.makeAffair();
-
-        pendingMap = affairMaker.getPendingMapFromRedis(jedisPool);
-        if(pendingMap!=null && !pendingMap.isEmpty()) {
-            if (!backUpPending()) log.debug("Backup pendingMap failed.");
-        }
-        if(!makeSignTxAffairHtml(affairSignTxJson)){
-            rewardReturn.setCode(5);
-            rewardReturn.setMsg("Save affairSignTxJson to tomcat directory failed. Check tomcat directory.");
-            return rewardReturn;
-        }
-
-        if(!backUpRewardInfo(rewardInfo,esClient)){
-            rewardReturn.setCode(6);
-            rewardReturn.setMsg("BackUp payment failed. Check ES.");
-            return rewardReturn;
-        }
-        rewardReturn.setCode(0);
-        return rewardReturn;
     }
 
-    private boolean backUpPending() {
+    private void backUpPending() {
         Map<String ,String > pendingStrMap = new HashMap<>();
         for(String key: pendingMap.keySet()){
             String amountStr = String.valueOf(pendingMap.get(key));
@@ -431,163 +285,48 @@ public class Rewarder {
         }
         try(Jedis jedis = jedisPool.getResource()) {
             jedis.hmset(addSidBriefToName(sid,REWARD_PENDING_MAP),pendingStrMap);
-            return true;
         }catch (Exception e){
             log.error("Write pending map into redis wrong.");
-            return false;
         }
-    }
-
-    private void checkPayment(ApipClient apipClient, ElasticsearchClient esClient, Map<String, RewardInfo> unpaidRewardInfoMap)  {
-
-        System.out.println("Check payment.");
-        if(unpaidRewardInfoMap==null || unpaidRewardInfoMap.size()==0)return;
-        List<OpReturn> opReturnList;
-        if(apipClient!=null) {
-            Fcdsl fcdsl = new Fcdsl();
-            fcdsl.addNewQuery().addNewTerms().addNewFields(SIGNER).addNewValues(account);
-            fcdsl.addSize(2000);
-            fcdsl.addNewSort(HEIGHT, DESC);
-            opReturnList = apipClient.opReturnSearch(fcdsl);
-        }else {
-            try {
-                opReturnList = opReturnSearchFromEs(esClient);
-            } catch (IOException e) {
-                log.debug("Failed to check payment:"+e.getMessage());
-                return;
-            }
-        }
-
-        if(opReturnList==null||opReturnList.isEmpty())return;
-        DataOnChain feip;
-        RewardData rewardData;
-        Gson gson = new Gson();
-
-        for(OpReturn opReturn :opReturnList){
-            if(opReturn==null)continue;
-            String txId = opReturn.getTxId();
-            try {
-                feip = parseFeip(opReturn,log);
-            }catch (Exception e){
-                System.out.println(txId+" isn't reward.");
-                continue;
-            }
-            
-            if(feip!=null && "FBBP".equals(feip.getType())&&"1".equals(feip.getSn())){
-                try {
-                    rewardData = gson.fromJson(gson.toJson(feip.getData()), RewardData.class);
-                }catch (Exception e){
-                    continue;
-                }
-                RewardInfo rewardInfo = unpaidRewardInfoMap.get(rewardData.getRewardId());
-                if( rewardInfo!=null) {
-
-                    RewardState rewardState = checkPaymentState(apipClient,txId,rewardInfo);
-
-                    updateRewardInfo(this.esClient,txId,rewardData.getRewardId(),rewardState);
-
-                    unpaidRewardInfoMap.remove(rewardData.getRewardId());
-                    log.debug("Find reward just paid: {}",rewardData.getRewardId());
-                }
-                if(unpaidRewardInfoMap.size()==0){
-                    log.debug("All reward paid.");
-                    return;
-                }
-            }
-        }
-        if(unpaidRewardInfoMap.size()!=0) {
-            System.out.println(unpaidRewardInfoMap.size() + " unpaid rewards: ");
-            for (String id : unpaidRewardInfoMap.keySet()) {
-                RewardInfo re = unpaidRewardInfoMap.get(id);
-                String time = ParseTools.convertTimestampToDate(re.getTime());
-                double amount = (double) re.getRewardT() /FchToSatoshi;
-                System.out.println(time +" "+ amount+"f "+re.getRewardId());
-            }
-        }
-    }
-
-    private List<OpReturn> opReturnSearchFromEs(ElasticsearchClient esClient) throws IOException {
-        List<FieldValue> valueList = new ArrayList<>();
-        valueList.add(FieldValue.of(account));
-
-        SearchResponse<OpReturn> result = esClient.search(s -> s.index(IndicesNames.OPRETURN)
-                .query(q -> q.terms(t -> t.field(SIGNER).terms(t1 -> t1.value(valueList))))
-                .size(2000)
-                .sort(so -> so.field(f -> f.field(HEIGHT).order(SortOrder.Desc))), OpReturn.class);
-
-        List<OpReturn> opReturnList = new ArrayList<>();
-        if (result ==null || result.hits().total()==null||result.hits().total().value() == 0) return null;
-        for (Hit<OpReturn> hit : result.hits().hits()) {
-            opReturnList.add(hit.source());
-        }
-        return opReturnList;
-    }
-
-    private RewardState checkPaymentState(ApipClient apipClient, String txId, RewardInfo rewardInfo) {
-
-        Map<String, SendTo> sendToMapWithoutDust = makeNoDustSendToMap(rewardInfo);
-        Map<String, SendTo> sentMap = calcSentMap(apipClient,txId);
-        return getPaymentState(sendToMapWithoutDust,sentMap);
-    }
-
-    private RewardState getPaymentState(Map<String, SendTo> sendToMapWithoutDust, Map<String, SendTo> sentMap) {
-        for(String fid:sendToMapWithoutDust.keySet()){
-            double sendToAmount = sendToMapWithoutDust.get(fid).getAmount();
-            double sentAmount = sentMap.get(fid).getAmount();
-            if(sentAmount!=sendToAmount){
-                System.out.println("Difference found. Owe to send: "+sendToAmount+" Paid:"+sentAmount);
-                return RewardState.paidRevised;
-            }
-        }
-        return RewardState.paid;
-    }
-
-    private Map<String, SendTo> calcSentMap(ApipClient apipClient, String txId) {
-
-        if(txId==null)return null;
-        Map<String, TxInfo> txHasMap = apipClient.txByIds(new String[]{txId});
-        TxInfo txInfo = null;
-        if(txHasMap!=null)txInfo = txHasMap.get(txId);
-        if(txInfo==null)return null;
-
-        Map<String, SendTo> sentToMap = new HashMap<>();
-        for(CashMark cashMark: txInfo.getIssuedCashes()){
-            SendTo sendTo = new SendTo();
-            sendTo.setFid(cashMark.getOwner());
-            sendTo.setAmount((double)cashMark.getValue()/FchToSatoshi);
-            sentToMap.put(cashMark.getOwner(),sendTo);
-        }
-        return sentToMap;
     }
 
     private Map<String, SendTo> makeNoDustSendToMap(RewardInfo rewardInfo) {
-        Map<String, SendTo> sendToMap = AffairMaker.makeSendToMap(rewardInfo);
+        Map<String, SendTo> sendToMap = makeSendToMap(rewardInfo);
         sendToMap.entrySet().removeIf(entry -> entry.getValue().getAmount() < MinPayValue);
         return sendToMap;
     }
+    public static HashMap<String,SendTo> makeSendToMap(RewardInfo rewardInfo) {
+        HashMap<String,SendTo> sendToMap= new HashMap<>();
 
+        ArrayList<Payment> buildList = rewardInfo.getBuilderList();
+        ArrayList<Payment> costList = rewardInfo.getCostList();
+        ArrayList<Payment> consumeViaList = rewardInfo.getConsumeViaList();
+        ArrayList<Payment> orderViaList = rewardInfo.getOrderViaList();
 
-    private void updateRewardInfo(ElasticsearchClient esClient, String txId, String rewardId, RewardState rewardState) {
+        makePayDetailListIntoSendToMap(sendToMap,orderViaList);
+        makePayDetailListIntoSendToMap(sendToMap,consumeViaList);
+        makePayDetailListIntoSendToMap(sendToMap,costList);
+        makePayDetailListIntoSendToMap(sendToMap,buildList);
 
-        try {
-            Map<String, JsonData> paramMap = new HashMap<>();
-            paramMap.put("sendTxId",JsonData.of(txId));
-            paramMap.put("state",JsonData.of(rewardState.name()));
-
-            esClient.update(u->u
-                            .index(addSidBriefToName(sid,REWARD).toLowerCase())
-                            .id(rewardId)
-                            .script(s->s
-                                    .inline(in->in
-                                            .source("ctx._source.state = params.state; ctx._source.txId = params.sendTxId")
-                                            .params(paramMap))
-                                    )
-                    ,Void.class);
-        } catch (IOException e) {
-            log.debug("Update reward info wrong.",e);
-        }
+        return sendToMap;
     }
 
+    public static void makePayDetailListIntoSendToMap(HashMap<String,SendTo> sendToMap,ArrayList<Payment> payDetailList) {
+
+        for(Payment payDetail:payDetailList){
+            SendTo sendTo = new SendTo();
+            String fid = payDetail.getFid();
+            sendTo.setFid(fid);
+            double amount = (double) payDetail.getAmount() /FchToSatoshi;
+            if(sendToMap.get(fid)!=null){
+                amount = amount+ sendToMap.get(fid).getAmount();
+                sendTo.setAmount(NumberTools.roundDouble8(amount));
+            }else{
+                sendTo.setAmount(NumberTools.roundDouble8(amount));
+            }
+            sendToMap.put(sendTo.getFid(),sendTo);
+        }
+    }
 
     public static RewardParams getRewardParams(String sid, JedisPool jedisPool) {
         RewardParams rewardParams = new RewardParams();
@@ -615,181 +354,40 @@ public class Rewarder {
         return rewardParams;
     }
 
-    public String getLastOrderIdFromEs(ElasticsearchClient esClient) {
-        SearchResponse<RewardInfo> result;
-        try {
-            result = esClient.search(s -> s
-                            .index(addSidBriefToName(sid,REWARD).toLowerCase())
-                            .size(1)
-                            .sort(so -> so.field(f -> f
-                                    .field(TIME)
-                                    .order(SortOrder.Desc)))
-                    , RewardInfo.class);
-        } catch (IOException e) {
-            log.debug("Read last reward info from ES wrong.");
-            return null;
-        }
-
-        if(result.hits().hits().size()==0){
-            log.debug("No reward info found.");
-            return null;
-        }
-
-        return result.hits().hits().get(0).id();
-    }
-
-
-    public String getLastOrderIdFromRedis() {
-        try(Jedis jedis = jedisPool.getResource()) {
-            String lastReward = jedis.get(addSidBriefToName(sid,LAST_REWARD));
-            if(lastReward==null)return null;
-            Gson gson = new Gson();
-            RewardInfo rewardInfo = gson.fromJson(lastReward,RewardInfo.class);
-            if(rewardInfo==null)return null;
-            return rewardInfo.getRewardId();
-        }
-    }
-
-    private Map<String, RewardInfo> getUnpaidRewardInfoMapFromEs(ElasticsearchClient esClient) {
-        SearchResponse<RewardInfo> result;
-        try {
-            result = esClient.search(s -> s
-                            .index(addSidBriefToName(sid,REWARD).toLowerCase())
-                            .query(q->q
-                                    .term(t->t
-                                            .field(STATE)
-                                            .value(UNPAID)))
-                            .size(200)
-                            .sort(so -> so.field(f -> f
-                                    .field(BEST_HEIGHT)
-                                    .order(SortOrder.Desc)))
-                    , RewardInfo.class);
-        } catch (IOException e) {
-            log.debug("Read unpaid reward info from ES wrong.");
-            return null;
-        }
-
-        Map<String,RewardInfo> unpaidRewardInfoMap = new HashMap<>();
-
-        if(result.hits().hits().size()==0){
-            log.debug("No unpaid reward info found.");
-            return null;
-        }
-
-        for(Hit<RewardInfo> hit: result.hits().hits()){
-            RewardInfo re = hit.source();
-            if(re!=null)unpaidRewardInfoMap.put(re.getRewardId(),re);
-        }
-
-        return unpaidRewardInfoMap;
-    }
-
-    public long makeIncomeT(String lastOrderId, ElasticsearchClient esClient) {
-        List<SortOptions> sortOptionsList = Sort.makeHeightTxIndexSort();
-
-        long sum = 0;
-        SearchResponse<Order> result;
-        try {
-            result = esClient.search(s -> s
-                            .index(addSidBriefToName(sid,ORDER).toLowerCase())
-                            .sort(sortOptionsList)
-                            .size(EsTools.READ_MAX)
-                    , Order.class);
-        } catch (Exception e) {
-            log.error("Get order list wrong.",e);
-            return 0;
-        }
-
-        if(result==null||result.hits().hits().isEmpty()){
-            log.debug("No any order. Check ES.");
-            return 0;
-        }
-        List<Hit<Order>> hitList = result.hits().hits();
-        List<String> last = hitList.get(hitList.size() - 1).sort();
-
-        for(Hit<Order> hit : hitList){
-            Order order = hit.source();
-
-            if(order==null)continue;
-
-            if(lastOrderId!=null && lastOrderId.equals(order.getOrderId())){
-                this.lastOrderId = hitList.get(0).source().getOrderId();
-                return sum;
-            }
-            sum += order.getAmount();
-        }
-
-        while (hitList.size()>=EsTools.READ_MAX) {
-            try {
-                List<String> finalLast = last;
-                result = esClient.search(s -> s
-                                .index(addSidBriefToName(sid,ORDER).toLowerCase())
-                                .sort(sortOptionsList)
-                                .size(EsTools.READ_MAX)
-                                .searchAfter(finalLast)
-                        , Order.class);
-            } catch (IOException e) {
-                log.error("Get order list wrong.", e);
-                return 0;
-            }
-            if(result==null||result.hits().hits().size()==0){
-                log.debug("No any order. Check ES.");
-                return 0;
-            }
-            hitList = result.hits().hits();
-            last = hitList.get(hitList.size() - 1).sort();
-
-            for(Hit<Order> hit : hitList){
-                Order order = hit.source();
-                if(order==null)continue;
-                if(lastOrderId!=null && lastOrderId.equals(order.getOrderId())){
-                    this.lastOrderId = hitList.get(0).source().getOrderId();
-                    return sum;
-                }
-                sum += order.getAmount();
-            }
-        }
-
-        if(hitList.size()>0){
-            this.lastOrderId = hitList.get(0).source().getOrderId();
-        }
-        return sum;
-    }
-
     public RewardInfo makeRewardInfo(long incomeT, RewardParams rewardParams) {
-
         RewardInfo rewardInfo = new RewardInfo();
 
-        ArrayList<Payment> builderRewardList= new ArrayList<>();
-        ArrayList<Payment> orderViaRewardList= new ArrayList<>();
-        ArrayList<Payment> consumeViaRewardList= new ArrayList<>();
-        ArrayList<Payment> costList= new ArrayList<>();
-
-        Map<String, String> orderViaMap;
-        Map<String, String> consumeViaMap;
-        Map<String, String> builderShareMap;
-        Map<String, String> costMap;
         try(Jedis jedis = jedisPool.getResource()) {
+            Map<String, String> orderViaMap;
+            Map<String, String> consumeViaMap;
+            Map<String, String> builderShareMap;
+            Map<String, String> costMap;
+
             try {
                 orderViaMap = jedis.hgetAll(Settings.addSidBriefToName(sid,ORDER_VIA));
                 consumeViaMap = jedis.hgetAll(Settings.addSidBriefToName(sid,CONSUME_VIA));
-                builderShareMap = jedis.hgetAll(Settings.addSidBriefToName(sid,BUILDER_SHARE_MAP));
-                costMap = jedis.hgetAll(Settings.addSidBriefToName(sid,COST_MAP));
+                unpaidCostMap = jedis.hgetAll(Settings.addSidBriefToName(sid,UNPAID_COST));
+                builderShareMap = rewardParams.getBuilderShareMap();//jedis.hgetAll(Settings.addSidBriefToName(sid,BUILDER_SHARE_MAP));
+                costMap = rewardParams.getCostMap();//jedis.hgetAll(Settings.addSidBriefToName(sid,COST_MAP));
             } catch (Exception e) {
-                log.error("Get {},{},{} or {} from redis wrong.", Settings.addSidBriefToName(sid,ORDER_VIA), Settings.addSidBriefToName(sid,CONSUME_VIA), Settings.addSidBriefToName(sid,BUILDER_SHARE_MAP), Settings.addSidBriefToName(sid,COST_MAP), e);
+                log.error("Getting {},{},{} or {} from redis wrong.", Settings.addSidBriefToName(sid,ORDER_VIA), Settings.addSidBriefToName(sid,CONSUME_VIA), Settings.addSidBriefToName(sid,BUILDER_SHARE_MAP), Settings.addSidBriefToName(sid,COST_MAP), e);
                 return null;
             }
 
-            Integer orderViaShare = parseViaShare(rewardParams, Settings.addSidBriefToName(sid,ORDER_VIA));
-            Integer consumeViaShare = parseViaShare(rewardParams, Settings.addSidBriefToName(sid,CONSUME_VIA));
+            addUnpaidToCostMap(costMap, unpaidCostMap);
+
+            Integer orderViaShare = parseViaShare(rewardParams.getOrderViaShare(), Settings.addSidBriefToName(sid,ORDER_VIA));
+            Integer consumeViaShare = parseViaShare(rewardParams.getConsumeViaShare(), Settings.addSidBriefToName(sid,CONSUME_VIA));
             if (orderViaShare < 0) return null;
             if (consumeViaShare < 0) return null;
 
-            orderViaRewardList = makeViaPayList(orderViaMap, orderViaShare, Settings.addSidBriefToName(sid,ORDER_VIA));
-            consumeViaRewardList = makeViaPayList(consumeViaMap, consumeViaShare, Settings.addSidBriefToName(sid, CONSUME_VIA));
+            ArrayList<Payment> orderViaRewardList = makeViaPayList(orderViaMap, orderViaShare, Settings.addSidBriefToName(sid,ORDER_VIA));
+            ArrayList<Payment> consumeViaRewardList = makeViaPayList(consumeViaMap, consumeViaShare, Settings.addSidBriefToName(sid, CONSUME_VIA));
 
-            costList = makeCostPayList(costMap, incomeT);
-            builderRewardList = makeBuilderPayList(builderShareMap, incomeT);
+            ArrayList<Payment> costList = makeCostPayList(costMap, incomeT,unpaidCostMap);
+            if(unpaidCostMap!= null && !unpaidCostMap.isEmpty())jedis.hmset(Settings.addSidBriefToName(sid,UNPAID_COST),unpaidCostMap);
+
+            ArrayList<Payment> builderRewardList = makeBuilderPayList(builderShareMap, incomeT);
 
             rewardInfo.setOrderViaList(orderViaRewardList);
             rewardInfo.setConsumeViaList(consumeViaRewardList);
@@ -798,7 +396,7 @@ public class Rewarder {
 
             rewardInfo.setRewardT(paidSum);
             rewardInfo.setState(RewardState.unpaid);
-            rewardInfo.setRewardId(lastOrderId);
+            rewardInfo.setRewardId(String.valueOf(bestHeight));
 
             rewardInfo.setTime(System.currentTimeMillis());
             rewardInfo.setBestHeight(jedis.get(BEST_HEIGHT));
@@ -806,24 +404,28 @@ public class Rewarder {
         return rewardInfo;
     }
 
-    public long calcSumPay(RewardInfo rewardInfo){
-        long sum = 0;
-        ArrayList<Payment> consumeList = rewardInfo.getConsumeViaList();
-        ArrayList<Payment> orderList = rewardInfo.getOrderViaList();
-        ArrayList<Payment> costList = rewardInfo.getCostList();
-        ArrayList<Payment> builderList = rewardInfo.getBuilderList();
-        ArrayList<Payment> all = new ArrayList<>();
-        all.addAll(consumeList);
-        all.addAll(orderList);
-        all.addAll(costList);
-        all.addAll(builderList);
-        for(Payment payment: all){
-            sum+=payment.getAmount();
+    private static void addUnpaidToCostMap(Map<String, String> costMap, Map<String, String> unpaidCostMap) {
+        for(String fid: unpaidCostMap.keySet()){
+            String unpaid = unpaidCostMap.get(fid);
+            String cost = costMap.get(fid);
+            if(unpaid!=null){
+                if(cost==null) costMap.put(fid,unpaid);
+                else {
+                    try{
+                        double costAmt = Double.parseDouble(cost);
+                        double unpaidAmt = Double.parseDouble(unpaid);
+                        costMap.put(fid, String.valueOf(costAmt+unpaidAmt));
+                        unpaidCostMap.remove(fid);
+                    }catch (Exception ignore){
+                        log.error("Failed to parse cost or unpaid cost from string to double.");
+                    }
+                }
+            }
         }
-        return sum;
     }
 
-    private ArrayList<Payment> makeCostPayList(Map<String, String> costMap, long income) {
+
+    private ArrayList<Payment> makeCostPayList(Map<String, String> costMap, long income, Map<String, String> unpaidCostMap) {
         long costTotal = 0;
         Map<String,Long> costAmountMap = new HashMap<>();
         for(String fid: costMap.keySet()) {
@@ -834,11 +436,21 @@ public class Rewarder {
                 log.error("Get cost of {} from redis wrong.", fid, e);
                 return null;
             }
+
+            if(amount+costTotal+paidSum > income){
+                if(costTotal+paidSum<income){
+                    long payNow = income-costTotal-paidSum;
+                    costAmountMap.put(fid, amount);
+                    unpaidCostMap.put(fid,String.valueOf(ParseTools.satoshiToCoin(amount-payNow)));
+                    amount = payNow;
+                }else unpaidCostMap.put(fid,String.valueOf(ParseTools.satoshiToCoin(amount)));
+            }else {
+                costAmountMap.put(fid, amount);
+            }
             costTotal += amount;
-            costAmountMap.put(fid,amount);
         }
-        int payPercent = (int) (recover4Decimal*(income-paidSum)/costTotal);
-        if(payPercent>recover4Decimal)payPercent=recover4Decimal;
+        int payPercent = (int) (Cover4Decimal * (income-paidSum)/costTotal);
+        if(payPercent > Cover4Decimal)payPercent= Cover4Decimal;
         return payCost(costAmountMap,payPercent);
     }
     private ArrayList<Payment> payCost(Map<String, Long> costAmountMap, int payPercent) {
@@ -848,7 +460,7 @@ public class Rewarder {
             Payment payDetail = new Payment();
             payDetail.setFid(fid);
             payDetail.setFixed(amount);
-            long finalPay = amount*payPercent/recover4Decimal;
+            long finalPay = amount*payPercent/ Cover4Decimal;
             payDetail.setAmount(finalPay);
             paidSum+=finalPay;
             costList.add(payDetail);
@@ -859,16 +471,17 @@ public class Rewarder {
 
     private ArrayList<Payment> makeBuilderPayList(Map<String, String> builderShareMap, long incomeT) {
         long builderSum = incomeT-paidSum;
+        if(builderSum<=0)return null;
         ArrayList<Payment> builderList = new ArrayList<>();
         for (String builder : builderShareMap.keySet()) {
             int share;
             try {
-                share = (int) (Float.parseFloat(builderShareMap.get(builder))*recover4Decimal);
+                share = (int) (Float.parseFloat(builderShareMap.get(builder))* Cover4Decimal);
             }catch (Exception ignore){
                 log.error("Get builder share of {} from redis wrong.",builder);
                 return null;
             }
-            long amount = builderSum*share/recover4Decimal;
+            long amount = builderSum*share/ Cover4Decimal;
 
             Payment payDetail = new Payment();
             payDetail.setFid(builder);
@@ -885,7 +498,7 @@ public class Rewarder {
         for(String via: viaMap.keySet()){
             long amount;
             try {
-                amount = viaShare *Long.parseLong(viaMap.get(via))/recover4Decimal;
+                amount = viaShare *Long.parseLong(viaMap.get(via))/ Cover4Decimal;
                 Payment payDetail = new Payment();
                 payDetail.setFid(via);
                 payDetail.setAmount(amount);
@@ -901,102 +514,28 @@ public class Rewarder {
         return viaPayDetailList;
     }
 
-    private Integer parseViaShare(RewardParams rewardParams, String orderVia) {
+    private Integer parseViaShare(String viaShareStr, String orderVia) {
         int viaShare;
         try {
-            viaShare = (int) (Float.parseFloat(rewardParams.getOrderViaShare())*recover4Decimal);
+            viaShare = (int) (Float.parseFloat(viaShareStr)* Cover4Decimal);
         }catch (Exception e){
             e.printStackTrace();
             log.error("Parsing {} from redis wrong.",orderVia+"Share");
-            throw new RuntimeException();
-//            return -1;
+//            throw new RuntimeException();
+            return -1;
         }
         return viaShare;
-    }
-
-    private boolean makeSignTxAffairHtml(String signTxAffairJson) {
-        String tomcatBashPath = null;
-        try(Jedis jedis = jedisPool.getResource()) {
-            tomcatBashPath = jedis.hget(CONFIG, TOMCAT_BASE_PATH);
-            if (!tomcatBashPath.endsWith("/")) tomcatBashPath += "/";
-        }catch (Exception e){
-            log.error("Redis wrong.");
-        }
-        String directoryPath = tomcatBashPath + REWARD;
-        String fileName = REWARD_HTML_FILE;
-
-        try {
-            // Create the directory if it doesn't exist
-            File directory = new File(directoryPath);
-            if (!directory.exists()) {
-                boolean success = directory.mkdirs();
-                if (!success) {
-                    log.debug("Failed to create directory: " + directoryPath);
-                    return false;
-                }
-            }
-
-            // Create the file if it doesn't exist
-            File file = new File(directory, fileName);
-            if (!file.exists()) {
-                boolean success = file.createNewFile();
-                if (!success) {
-                    log.debug("Failed to create file: " + fileName);
-                    return false;
-                }
-            }
-
-            // Write data to the file
-            return makeHtml(signTxAffairJson, file);
-        } catch (IOException e) {
-            log.error("An error occurred when writing affair to file: " + e.getMessage());
-        }
-        return false;
-    }
-
-
-        private boolean makeHtml(String jsonString,File file) {
-        String htmlString = "<html>\n" +
-                "<head>\n" +
-                "    <title>JSON Copier</title>\n" +
-                "</head>\n" +
-                "<body>\n" +
-                "    <p id='jsonText'>" + jsonString + "</p>\n" +
-                "    <button onclick='copyToClipboard()'>Copy</button>\n" +
-                "    <script>\n" +
-                "        function copyToClipboard() {\n" +
-                "            var text = document.getElementById('jsonText').innerText;\n" +
-                "            var el = document.createElement('textarea');\n" +
-                "            el.value = text;\n" +
-                "            el.setAttribute('readonly', '');\n" +
-                "            el.style = {position: 'absolute', left: '-9999px'};\n" +
-                "            document.body.appendChild(el);\n" +
-                "            el.select();\n" +
-                "            document.execCommand('copy');\n" +
-                "            document.body.removeChild(el);\n" +
-                "        }\n" +
-                "    </script>\n" +
-                "</body>\n" +
-                "</html>";
-        try (FileWriter fileWriter = new FileWriter(file)) {
-            fileWriter.write(htmlString);
-        } catch (IOException e) {
-            log.error("Write signTxAffairJson into html wrong. Check tomcat.");
-            return false;
-        }
-        log.debug("SignTxAffairJson was wrote into html.");
-        return true;
     }
 
     private boolean backUpRewardInfo(RewardInfo rewardInfo, ElasticsearchClient esClient) {
 
         try {
             esClient.index(i->i.index(addSidBriefToName(sid,REWARD).toLowerCase()).id(rewardInfo.getRewardId()).document(rewardInfo));
+            log.debug("Backup rewardInfo into ES success. BestHeight.");
         } catch (IOException e) {
             log.error("Backup rewardInfo wrong. Check ES.",e);
             return false;
         }
-        log.debug("Backup rewardInfo into ES success. BestHeight.");
 
         JsonTools.writeObjectToJsonFile(rewardInfo,REWARD_HISTORY_FILE,true);
 
@@ -1004,7 +543,7 @@ public class Rewarder {
         return true;
     }
 
-    public RewardParams setRewardParameters(BufferedReader br, String consumeViaShare, String orderViaShare) {
+    public static RewardParams setRewardParameters(String sid, String consumeViaShare, String orderViaShare,JedisPool jedisPool,BufferedReader br) {
 
         System.out.println("Set reward parameters. \n\tInput numbers like '1.23456789' for an amount of FCH or '0.1234' for a share which means '12.34%'.");
         System.out.println("\tThe reward will be executed once every 10 days. So, the cost is also for 10 days.");
@@ -1057,13 +596,9 @@ public class Rewarder {
 
     private static void writeRewardParamsToRedis(String sid,RewardParams rewardParams,JedisPool jedisPool) {
 
-        System.out.println("Rewards:\n"+JsonTools.getNiceString(rewardParams));
+        System.out.println("Rewards:\n"+JsonTools.toNiceJson(rewardParams));
 
         try(Jedis jedis = jedisPool.getResource()) {
-            if(rewardParams.getOrderViaShare()!=null)
-                jedis.hset(Settings.addSidBriefToName(sid,PARAMS),ORDER_VIA_SHARE,rewardParams.getOrderViaShare());
-            if(rewardParams.getConsumeViaShare()!=null)
-                jedis.hset(Settings.addSidBriefToName(sid,PARAMS),CONSUME_VIA_SHARE,rewardParams.getConsumeViaShare());
             if(!rewardParams.getBuilderShareMap().isEmpty())
                 jedis.hmset(Settings.addSidBriefToName(sid,BUILDER_SHARE_MAP),rewardParams.getBuilderShareMap());
             if(rewardParams.getCostMap()!=null&&!rewardParams.getCostMap().isEmpty())
@@ -1073,15 +608,19 @@ public class Rewarder {
         }
     }
 
-    public void setIncomeT(long incomeT) {
-        this.incomeT = incomeT;
-    }
-
     public String getLastOrderIdFromEs() {
         return lastOrderId;
     }
 
     public void setLastOrderId(String lastOrderId) {
         this.lastOrderId = lastOrderId;
+    }
+
+    public long getBestHeight() {
+        return bestHeight;
+    }
+
+    public void setBestHeight(long bestHeight) {
+        this.bestHeight = bestHeight;
     }
 }
