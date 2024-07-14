@@ -10,7 +10,6 @@ import clients.diskClient.DiskDataInfo;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1004,22 +1003,4 @@ public class DataGetter {
         return gson.fromJson(gson.toJson(responseData), t);
     }
 
-    public static <T, K> Map<K, T> listToMap(List<T> list, String keyFieldName) {
-        Map<K, T> resultMap = new HashMap<>();
-        try {
-            if (list != null && !list.isEmpty()) {
-                Field keyField = list.get(0).getClass().getDeclaredField(keyFieldName);
-                keyField.setAccessible(true);
-
-                for (T item : list) {
-                    @SuppressWarnings("unchecked")
-                    K key = (K) keyField.get(item);
-                    resultMap.put(key, item);
-                }
-            }
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
-        }
-        return resultMap;
-    }
 }

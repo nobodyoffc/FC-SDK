@@ -44,11 +44,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static appTools.Inputer.askIfYes;
-import static appTools.Inputer.chooseOne;
+import static appTools.Inputer.*;
 import static config.Configure.getSymKeyFromPasswordAndNonce;
 import static constants.Strings.*;
-import static javaTools.CollectionTools.listToMap;
+import static javaTools.ObjectTools.listToMap;
 
 public abstract class Settings {
     public static final long DEFAULT_WINDOW_TIME = 1000 * 60 * 5;
@@ -210,10 +209,10 @@ public abstract class Settings {
 //    }
 
     public CidInfo checkFidInfo(ApipClient apipClient, BufferedReader br) {
-        CidInfo fidInfo = getCidInfo(mainFid,apipClient);
+        CidInfo fidInfo = apipClient.cidInfoById(mainFid);
 
         if(fidInfo!=null) {
-            long bestHeight = apipClient.getClientData().getResponseBody().getBestHeight();
+            long bestHeight = apipClient.getFcClientEvent().getResponseBody().getBestHeight();
 
             bestHeightMap.put(IndicesNames.CID,bestHeight);
             System.out.println("My information:\n" + JsonTools.toNiceJson(fidInfo));
@@ -227,13 +226,6 @@ public abstract class Settings {
             Menu.anyKeyToContinue(br);
         }
         return fidInfo;
-    }
-
-    @Nullable
-    public static CidInfo getCidInfo(String fid,ApipClient apipClient) {
-        System.out.println("Get CID information...");
-        Map<String,CidInfo> cidInfoMap = apipClient.cidInfoByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY , fid);
-        return cidInfoMap==null ? null:cidInfoMap.get(fid);
     }
 
     protected void setInitForClient(String fid, Configure config, BufferedReader br) {
@@ -301,6 +293,16 @@ public abstract class Settings {
         }
     }
 
+//    protected void writeWebParamsToRedis(String sid,Map<String,Object> webParamsMap, JedisPool jedisPool) {
+//        try(Jedis jedis = jedisPool.getResource()) {
+//
+//            symKeyCipher = jedis.hset(addSidBriefToName(sid, WEB_PARAMS),SYM_KEY_CIPHER,);
+//
+//            String key = Settings.addSidBriefToName(sid,PARAMS);
+//            RedisTools.writeToRedis(params, key,jedis,tClass);
+//        }
+//    }
+
     public abstract String initiateClient(String fid, byte[] symKey, Configure config, BufferedReader br);
 
     public Service loadMyService(String owner, String[] types){
@@ -324,7 +326,7 @@ public abstract class Settings {
         fcdsl.addSize(100);
 
         fcdsl.addSort(FieldNames.LAST_HEIGHT,Strings.DESC);
-        return apipClient.serviceSearch(fcdsl);
+        return apipClient.serviceSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
     }
 
     public Service selectMyService(List<Service> serviceList){
@@ -399,25 +401,25 @@ public abstract class Settings {
         return checkIfMainFidIsApiAccountUser(symKey,config,br,fcApiAccount);
     }
 
-
-    public ApiAccount checkApiAccount(String apipAccountId, ApiType apiType, Configure config, byte[] symKey, @Nullable ApipClient apipClient) {
-        ApiAccount apipAccount;
-        if (apipAccountId == null) {
-            apipAccount = config.checkAPI(apipAccountId, apiType, symKey,apipClient);
-        }else {
-            apipAccount = config.getApiAccountMap().get(apipAccountId);
-            if(apipAccount==null) {
-                apipAccountId=null;
-                apipAccount = config.checkAPI(apipAccountId,apiType, symKey, apipClient);
-            }
-            if(apipAccount.getProviderId()==null){
-                apipAccount = config.setApiService(symKey,apiType, apipClient);
-            }
-            Object client = apipAccount.connectApi(config.getApiProviderMap().get(apipAccount.getProviderId()), symKey);
-            apipAccount.setApipClient((ApipClient) client);
-        }
-        return checkIfMainFidIsApiAccountUser(symKey,config,br,apipAccount);
-    }
+//
+//    public ApiAccount checkApiAccount(String apipAccountId, ApiType apiType, Configure config, byte[] symKey, @Nullable ApipClient apipClient) {
+//        ApiAccount apipAccount;
+//        if (apipAccountId == null) {
+//            apipAccount = config.checkAPI(apipAccountId, apiType, symKey,apipClient);
+//        }else {
+//            apipAccount = config.getApiAccountMap().get(apipAccountId);
+//            if(apipAccount==null) {
+//                apipAccountId=null;
+//                apipAccount = config.checkAPI(apipAccountId,apiType, symKey, apipClient);
+//            }
+//            if(apipAccount.getProviderId()==null){
+//                apipAccount = config.setApiService(symKey,apiType, apipClient);
+//            }
+//            Object client = apipAccount.connectApi(config.getApiProviderMap().get(apipAccount.getProviderId()), symKey);
+//            apipAccount.setApipClient((ApipClient) client);
+//        }
+//        return checkIfMainFidIsApiAccountUser(symKey,config,br,apipAccount);
+//    }
 
 
 //        public ApiAccount checkApipAccount(String apipAccountId, ApiType apiType, Configure config, byte[] symKey, ApipClient apipClient) {
@@ -659,7 +661,7 @@ public abstract class Settings {
         }else{
             if(askIfYes(br,"Your service account "+mainFid+" is not the user of the API account "+apiAccount.getUserId()+". \nReset API account?")){
                 while(true) {
-                    apiAccount = config.setApiService(symKey, ApiType.APIP,null);
+                    apiAccount = config.getApiAccount(symKey, ApiType.APIP,null);
                     if(mainFid.equals(apiAccount.getUserId())){
                         mainFidPriKeyCipher = config.getApiAccountMap().get(apiAccountId).getUserPriKeyCipher();
                         if(paidAccountList ==null) paidAccountList = new ArrayList<>();

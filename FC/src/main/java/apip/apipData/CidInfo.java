@@ -52,7 +52,7 @@ public class CidInfo {
             }
         }
 
-        if (meetAddrList == null || meetAddrList.isEmpty()) return null;
+//        if (meetAddrList == null || meetAddrList.isEmpty()) return null;
 
         for (Address addr : meetAddrList) {
             CidInfo cidInfo = new CidInfo();
@@ -81,12 +81,12 @@ public class CidInfo {
         CidInfo cidInfo = new CidInfo();
         if (addr != null) {
             setAddrToCidInfo(addr, cidInfo);
-            if (cid != null) {
-                setCidToCidInfo(cid, cidInfo);
-                return cidInfo;
-            }
         }
-        return null;
+        if (cid != null) {
+            setCidToCidInfo(cid, cidInfo);
+        }
+        if(cidInfo.getFid()==null)return null;
+        return cidInfo;
     }
 
     private static void setAddrToCidInfo(Address addr, CidInfo cidInfo) {

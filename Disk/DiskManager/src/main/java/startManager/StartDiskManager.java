@@ -7,7 +7,6 @@ import appTools.Inputer;
 import appTools.Menu;
 import clients.diskClient.DiskDataInfo;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import config.ApiAccount;
 import config.Configure;
 import constants.ApiNames;
 import constants.FieldNames;
@@ -29,9 +28,7 @@ import server.serviceManagers.DiskManager;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static constants.Strings.*;
@@ -89,7 +86,7 @@ public class StartDiskManager {
 
         //Check webhooks for new orders.
         if(settings.getFromWebhook()!=null && settings.getFromWebhook().equals(Boolean.TRUE))
-            if (!Order.checkWebhook(ApiNames.NewCashByFidsAPI, sid, params, settings.getApipAccount(), br, jedisPool)){
+            if (!Order.checkWebhook(ApiNames.NewCashByFids, sid, params, settings.getApipAccount(), br, jedisPool)){
                 close();
                 return;
             }

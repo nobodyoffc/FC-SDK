@@ -3,7 +3,6 @@ package server;
 import apip.apipData.Fcdsl;
 import apip.apipData.RequestBody;
 import apip.apipData.Session;
-import feip.feipData.serviceParams.DiskParams;
 import clients.redisClient.RedisTools;
 import com.google.gson.Gson;
 import constants.ApiNames;
@@ -12,7 +11,6 @@ import constants.ReplyCodeMessage;
 import constants.Strings;
 import crypto.Hash;
 
-import feip.feipData.serviceParams.Params;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.http.AuthType;
@@ -272,7 +270,8 @@ public class RequestChecker {
         RequestCheckResult requestCheckResult = new RequestCheckResult();
         replier.setRequestCheckResult(requestCheckResult);
         boolean isForbidFreeApi;
-
+        String url = request.getRequestURL().toString();
+        requestCheckResult.setApiName(HttpTools.getApiNameFromUrl(url));
         if(authType.equals(FREE)){
             requestCheckResult.setFreeRequest(Boolean.TRUE);
             RequestBody requestBody;
@@ -285,12 +284,12 @@ public class RequestChecker {
             if(requestBody!=null){
                 requestCheckResult.setRequestBody(requestBody);
             }else {
-                String url = request.getRequestURL().toString();
-                Fcdsl fcdsl = Fcdsl.urlParamsToFcdsl(url);
-                requestBody = new RequestBody();
-                requestBody.setFcdsl(fcdsl);
-                requestCheckResult.setRequestBody(requestBody);
-                requestCheckResult.setApiName(HttpTools.getApiNameFromUrl(url));
+                try {
+                    Fcdsl fcdsl = Fcdsl.urlParamsToFcdsl(url);
+                    requestBody = new RequestBody();
+                    requestBody.setFcdsl(fcdsl);
+                    requestCheckResult.setRequestBody(requestBody);
+                }catch (Exception ignore){};
             }
         }
         else {
@@ -320,6 +319,30 @@ public class RequestChecker {
             }
         }
         return requestCheckResult;
+    }
+
+    @Nullable
+    public static Object checkOtherRequest(String sid, HttpServletRequest request, AuthType authType, FcReplier replier, Jedis jedis) {
+        RequestCheckResult requestCheckResult = checkRequest(sid, request, replier, authType, jedis);
+        if (requestCheckResult == null) {
+            return null;
+        }
+        String addr =requestCheckResult.getFid();
+        RequestBody requestBody = requestCheckResult.getRequestBody();
+        if (requestBody == null) {
+            replier.reply(ReplyCodeMessage.Code1013BadRequest, null, jedis);
+            return null;
+        }
+        Fcdsl fcdsl = requestBody.getFcdsl();
+
+        replier.setNonce(requestBody.getNonce());
+        //Check API
+        Object other = requestBody.getFcdsl().getOther();
+        if (fcdsl==null || other == null) {
+            replier.reply(ReplyCodeMessage.Code1013BadRequest, null, jedis);
+            return null;
+        }
+        return other;
     }
 
     public RequestCheckResult checkSignInRequest(String sid, HttpServletRequest request, FcReplier replier, Map<String, String> paramsMap, long windowTime, Jedis jedis){
@@ -430,7 +453,7 @@ public class RequestChecker {
                     \t\tFid = <Freecash address of the requester>
                     \t\tSign = <The signature of request body signed by the private key of the FID.>
                     \tRequest body:{"url":"%s","nonce":"%d","time":"%d"}"""
-                    .formatted(urlHead+ApiNames.Version1 + ApiNames.SignInAPI,nonce,timestamp);
+                    .formatted(urlHead+ApiNames.Version1 + ApiNames.SignIn,nonce,timestamp);
         }
         replier.reply(ReplyCodeMessage.Code1000SignMissed, data,jedis);
     }
@@ -457,7 +480,7 @@ public class RequestChecker {
                     \t\t\t<your request parameters...>
                     \t\t}
                     """
-                    .formatted(urlHead+ApiNames.Version1 + ApiNames.SignInAPI,nonce,timestamp);
+                    .formatted(urlHead+ApiNames.Version1 + ApiNames.SignIn,nonce,timestamp);
         }
         replier.reply(ReplyCodeMessage.Code1000SignMissed, data,jedis);
     }
@@ -479,7 +502,7 @@ public class RequestChecker {
                     \tRequest URL should be:
                     \t\t\t%s/"nonce=%s&time=%s<your more parameters>
                     """
-                    .formatted(urlHead+ApiNames.Version1 + ApiNames.SignInAPI,nonce,timestamp);
+                    .formatted(urlHead+ApiNames.Version1 + ApiNames.SignIn,nonce,timestamp);
         }
         replier.reply(ReplyCodeMessage.Code1000SignMissed, data, jedis);
     }

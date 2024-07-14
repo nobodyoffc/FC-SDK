@@ -1,6 +1,7 @@
 package config;
 
 import appTools.Menu;
+import constants.Strings;
 import feip.feipData.serviceParams.*;
 import appTools.Inputer;
 import clients.apipClient.ApipClient;
@@ -78,17 +79,36 @@ public class Configure {
         initiateFreeApipServices();
     }
 
-    public static void makeWebConfig(String sid, Configure configure,Settings settings, byte[] symKey, ApiType apiType, JedisPool jedisPool,BufferedReader br) {
-        String fileName = apiType.name() + "_" + CONFIG + DOT_JSON;
+    public static void checkWebConfig(String sid, Configure configure, Settings settings, byte[] symKey, ApiType apiType, JedisPool jedisPool, BufferedReader br) {
+        String fileName = makeConfigFileName(apiType);
         if (!new File(fileName).exists()) {
             if(askIfYes(br,"Creat config file for the web server?")) {
                 makeWebConfig(sid, configure, settings,symKey, apiType, jedisPool);
                 Menu.anyKeyToContinue(br);
             }
+        }else {
+            WebServerConfig webServerConfig;
+            try {
+                webServerConfig = JsonTools.readJsonFromFile(fileName, WebServerConfig.class);
+            } catch (IOException e) {
+                System.out.println("Failed to read web config file.");
+                return;
+            }
+
+            byte[] symKeyForWebServer = getSymKeyForWebServer(webServerConfig,configure,jedisPool);
+            if(symKeyForWebServer== null||!Arrays.equals(symKeyForWebServer,symKey))
+                makeWebConfig(sid, configure, settings,symKey, apiType, jedisPool);
+            Menu.anyKeyToContinue(br);
         }
     }
+
+    @NotNull
+    public static String makeConfigFileName(ApiType apiType) {
+        return apiType.name() + "_" + CONFIG + DOT_JSON;
+    }
+
     public static void makeWebConfig(String sid, Configure configure,Settings settings, byte[] symKey, ApiType apiType, JedisPool jedisPool) {
-        String fileName = apiType.name()+"_"+CONFIG+DOT_JSON;
+        String fileName = makeConfigFileName(apiType);
 
         WebServerConfig webServerConfig = new WebServerConfig();
         webServerConfig.setSid(sid);
@@ -105,10 +125,28 @@ public class Configure {
         try(Jedis jedis = jedisPool.getResource()){
             jedis.hset(addSidBriefToName(sid,WEB_PARAMS),SYM_KEY_CIPHER,symKeyCipher);
             jedis.hset(addSidBriefToName(sid,WEB_PARAMS),FORBID_FREE_API, String.valueOf(settings.getForbidFreeApi()));
+            jedis.hset(addSidBriefToName(sid,WEB_PARAMS),Strings.AVATAR_ELEMENTS_PATH,System.getProperty("user.dir")+"/avatar/elements");
+            jedis.hset(addSidBriefToName(sid,WEB_PARAMS),Strings.AVATAR_PNG_PATH,System.getProperty("user.dir")+"/avatar/png");
+
         }
         JsonTools.writeObjectToJsonFile(webServerConfig,fileName,false);
 
         System.out.println("Copy the file of '"+fileName+"' to the bin directory of Tomcat.");
+    }
+
+    public static byte[] getSymKeyForWebServer(WebServerConfig webServerConfig, Configure configure, JedisPool jedisPool) {
+        byte[] symKey;
+        String symKeyCipher;
+        try(Jedis jedis = jedisPool.getResource()){
+            symKeyCipher = jedis.hget(addSidBriefToName(webServerConfig.getSid(), WEB_PARAMS),SYM_KEY_CIPHER);
+        }
+        CryptoDataByte result = new Decryptor().decryptJsonByPassword(symKeyCipher, configure.getNonce().toCharArray());
+        if(result.getCode()!=0){
+            System.out.println("Failed to decrypt symKey for web server:"+result.getMessage());
+            return null;
+        }
+        symKey = result.getData();
+        return symKey;
     }
 
     public void initiateFreeApipServices(){
@@ -116,6 +154,7 @@ public class Configure {
             freeApipUrlList = new ArrayList<>();
             FreeApi freeApiHelp = new FreeApi("https://help.cash/APIP",true);
             FreeApi freeApiApip = new FreeApi("https://apip.cash/APIP",true);
+            FreeApi freeApiLocal8080 = new FreeApi("https://127.0.0.1:8080/APIP",true);
             freeApipUrlList.add(freeApiHelp);
             freeApipUrlList.add(freeApiApip);
         }
@@ -649,15 +688,18 @@ public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMa
         ApiAccount apiAccount = null;
         while (true) {
             if (apiAccountId == null) {
-                System.out.println("No " + apiType + " service set yet. Add it.");
+                System.out.println("No " + apiType + " account set yet. ");
                 try{
-                    apiAccount = setApiService(symKey,apiType, apipClient);
+                    apiAccount = getApiAccount(symKey,apiType, apipClient);
                 }catch (Exception e){
                     return null;//apiAccount = setApiService(symKey,apipClient);
                 }
+            }else {
+                apiAccount = apiAccountMap.get(apiAccountId);
             }
             if (apiAccount == null) {
-                System.out.println("Failed to get API account. Try again.");
+                apiAccount = getApiAccount(symKey,apiType, apipClient);
+                if (apiAccount == null) System.out.println("Failed to get API account. Try again.");
                 continue;
             }
             if (apiAccount.getClient() == null) {
@@ -671,16 +713,21 @@ public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMa
         }
     }
 
-    public ApiAccount setApiService(byte[] symKey,ApipClient apipClient) {
-        ApiProvider apiProvider = chooseApiProviderOrAdd(apiProviderMap, apipClient);
-        ApiAccount apiAccount = chooseApiProvidersAccount(apiProvider,symKey,apipClient);
-        if(apiAccount.getClient()!=null) saveConfig();
-        return apiAccount;
-    }
+//    public ApiAccount setApiService(byte[] symKey,ApipClient apipClient) {
+//        ApiProvider apiProvider = chooseApiProviderOrAdd(apiProviderMap, apipClient);
+//        ApiAccount apiAccount = chooseApiProvidersAccount(apiProvider,symKey,apipClient);
+//        if(apiAccount.getClient()!=null) saveConfig();
+//        return apiAccount;
+//    }
 
-    public ApiAccount setApiService(byte[] symKey, ApiType apiType,ApipClient apipClient) {
+    public ApiAccount getApiAccount(byte[] symKey, ApiType apiType, ApipClient apipClient) {
         ApiProvider apiProvider = chooseApiProvider(apiProviderMap,apiType);
         if(apiProvider==null) apiProvider = addApiProvider(apiType,apipClient);
+        if(apiProvider.getId()==null){
+            System.out.println("The ID of the API provider is null. Update it...");
+            apiProvider.updateAll(br);
+            saveConfig();
+        }
         ApiAccount apiAccount = chooseApiProvidersAccount(apiProvider,symKey,apipClient);
         if(apiAccount==null) apiAccount = addApiAccount(apiProvider, symKey,apipClient );
         if(apiAccount.getClient()!=null) saveConfig();

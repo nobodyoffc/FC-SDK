@@ -41,15 +41,16 @@ public class DiskManagerSettings extends Settings {
         System.out.println("Initiating service settings...");
         setInitForServer(sid, config, br);
 
-        apipAccount = checkApiAccount(apipAccountId,ApiType.APIP, config, symKey, null);
+        apipAccount = config.checkAPI(apipAccountId,ApiType.APIP,symKey);//checkApiAccount(apipAccountId,ApiType.APIP, config, symKey, null);
+        checkIfMainFidIsApiAccountUser(symKey,config,br,apipAccount);
         if(apipAccount!=null)apipAccountId=apipAccount.getId();
         else System.out.println("No APIP service.");
 
-        esAccount = checkApiAccount(esAccountId, ApiType.ES, config, symKey, null);
+        esAccount =  config.checkAPI(esAccountId,ApiType.ES,symKey);//checkApiAccount(esAccountId, ApiType.ES, config, symKey, null);
         if(esAccount!=null)esAccountId = esAccount.getId();
         else System.out.println("No ES service.");
 
-        redisAccount = checkApiAccount(redisAccountId,ApiType.REDIS,config,symKey,null);
+        redisAccount =  config.checkAPI(redisAccountId,ApiType.REDIS,symKey);//checkApiAccount(redisAccountId,ApiType.REDIS,config,symKey,null);
         if(redisAccount!=null)redisAccountId = redisAccount.getId();
         else System.out.println("No Redis service.");
 
@@ -191,7 +192,7 @@ public class DiskManagerSettings extends Settings {
         try {
             fromWebhook = appTools.Inputer.promptAndSet(br, FieldNames.FROM_WEBHOOK,this.fromWebhook);
             if(fromWebhook){
-                listenPath = System.getProperty(UserHome) + "/" + ApiNames.NewCashByFidsAPI;
+                listenPath = System.getProperty(UserHome) + "/" + ApiNames.NewCashByFids;
             }else listenPath = appTools.Inputer.promptAndSet(br, FieldNames.LISTEN_PATH,this.listenPath);
             inputForbidFreeApi(br);
             inputWindowTime(br);
@@ -278,7 +279,7 @@ public class DiskManagerSettings extends Settings {
     private void updateFromWebhook(BufferedReader br)  {
         try {
             fromWebhook = appTools.Inputer.promptAndSet(br, FieldNames.FROM_WEBHOOK,this.fromWebhook);
-            if(fromWebhook)listenPath = System.getProperty(UserHome) + "/" + ApiNames.NewCashByFidsAPI;
+            if(fromWebhook)listenPath = System.getProperty(UserHome) + "/" + ApiNames.NewCashByFids;
             saveSettings(mainFid);
             System.out.println("It's '"+fromWebhook +"' now.");
             Menu.anyKeyToContinue(br);

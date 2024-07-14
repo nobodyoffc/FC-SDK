@@ -32,11 +32,13 @@ public class DiskClientSettings extends Settings {
         setInitForClient(fid, config, br);
 
         mainFidPriKeyCipher = config.getFidCipherMap().get(mainFid);
-        apipAccount = checkApiAccount(apipAccountId, ApiType.APIP, config, symKey, null);
+        apipAccount = config.checkAPI(apipAccountId,ApiType.APIP,symKey);//checkApiAccount(apipAccountId, ApiType.APIP, config, symKey, null);
+        checkIfMainFidIsApiAccountUser(symKey,config,br,apipAccount);
         if(apipAccount.getClient()!=null)apipAccountId=apipAccount.getId();
         else System.out.println("No APIP service.");
 
-        diskAccount = checkFcAccount(diskAccountId,ApiType.DISK,config,symKey, (ApipClient) apipAccount.getClient());
+        diskAccount = config.checkAPI(diskAccountId,ApiType.DISK,symKey,apipAccount.getApipClient());//checkFcAccount(diskAccountId,ApiType.DISK,config,symKey, (ApipClient) apipAccount.getClient());
+        checkIfMainFidIsApiAccountUser(symKey,config,br,apipAccount);
         if(diskAccount!=null && diskAccount.getClient()!=null)diskAccountId=diskAccount.getId();
         else System.out.println("No Disk service.");
 

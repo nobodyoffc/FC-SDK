@@ -28,9 +28,10 @@ public class ApipClientSettings extends Settings {
 
         mainFidPriKeyCipher = config.getFidCipherMap().get(mainFid);
 
-        apipAccount = checkApiAccount(apipAccountId,ApiType.APIP , config, symKey, null);
+        apipAccount = config.checkAPI(apipAccountId,ApiType.APIP,symKey);//checkApiAccount(apipAccountId,ApiType.APIP , config, symKey, null);
+        checkIfMainFidIsApiAccountUser(symKey,config,br,apipAccount);
         if(apipAccount.getClient()!=null)apipAccountId=apipAccount.getId();
-        else System.out.println("No APIP service.");
+        else System.out.println("No APIP service or failed to get APIP client.");
 
         saveSettings(mainFid);
         config.saveConfig();

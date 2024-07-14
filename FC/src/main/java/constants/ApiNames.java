@@ -37,6 +37,7 @@ public class ApiNames {
     }
 
     public static String[] OpenAPIs;
+    public static String[] FcdslAPIs;
     public static String[] FreeGetAPIs;
     public static String[] SwapHallAPIs;
     public static String[] BlockchainAPIs;
@@ -75,261 +76,266 @@ public class ApiNames {
     public static final String FreeGetPath = "/freeGet/v1/";
     public static final String SwapHallPath = "/swapHall/v1/";
     public static final String ToolsPath = "/tools/";
-    public static final String SignInAPI = "signIn";
-    public static final String PingApi = "ping";
-    public static final String SignInEccAPI = "signInEcc";
-    public static final String GeneralAPI = "general";
-    public static final String TotalsAPI = "totals";
-    public static final String BlockByIdsAPI = "blockByIds";
-    public static final String BlockSearchAPI = "blockSearch";
-    public static final String BlockByHeightsAPI = "blockByHeights";
-    public static final String CashByIdsAPI = "cashByIds";
-    public static final String GetCashesAPI = "getCashes";
-    public static final String CashSearchAPI = "cashSearch";
-    public static final String TxByIdsAPI = "txByIds";
-    public static final String TxSearchAPI = "txSearch";
-    public static final String OpReturnByIdsAPI = "opReturnByIds";
-    public static final String OpReturnSearchAPI = "opReturnSearch";
-    public static final String UnconfirmedAPI = "unconfirmed";
-    public static final String BlockHasByIdsAPI = "blockHasByIds";
-    public static final String TxHasByIdsAPI = "TxHasByIds";
-    public static final String CashValidAPI = "cashValid";
-    public static final String GetUtxoAPI = "getUtxo";
-    public static final String FidByIdsAPI = "fidByIds";
-    public static final String CidInfoByIdsAPI = "cidInfoByIds";
-    public static final String GetFidCidAPI = "getFidCid";
-    public static final String FidSearchAPI = "fidSearch";
-    public static final String FidCidSeekAPI = "fidCidSeek";
-    public static final String CidByIdsAPI = "cidByIds";
-    public static final String CidInfoSearchAPI = "cidInfoSearch";
-    public static final String CidSearchAPI = "cidSearch";
-    public static final String CidHistoryAPI = "cidHistory";
-    public static final String HomepageHistoryAPI = "homepageHistory";
-    public static final String NoticeFeeHistoryAPI = "noticeFeeHistory";
-    public static final String ReputationHistoryAPI = "reputationHistory";
-    public static final String NobodySearchAPI = "nobodySearch";
-    public static final String P2shByIdsAPI = "p2shByIds";
-    public static final String P2shSearchAPI = "p2shSearch";
-    public static final String ProtocolByIdsAPI = "protocolByIds";
-    public static final String ProtocolSearchAPI = "protocolSearch";
-    public static final String ProtocolOpHistoryAPI = "protocolOpHistory";
-    public static final String ProtocolRateHistoryAPI = "protocolRateHistory";
-    public static final String CodeByIdsAPI = "codeByIds";
-    public static final String CodeSearchAPI = "codeSearch";
-    public static final String CodeOpHistoryAPI = "codeOpHistory";
-    public static final String CodeRateHistoryAPI = "codeRateHistory";
-    public static final String ServiceByIdsAPI = "serviceByIds";
-    public static final String GetBestBlockAPI = "getBestBlock";
-    public static final String GetServicesAPI = "getServices";
-    public static final String GetServiceAPI = "getService";
-    public static final String GetFreeServiceAPI = "getFreeService";
-    public static final String ServiceSearchAPI = "serviceSearch";
-    public static final String ServiceOpHistoryAPI = "serviceOpHistory";
-    public static final String ServiceRateHistoryAPI = "serviceRateHistory";
-    public static final String AppByIdsAPI = "appByIds";
-    public static final String GetAppsAPI = "getApps";
-    public static final String AppSearchAPI = "appSearch";
-    public static final String AppOpHistoryAPI = "appOpHistory";
-    public static final String AppRateHistoryAPI = "appRateHistory";
-    public static final String GroupByIdsAPI = "groupByIds";
-    public static final String GroupSearchAPI = "groupSearch";
-    public static final String GroupMembersAPI = "groupMembers";
-    public static final String GroupExMembersAPI = "groupExMembers";
-    public static final String MyGroupsAPI = "myGroups";
-    public static final String GroupOpHistoryAPI = "groupOpHistory";
-    public static final String TeamByIdsAPI = "teamByIds";
-    public static final String TeamSearchAPI = "teamSearch";
-    public static final String TeamMembersAPI = "teamMembers";
-    public static final String TeamExMembersAPI = "teamExMembers";
-    public static final String TeamOtherPersonsAPI = "teamOtherPersons";
-    public static final String MyTeamsAPI = "myTeams";
-    public static final String TeamOpHistoryAPI = "teamOpHistory";
-    public static final String TeamRateHistoryAPI = "teamRateHistory";
-    public static final String ContactByIdsAPI = "contactByIds";
-    public static final String ContactsAPI = "contacts";
-    public static final String ContactsDeletedAPI = "contactsDeleted";
-    public static final String SecretByIdsAPI = "secretByIds";
-    public static final String SecretsAPI = "secrets";
-    public static final String SecretsDeletedAPI = "secretsDeleted";
-    public static final String MailByIdsAPI = "mailByIds";
-    public static final String MailsAPI = "mails";
-    public static final String MailsDeletedAPI = "mailsDeleted";
-    public static final String MailThreadAPI = "mailThread";
-    public static final String StatementByIdsAPI = "statementByIds";
-    public static final String StatementsAPI = "statements";
-    public static final String StatementSearchAPI = "statementSearch";
-    public static final String ProofByIdsAPI = "proofByIds";
-    public static final String ProofSearchAPI = "proofSearch";
-    public static final String ProofHistoryAPI = "proofHistory";
-    public static final String BoxByIdsAPI = "boxByIds";
-    public static final String BoxSearchAPI = "boxSearch";
-    public static final String BoxHistoryAPI = "boxHistory";
-    public static final String AvatarsAPI = "avatars";
-    public static final String GetAvatarAPI = "getAvatar";
-    public static final String DecodeRawTxAPI = "decodeRawTx";
-    public static final String BroadcastTxAPI = "broadcastTx";
-    public static final String FeeRateAPI = "feeRate";
-    public static final String BroadcastAPI = "broadcast";
-    public static final String CashValidLiveAPI = "cashValidLive";
-    public static final String CashValidForCdAPI = "cashValidForCd";
-    public static final String CashValidForPayAPI = "cashValidForPay";
-    public static final String GetTotalsAPI = "getTotals";
-    public static final String GetPricesAPI = "getPrices";
-    public static final String NidSearchAPI = "nidSearch";
-    public static final String EncryptAPI = "encrypt";
-    public static final String Sha256API = "sha256";
-    public static final String Sha256x2API = "sha256x2";
-    public static final String Sha256BytesAPI = "sha256Bytes";
-    public static final String Sha256x2BytesAPI = "sha256x2Bytes";
-    public static final String VerifyAPI = "verify";
-    public static final String OffLineTxAPI = "offLineTx";
-    public static final String OffLineTxByCdAPI = "offLineTxByCd";
-    public static final String AddressesAPI = "addresses";
-    public static final String NewCashByFidsAPI = "newCashByFids";
-    public static final String OpReturnByFidsAPI = "opReturnByFids";
-    public static final String NobodyByIdsAPI ="nobodyByIds";
+    public static final String SignIn = "signIn";
+    public static final String Ping = "ping";
+    public static final String SignInEcc = "signInEcc";
+    public static final String General = "general";
+    public static final String Totals = "totals";
+    public static final String BlockByIds = "blockByIds";
+    public static final String BlockSearch = "blockSearch";
+    public static final String BlockByHeights = "blockByHeights";
+    public static final String CashByIds = "cashByIds";
+    public static final String GetCashes = "getCashes";
+    public static final String CashSearch = "cashSearch";
+    public static final String TxByIds = "txByIds";
+    public static final String TxByFid = "txByFid";
 
-    public static final String SwapRegisterAPI ="swapRegister";
-    public static final String SwapUpdateAPI ="swapUpdate";
-    public static final String SwapStateAPI ="swapState";
-    public static final String SwapLpAPI ="swapLp";
-    public static final String SwapPendingAPI ="swapPending";
-    public static final String SwapFinishedAPI ="swapFinished";
-    public static final String SwapPriceAPI ="swapPrice";
-    public static final String SwapInfoAPI ="swapInfo";
+    public static final String TxSearch = "txSearch";
+    public static final String OpReturnByIds = "opReturnByIds";
+    public static final String OpReturnSearch = "opReturnSearch";
+    public static final String Unconfirmed = "unconfirmed";
+    public static final String BlockHasByIds = "blockHasByIds";
+    public static final String TxHasByIds = "TxHasByIds";
+    public static final String CashValid = "cashValid";
+    public static final String GetUtxo = "getUtxo";
+    public static final String FidByIds = "fidByIds";
+    public static final String FidSearch = "fidSearch";
+    public static final String FidCidSeek = "fidCidSeek";
+    public static final String NewOpReturnByFids ="newOpReturnByFids";
 
-    public static final String MyTokensAPI = "myTokens";
-    public static final String TokenByIdsAPI = "tokenByIds";
-    public static final String TokenHistoryAPI = "tokenHistory";
-    public static final String TokenHolderByIdsAPI = "tokenHolderByIds";
-    public static final String TokenHoldersAPI = "tokenHolders";
-    public static final String TokenSearchAPI = "tokenSearch";
-    public static final String PutApi = "put";
-    public static final String GetApi = "get";
-    public static final String CheckApi = "check";
-    public static final String ListApi = "list";
+    public static final String GetFidCid = "getFidCid";
+    public static final String CidInfoByIds = "cidInfoByIds";
+    public static final String CidInfoSearch = "cidInfoSearch";
+    public static final String CidHistory = "cidHistory";
+    public static final String HomepageHistory = "homepageHistory";
+    public static final String NoticeFeeHistory = "noticeFeeHistory";
+    public static final String ReputationHistory = "reputationHistory";
+    public static final String NobodySearch = "nobodySearch";
+    public static final String P2shByIds = "p2shByIds";
+    public static final String P2shSearch = "p2shSearch";
+    public static final String ProtocolByIds = "protocolByIds";
+    public static final String ProtocolSearch = "protocolSearch";
+    public static final String ProtocolOpHistory = "protocolOpHistory";
+    public static final String ProtocolRateHistory = "protocolRateHistory";
+    public static final String CodeByIds = "codeByIds";
+    public static final String CodeSearch = "codeSearch";
+    public static final String CodeOpHistory = "codeOpHistory";
+    public static final String CodeRateHistory = "codeRateHistory";
+    public static final String ServiceByIds = "serviceByIds";
+    public static final String GetBestBlock = "getBestBlock";
+    public static final String GetServices = "getServices";
+    public static final String GetService = "getService";
+    public static final String GetFreeService = "getFreeService";
+    public static final String ServiceSearch = "serviceSearch";
+    public static final String ServiceOpHistory = "serviceOpHistory";
+    public static final String ServiceRateHistory = "serviceRateHistory";
+    public static final String AppByIds = "appByIds";
+    public static final String GetApps = "getApps";
+    public static final String AppSearch = "appSearch";
+    public static final String AppOpHistory = "appOpHistory";
+    public static final String AppRateHistory = "appRateHistory";
+    public static final String GroupByIds = "groupByIds";
+    public static final String GroupSearch = "groupSearch";
+    public static final String GroupMembers = "groupMembers";
+    public static final String GroupExMembers = "groupExMembers";
+    public static final String MyGroups = "myGroups";
+    public static final String GroupOpHistory = "groupOpHistory";
+    public static final String TeamByIds = "teamByIds";
+    public static final String TeamSearch = "teamSearch";
+    public static final String TeamMembers = "teamMembers";
+    public static final String TeamExMembers = "teamExMembers";
+    public static final String TeamOtherPersons = "teamOtherPersons";
+    public static final String MyTeams = "myTeams";
+    public static final String TeamOpHistory = "teamOpHistory";
+    public static final String TeamRateHistory = "teamRateHistory";
+    public static final String ContactByIds = "contactByIds";
+    public static final String Contacts = "contacts";
+    public static final String ContactsDeleted = "contactsDeleted";
+    public static final String SecretByIds = "secretByIds";
+    public static final String Secrets = "secrets";
+    public static final String SecretsDeleted = "secretsDeleted";
+    public static final String MailByIds = "mailByIds";
+    public static final String Mails = "mails";
+    public static final String MailsDeleted = "mailsDeleted";
+    public static final String MailThread = "mailThread";
+    public static final String StatementByIds = "statementByIds";
+    public static final String StatementSearch = "statementSearch";
+    public static final String ProofByIds = "proofByIds";
+    public static final String ProofSearch = "proofSearch";
+    public static final String ProofHistory = "proofHistory";
+    public static final String BoxByIds = "boxByIds";
+    public static final String BoxSearch = "boxSearch";
+    public static final String BoxHistory = "boxHistory";
+    public static final String Avatars = "avatars";
+    public static final String GetAvatar = "getAvatar";
+    public static final String DecodeTx = "decodeTx";
+    public static final String BroadcastTx = "broadcastTx";
+    public static final String FeeRate = "feeRate";
+    public static final String Broadcast = "broadcast";
+//    public static final String CashValid = "cashValidLive";
+//    public static final String CashValid = "cashValidForCd";
+//    public static final String CashValid = "cashValidForPay";
+    public static final String GetTotals = "getTotals";
+    public static final String GetPrices = "getPrices";
+    public static final String NidSearch = "nidSearch";
+    public static final String Encrypt = "encrypt";
+    public static final String Sha256 = "sha256";
+    public static final String HexToBase58 = "hexToBase58";
+    public static final String CheckSum4 = "checkSum4";
+    public static final String Sha256x2 = "sha256x2";
+    public static final String Sha256Bytes = "sha256Bytes";
+    public static final String Ripemd160 = "ripemd160";
+    public static final String KeccakSha3 = "keccakSha3";
+    public static final String Sha256x2Bytes = "sha256x2Bytes";
+    public static final String Verify = "verify";
+    public static final String OffLineTx = "offLineTx";
+    public static final String OffLineTxByCd = "offLineTxByCd";
+    public static final String Addresses = "addresses";
+    public static final String NewCashByFids = "newCashByFids";
+    public static final String OpReturnByFids = "opReturnByFids";
+    public static final String NobodyByIds ="nobodyByIds";
+
+    public static final String SwapRegister ="swapRegister";
+    public static final String SwapUpdate ="swapUpdate";
+    public static final String SwapState ="swapState";
+    public static final String SwapLp ="swapLp";
+    public static final String SwapPending ="swapPending";
+    public static final String SwapFinished ="swapFinished";
+    public static final String SwapPrice ="swapPrice";
+    public static final String SwapInfo ="swapInfo";
+
+    public static final String MyTokens = "myTokens";
+    public static final String TokenByIds = "tokenByIds";
+    public static final String TokenHistory = "tokenHistory";
+    public static final String TokenHoldersByIds = "tokenHoldersByIds";
+    public static final String TokenHolderSearch = "tokenHolderSearch";
+    public static final String TokenSearch = "tokenSearch";
+    public static final String Put = "put";
+    public static final String Get = "get";
+    public static final String Check = "check";
+    public static final String List = "list";
+
+    public static final String ChainInfo ="chainInfo";
+    public static final String DifficultyHistory ="difficultyHistory";
+    public static final String HashRateHistory ="hashRateHistory";
+    public static final String BlockTimeHistory ="blockTimeHistory";
+    public static final String Endpoint = "endpoint";
+
 
 
     public static ArrayList<String> freeApiList = new ArrayList<>();
     public static ArrayList<String> diskApiList = new ArrayList<>();
 
-    public static final String GetFreeKeyAPI="getFreeKey";
-    public static final String GetCirculatingAPI="getCirculating";
-    public static final String ChainInfoAPI ="chainInfo";
-    public static final String DifficultyHistoryAPI ="difficultyHistory";
-    public static final String HashRateHistoryAPI ="hashRateHistory";
-    public static final String BlockTimeHistoryAPI ="blockTimeHistory";
-    public static final String EndpointAPI = "endpoint";
-    public static final String NewOpReturnByFidsAPI="newOpReturnByFids";
-
-
     static {
 
         OpenAPIs = new String[]{
-                PingApi,GetServiceAPI,SignInAPI,SignInEccAPI,TotalsAPI,GeneralAPI
+                Ping, GetService, SignIn, SignInEcc, Totals
         };
+        FcdslAPIs = new String[]{General};
 
         BlockchainAPIs = new String[]{
-                BlockByIdsAPI, BlockSearchAPI, BlockByHeightsAPI,
-                CashByIdsAPI, CashSearchAPI,CashValidAPI,
-                FidByIdsAPI,FidSearchAPI,
-                OpReturnByIdsAPI,OpReturnSearchAPI,
-                P2shByIdsAPI,P2shSearchAPI,
-                TxByIdsAPI,TxSearchAPI,
-                ChainInfoAPI
+                BlockByIds, BlockSearch, BlockByHeights,
+                CashByIds, CashSearch,
+                FidByIds, FidSearch,
+                OpReturnByIds, OpReturnSearch,
+                P2shByIds, P2shSearch,
+                TxByIds, TxSearch,TxByFid,
+                ChainInfo, BlockTimeHistory, DifficultyHistory, HashRateHistory
         };
 
         IdentityAPIs = new String[]{
-                CidInfoByIdsAPI,CidInfoSearchAPI,CidHistoryAPI,
-                FidCidSeekAPI,GetFidCidAPI,
-                NobodyByIdsAPI, NobodySearchAPI,
-                HomepageHistoryAPI,NoticeFeeHistoryAPI,ReputationHistoryAPI,
-                AvatarsAPI,GetAvatarAPI
+                CidInfoByIds, CidInfoSearch, CidHistory,
+                FidCidSeek, GetFidCid,
+                NobodyByIds, NobodySearch,
+                HomepageHistory, NoticeFeeHistory, ReputationHistory,
+                GetAvatar,Avatars
         };
 
         OrganizeAPIs = new String[]{
-                GroupByIdsAPI,GroupSearchAPI,GroupMembersAPI,GroupOpHistoryAPI,MyGroupsAPI,
-                TeamByIdsAPI,TeamSearchAPI,TeamMembersAPI,TeamExMembersAPI,
-                TeamOpHistoryAPI,TeamRateHistoryAPI,TeamOtherPersonsAPI,MyTeamsAPI
+                GroupByIds, GroupSearch, GroupMembers, GroupOpHistory, MyGroups,
+                TeamByIds, TeamSearch, TeamMembers, TeamExMembers,
+                TeamOpHistory, TeamRateHistory, TeamOtherPersons, MyTeams
         };
 
         ConstructAPIs = new String[]{
-                ProtocolByIdsAPI,ProtocolSearchAPI,ProtocolOpHistoryAPI,ProtocolRateHistoryAPI,
-                CodeByIdsAPI,CodeSearchAPI,CodeOpHistoryAPI,CodeRateHistoryAPI,
-                ServiceByIdsAPI,ServiceSearchAPI,ServiceOpHistoryAPI,ServiceRateHistoryAPI,
-                AppByIdsAPI,AppSearchAPI,AppOpHistoryAPI,AppRateHistoryAPI
+                ProtocolByIds, ProtocolSearch, ProtocolOpHistory, ProtocolRateHistory,
+                CodeByIds, CodeSearch, CodeOpHistory, CodeRateHistory,
+                ServiceByIds, ServiceSearch, ServiceOpHistory, ServiceRateHistory,
+                AppByIds, AppSearch, AppOpHistory, AppRateHistory
         };
 
         PersonalAPIs = new String[]{
-                BoxByIdsAPI,BoxSearchAPI,BoxHistoryAPI,
-                ContactByIdsAPI,ContactsAPI,ContactsDeletedAPI,
-                SecretByIdsAPI,SecretsAPI,SecretsDeletedAPI,
-                MailByIdsAPI,MailsAPI,MailsDeletedAPI,MailThreadAPI
+                BoxByIds, BoxSearch, BoxHistory,
+                ContactByIds, Contacts, ContactsDeleted,
+                SecretByIds, Secrets, SecretsDeleted,
+                MailByIds, Mails, MailsDeleted, MailThread
         };
 
         PublishAPIs = new String[]{
-                ProofByIdsAPI,ProofSearchAPI,ProofHistoryAPI,
-                StatementByIdsAPI,StatementSearchAPI, NidSearchAPI,
-                TokenByIdsAPI,TokenSearchAPI ,TokenHistoryAPI,
-                TokenHolderByIdsAPI,MyTokensAPI,TokenHoldersAPI
+                ProofByIds, ProofSearch, ProofHistory,
+                StatementByIds, StatementSearch, NidSearch,
+                TokenByIds, TokenSearch, TokenHistory,
+                TokenHoldersByIds, MyTokens, TokenHolderSearch
         };
 
         WalletAPIs = new String[]{
-                BroadcastTxAPI,DecodeRawTxAPI,
-                CashValidForPayAPI,CashValidForCdAPI,
-                UnconfirmedAPI,FeeRateAPI
+                BroadcastTx, DecodeTx,
+                CashValid,
+                Unconfirmed, FeeRate,
+                OffLineTx
         };
 
         CryptoToolsAPIs = new String[]{
-                AddressesAPI,
-                EncryptAPI,VerifyAPI,
-                Sha256API,Sha256x2API,Sha256BytesAPI,Sha256x2BytesAPI,
-                OffLineTxAPI,OffLineTxByCdAPI
+                Addresses,
+                Encrypt, Verify,
+                Sha256, Sha256x2, Sha256Bytes, Sha256x2Bytes,
+                Ripemd160,KeccakSha3,
+                CheckSum4,HexToBase58
         };
 
         List<String> apipApiList = new ArrayList<>();
 
-        apipApiList.addAll(List.of(OpenAPIs));
-        apipApiList.addAll(List.of(BlockchainAPIs));
-        apipApiList.addAll(List.of(IdentityAPIs));
-        apipApiList.addAll(List.of(OrganizeAPIs));
-        apipApiList.addAll(List.of(ConstructAPIs));
-        apipApiList.addAll(List.of(PersonalAPIs));
-        apipApiList.addAll(List.of(PublishAPIs));
-        apipApiList.addAll(List.of(WalletAPIs));
-        apipApiList.addAll(List.of(CryptoToolsAPIs));
+        apipApiList.addAll(java.util.List.of(OpenAPIs));
+        apipApiList.addAll(java.util.List.of(BlockchainAPIs));
+        apipApiList.addAll(java.util.List.of(IdentityAPIs));
+        apipApiList.addAll(java.util.List.of(OrganizeAPIs));
+        apipApiList.addAll(java.util.List.of(ConstructAPIs));
+        apipApiList.addAll(java.util.List.of(PersonalAPIs));
+        apipApiList.addAll(java.util.List.of(PublishAPIs));
+        apipApiList.addAll(java.util.List.of(WalletAPIs));
+        apipApiList.addAll(java.util.List.of(CryptoToolsAPIs));
 
         ApipAPIs = apipApiList.toArray(new String[0]);
         DiskAPIs = new String[]{
-        PutApi, GetApi, CheckApi,ListApi, PingApi,SignInAPI,SignInEccAPI
+                Put, Get, Check, List, Ping, SignIn, SignInEcc
         };
 
         FreeGetAPIs = new String[]{
-                BroadcastAPI,GetAppsAPI,GetServicesAPI,GetAvatarAPI,GetCashesAPI,
-                GetFidCidAPI,GetFreeServiceAPI,GetServicesAPI,GetTotalsAPI
+                Ping, ChainInfo, GetService, FidCidSeek, GetFidCid,GetAvatar, CashValid, Broadcast
         };
-        freeApiList.add(ApiNames.GetBestBlockAPI);
-        freeApiList.add(ApiNames.GetFreeServiceAPI);
-        freeApiList.add(ApiNames.GetAvatarAPI);
-        freeApiList.add(ApiNames.GetTotalsAPI);
-        freeApiList.add(ApiNames.GetPricesAPI);
-        freeApiList.add(ApiNames.GetAppsAPI);
-        freeApiList.add(ApiNames.GetCashesAPI);
-        freeApiList.add(ApiNames.GetFidCidAPI);
-        freeApiList.add(ApiNames.GetServicesAPI);
 
-        diskApiList.add(SignInAPI);
-        diskApiList.add(SignInEccAPI);
-        diskApiList.add(PutApi);
-        diskApiList.add(GetApi);
-        diskApiList.add(CheckApi);
-        diskApiList.add(ListApi);
-        diskApiList.add(PingApi);
+        freeApiList.add(ApiNames.GetBestBlock);
+        freeApiList.add(ApiNames.GetFreeService);
+        freeApiList.add(ApiNames.GetAvatar);
+        freeApiList.add(ApiNames.GetTotals);
+        freeApiList.add(ApiNames.GetPrices);
+        freeApiList.add(ApiNames.GetApps);
+        freeApiList.add(ApiNames.GetCashes);
+        freeApiList.add(ApiNames.GetFidCid);
+        freeApiList.add(ApiNames.GetServices);
+
+        diskApiList.add(SignIn);
+        diskApiList.add(SignInEcc);
+        diskApiList.add(Put);
+        diskApiList.add(Get);
+        diskApiList.add(Check);
+        diskApiList.add(List);
+        diskApiList.add(Ping);
 
         SwapHallAPIs = new String[]{
-                SwapRegisterAPI,SwapUpdateAPI,SwapStateAPI,
-                SwapLpAPI,SwapPendingAPI,SwapFinishedAPI,
-                SwapPriceAPI,SwapInfoAPI, SwapInfoAPI
+                SwapRegister, SwapUpdate, SwapState,
+                SwapLp, SwapPending, SwapFinished,
+                SwapPrice, SwapInfo, SwapInfo
         };
 
     }
@@ -338,140 +344,138 @@ public class ApiNames {
 
     static {
 
-        ApiNames.apiList.add(ApiNames.SignInAPI);
-        ApiNames.apiList.add(ApiNames.SignInEccAPI);
-        ApiNames.apiList.add(ApiNames.GeneralAPI);
-        ApiNames.apiList.add(ApiNames.TotalsAPI);
+        ApiNames.apiList.add(ApiNames.SignIn);
+        ApiNames.apiList.add(ApiNames.SignInEcc);
+        ApiNames.apiList.add(ApiNames.General);
+        ApiNames.apiList.add(ApiNames.Totals);
 
-        ApiNames.apiList.add(ApiNames.BlockByIdsAPI);
-        ApiNames.apiList.add(ApiNames.BlockSearchAPI);
-        ApiNames.apiList.add(ApiNames.BlockByHeightsAPI);
-        ApiNames.apiList.add(ApiNames.CashByIdsAPI);
-        ApiNames.apiList.add(ApiNames.CashSearchAPI);
-        ApiNames.apiList.add(ApiNames.TxHasByIdsAPI);
-        ApiNames.apiList.add(ApiNames.CashValidAPI);
-        ApiNames.apiList.add(ApiNames.TxByIdsAPI);
-        ApiNames.apiList.add(ApiNames.TxSearchAPI);
-        ApiNames.apiList.add(ApiNames.BlockHasByIdsAPI);
-        ApiNames.apiList.add(ApiNames.OpReturnByIdsAPI);
-        ApiNames.apiList.add(ApiNames.OpReturnSearchAPI);
-        ApiNames.apiList.add(ApiNames.FidByIdsAPI);
-        ApiNames.apiList.add(ApiNames.FidSearchAPI);
-        ApiNames.apiList.add(ApiNames.P2shByIdsAPI);
-        ApiNames.apiList.add(ApiNames.P2shSearchAPI);
+        ApiNames.apiList.add(ApiNames.BlockByIds);
+        ApiNames.apiList.add(ApiNames.BlockSearch);
+        ApiNames.apiList.add(ApiNames.BlockByHeights);
+        ApiNames.apiList.add(ApiNames.CashByIds);
+        ApiNames.apiList.add(ApiNames.CashSearch);
+        ApiNames.apiList.add(ApiNames.TxHasByIds);
+        ApiNames.apiList.add(ApiNames.CashValid);
+        ApiNames.apiList.add(ApiNames.TxByIds);
+        ApiNames.apiList.add(ApiNames.TxSearch);
+        ApiNames.apiList.add(ApiNames.BlockHasByIds);
+        ApiNames.apiList.add(ApiNames.OpReturnByIds);
+        ApiNames.apiList.add(ApiNames.OpReturnSearch);
+        ApiNames.apiList.add(ApiNames.FidByIds);
+        ApiNames.apiList.add(ApiNames.FidSearch);
+        ApiNames.apiList.add(ApiNames.P2shByIds);
+        ApiNames.apiList.add(ApiNames.P2shSearch);
 
-        ApiNames.apiList.add(ApiNames.CidInfoByIdsAPI);
-        ApiNames.apiList.add(ApiNames.CidByIdsAPI);
-        ApiNames.apiList.add(ApiNames.FidCidSeekAPI);
-        ApiNames.apiList.add(ApiNames.CidInfoSearchAPI);
-        ApiNames.apiList.add(ApiNames.CidHistoryAPI);
-        ApiNames.apiList.add(ApiNames.HomepageHistoryAPI);
-        ApiNames.apiList.add(ApiNames.NoticeFeeHistoryAPI);
-        ApiNames.apiList.add(ApiNames.ReputationHistoryAPI);
-        ApiNames.apiList.add(ApiNames.NobodySearchAPI);
-        ApiNames.apiList.add(ApiNames.NobodyByIdsAPI);
+        ApiNames.apiList.add(ApiNames.CidInfoByIds);
+        ApiNames.apiList.add(ApiNames.FidCidSeek);
+        ApiNames.apiList.add(ApiNames.CidInfoSearch);
+        ApiNames.apiList.add(ApiNames.CidHistory);
+        ApiNames.apiList.add(ApiNames.HomepageHistory);
+        ApiNames.apiList.add(ApiNames.NoticeFeeHistory);
+        ApiNames.apiList.add(ApiNames.ReputationHistory);
+        ApiNames.apiList.add(ApiNames.NobodySearch);
+        ApiNames.apiList.add(ApiNames.NobodyByIds);
 
-        ApiNames.apiList.add(ApiNames.ProtocolByIdsAPI);
-        ApiNames.apiList.add(ApiNames.ProtocolSearchAPI);
-        ApiNames.apiList.add(ApiNames.ProtocolOpHistoryAPI);
-        ApiNames.apiList.add(ApiNames.ProtocolRateHistoryAPI);
+        ApiNames.apiList.add(ApiNames.ProtocolByIds);
+        ApiNames.apiList.add(ApiNames.ProtocolSearch);
+        ApiNames.apiList.add(ApiNames.ProtocolOpHistory);
+        ApiNames.apiList.add(ApiNames.ProtocolRateHistory);
 
-        ApiNames.apiList.add(ApiNames.CodeByIdsAPI);
-        ApiNames.apiList.add(ApiNames.CodeSearchAPI);
-        ApiNames.apiList.add(ApiNames.CodeOpHistoryAPI);
-        ApiNames.apiList.add(ApiNames.CodeRateHistoryAPI);
+        ApiNames.apiList.add(ApiNames.CodeByIds);
+        ApiNames.apiList.add(ApiNames.CodeSearch);
+        ApiNames.apiList.add(ApiNames.CodeOpHistory);
+        ApiNames.apiList.add(ApiNames.CodeRateHistory);
 
-        ApiNames.apiList.add(ApiNames.ServiceByIdsAPI);
-        ApiNames.apiList.add(ApiNames.ServiceSearchAPI);
-        ApiNames.apiList.add(ApiNames.ServiceOpHistoryAPI);
-        ApiNames.apiList.add(ApiNames.ServiceRateHistoryAPI);
+        ApiNames.apiList.add(ApiNames.ServiceByIds);
+        ApiNames.apiList.add(ApiNames.ServiceSearch);
+        ApiNames.apiList.add(ApiNames.ServiceOpHistory);
+        ApiNames.apiList.add(ApiNames.ServiceRateHistory);
 
-        ApiNames.apiList.add(ApiNames.AppByIdsAPI);
-        ApiNames.apiList.add(ApiNames.AppSearchAPI);
-        ApiNames.apiList.add(ApiNames.AppOpHistoryAPI);
-        ApiNames.apiList.add(ApiNames.AppRateHistoryAPI);
+        ApiNames.apiList.add(ApiNames.AppByIds);
+        ApiNames.apiList.add(ApiNames.AppSearch);
+        ApiNames.apiList.add(ApiNames.AppOpHistory);
+        ApiNames.apiList.add(ApiNames.AppRateHistory);
 
-        ApiNames.apiList.add(ApiNames.GroupByIdsAPI);
-        ApiNames.apiList.add(ApiNames.GroupSearchAPI);
-        ApiNames.apiList.add(ApiNames.GroupOpHistoryAPI);
-        ApiNames.apiList.add(ApiNames.GroupMembersAPI);
-        ApiNames.apiList.add(ApiNames.GroupExMembersAPI);
-        ApiNames.apiList.add(ApiNames.MyGroupsAPI);
+        ApiNames.apiList.add(ApiNames.GroupByIds);
+        ApiNames.apiList.add(ApiNames.GroupSearch);
+        ApiNames.apiList.add(ApiNames.GroupOpHistory);
+        ApiNames.apiList.add(ApiNames.GroupMembers);
+        ApiNames.apiList.add(ApiNames.GroupExMembers);
+        ApiNames.apiList.add(ApiNames.MyGroups);
 
-        ApiNames.apiList.add(ApiNames.TeamByIdsAPI);
-        ApiNames.apiList.add(ApiNames.TeamSearchAPI);
-        ApiNames.apiList.add(ApiNames.TeamOpHistoryAPI);
-        ApiNames.apiList.add(ApiNames.TeamMembersAPI);
-        ApiNames.apiList.add(ApiNames.TeamExMembersAPI);
-        ApiNames.apiList.add(ApiNames.TeamOtherPersonsAPI);
-        ApiNames.apiList.add(ApiNames.MyTeamsAPI);
-        ApiNames.apiList.add(ApiNames.TeamRateHistoryAPI);
+        ApiNames.apiList.add(ApiNames.TeamByIds);
+        ApiNames.apiList.add(ApiNames.TeamSearch);
+        ApiNames.apiList.add(ApiNames.TeamOpHistory);
+        ApiNames.apiList.add(ApiNames.TeamMembers);
+        ApiNames.apiList.add(ApiNames.TeamExMembers);
+        ApiNames.apiList.add(ApiNames.TeamOtherPersons);
+        ApiNames.apiList.add(ApiNames.MyTeams);
+        ApiNames.apiList.add(ApiNames.TeamRateHistory);
 
-        ApiNames.apiList.add(ApiNames.BoxByIdsAPI);
-        ApiNames.apiList.add(ApiNames.BoxSearchAPI);
-        ApiNames.apiList.add(ApiNames.BoxHistoryAPI);
+        ApiNames.apiList.add(ApiNames.BoxByIds);
+        ApiNames.apiList.add(ApiNames.BoxSearch);
+        ApiNames.apiList.add(ApiNames.BoxHistory);
 
-        ApiNames.apiList.add(ApiNames.ContactByIdsAPI);
-        ApiNames.apiList.add(ApiNames.ContactsAPI);
-        ApiNames.apiList.add(ApiNames.ContactsDeletedAPI);
+        ApiNames.apiList.add(ApiNames.ContactByIds);
+        ApiNames.apiList.add(ApiNames.Contacts);
+        ApiNames.apiList.add(ApiNames.ContactsDeleted);
 
-        ApiNames.apiList.add(ApiNames.SecretByIdsAPI);
-        ApiNames.apiList.add(ApiNames.SecretsAPI);
-        ApiNames.apiList.add(ApiNames.SecretsDeletedAPI);
+        ApiNames.apiList.add(ApiNames.SecretByIds);
+        ApiNames.apiList.add(ApiNames.Secrets);
+        ApiNames.apiList.add(ApiNames.SecretsDeleted);
 
-        ApiNames.apiList.add(ApiNames.MailByIdsAPI);
-        ApiNames.apiList.add(ApiNames.MailsAPI);
-        ApiNames.apiList.add(ApiNames.MailsDeletedAPI);
-        ApiNames.apiList.add(ApiNames.MailThreadAPI);
+        ApiNames.apiList.add(ApiNames.MailByIds);
+        ApiNames.apiList.add(ApiNames.Mails);
+        ApiNames.apiList.add(ApiNames.MailsDeleted);
+        ApiNames.apiList.add(ApiNames.MailThread);
 
-        ApiNames.apiList.add(ApiNames.ProofByIdsAPI);
-        ApiNames.apiList.add(ApiNames.ProofSearchAPI);
-        ApiNames.apiList.add(ApiNames.ProofHistoryAPI);
+        ApiNames.apiList.add(ApiNames.ProofByIds);
+        ApiNames.apiList.add(ApiNames.ProofSearch);
+        ApiNames.apiList.add(ApiNames.ProofHistory);
 
-        ApiNames.apiList.add(ApiNames.StatementByIdsAPI);
-        ApiNames.apiList.add(ApiNames.StatementsAPI);
-        ApiNames.apiList.add(ApiNames.StatementSearchAPI);
-        ApiNames.apiList.add(ApiNames.NidSearchAPI);
+        ApiNames.apiList.add(ApiNames.StatementByIds);
+        ApiNames.apiList.add(ApiNames.StatementSearch);
+        ApiNames.apiList.add(ApiNames.NidSearch);
 
-        ApiNames.apiList.add(ApiNames.AvatarsAPI);
+        ApiNames.apiList.add(ApiNames.Avatars);
 
-        ApiNames.apiList.add(ApiNames.UnconfirmedAPI);
-        ApiNames.apiList.add(ApiNames.CashValidLiveAPI);
-        ApiNames.apiList.add(ApiNames.CashValidForCdAPI);
-        ApiNames.apiList.add(ApiNames.CashValidForPayAPI);
-        ApiNames.apiList.add(ApiNames.DecodeRawTxAPI);
-        ApiNames.apiList.add(ApiNames.BroadcastTxAPI);
-        ApiNames.apiList.add(ApiNames.FeeRateAPI);
+        ApiNames.apiList.add(ApiNames.Unconfirmed);
+//        ApiNames.apiList.add(ApiNames.CashValid);
+//        ApiNames.apiList.add(ApiNames.CashValid);
+//        ApiNames.apiList.add(ApiNames.CashValid);
+        ApiNames.apiList.add(ApiNames.DecodeTx);
+        ApiNames.apiList.add(ApiNames.BroadcastTx);
+        ApiNames.apiList.add(ApiNames.FeeRate);
 
-        ApiNames.apiList.add(ApiNames.OffLineTxAPI);
-        ApiNames.apiList.add(ApiNames.OffLineTxByCdAPI);
-        ApiNames.apiList.add(ApiNames.EncryptAPI);
-        ApiNames.apiList.add(ApiNames.VerifyAPI);
-        ApiNames.apiList.add(ApiNames.AddressesAPI);
-        ApiNames.apiList.add(ApiNames.Sha256API);
-        ApiNames.apiList.add(ApiNames.Sha256x2API);
-        ApiNames.apiList.add(ApiNames.Sha256BytesAPI);
-        ApiNames.apiList.add(ApiNames.Sha256x2BytesAPI);
+        ApiNames.apiList.add(ApiNames.OffLineTx);
+//        ApiNames.apiList.add(ApiNames.OffLineTxByCd);
+        ApiNames.apiList.add(ApiNames.Encrypt);
+        ApiNames.apiList.add(ApiNames.Verify);
+        ApiNames.apiList.add(ApiNames.Addresses);
+        ApiNames.apiList.add(ApiNames.Sha256);
+        ApiNames.apiList.add(ApiNames.Sha256x2);
+        ApiNames.apiList.add(ApiNames.Sha256Bytes);
+        ApiNames.apiList.add(ApiNames.Sha256x2Bytes);
 
-        ApiNames.apiList.add(ApiNames.NewCashByFidsAPI);
+        ApiNames.apiList.add(ApiNames.NewCashByFids);
 
-        ApiNames.apiList.add(ApiNames.SwapRegisterAPI);
-        ApiNames.apiList.add(ApiNames.SwapUpdateAPI);
-        ApiNames.apiList.add(ApiNames.SwapStateAPI);
-        ApiNames.apiList.add(ApiNames.SwapLpAPI);
-        ApiNames.apiList.add(ApiNames.SwapPendingAPI);
-        ApiNames.apiList.add(ApiNames.SwapFinishedAPI);
-        ApiNames.apiList.add(ApiNames.SwapPriceAPI);
-        ApiNames.apiList.add(ApiNames.SwapInfoAPI);
-        ApiNames.apiList.add(ApiNames.SwapInfoAPI);
+        ApiNames.apiList.add(ApiNames.SwapRegister);
+        ApiNames.apiList.add(ApiNames.SwapUpdate);
+        ApiNames.apiList.add(ApiNames.SwapState);
+        ApiNames.apiList.add(ApiNames.SwapLp);
+        ApiNames.apiList.add(ApiNames.SwapPending);
+        ApiNames.apiList.add(ApiNames.SwapFinished);
+        ApiNames.apiList.add(ApiNames.SwapPrice);
+        ApiNames.apiList.add(ApiNames.SwapInfo);
+        ApiNames.apiList.add(ApiNames.SwapInfo);
 
 
-        ApiNames.apiList.add(TokenByIdsAPI);
-        ApiNames.apiList.add(TokenSearchAPI);
-        ApiNames.apiList.add(TokenHistoryAPI);
-        ApiNames.apiList.add(TokenHolderByIdsAPI);
-        ApiNames.apiList.add(MyTokensAPI);
-        ApiNames.apiList.add(TokenHoldersAPI);
+        ApiNames.apiList.add(TokenByIds);
+        ApiNames.apiList.add(TokenSearch);
+        ApiNames.apiList.add(TokenHistory);
+        ApiNames.apiList.add(TokenHoldersByIds);
+        ApiNames.apiList.add(MyTokens);
+        ApiNames.apiList.add(TokenHolderSearch);
 
     }
 }

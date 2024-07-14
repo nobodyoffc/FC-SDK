@@ -74,8 +74,11 @@ public class JsonTools {
     }
 
 
-    public static void gsonPrint(Object ob) {
-
+    public static void printJson(Object ob) {
+        if(ob==null) {
+            System.out.println("printJson: The object is null.");
+            return;
+        }
         System.out.println("----------\n" + ob.getClass().toString() + ": " + toNiceJson(ob) + "\n----------");
     }
 

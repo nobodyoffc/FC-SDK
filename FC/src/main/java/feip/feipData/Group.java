@@ -9,15 +9,6 @@ public class Group {
 	private String[] members;
 	private long memberNum;
 	private long birthTime;
-
-	public long getMemberNum() {
-		return memberNum;
-	}
-
-	public void setMemberNum(long memberNum) {
-		this.memberNum = memberNum;
-	}
-
 	private long birthHeight;
 	private String lastTxId;
 	private long lastTime;
@@ -98,4 +89,11 @@ public class Group {
 	public void setMembers(String[] members) {
 		this.members = members;
 	}
+	public long getMemberNum() {
+		return memberNum;
+	}
+	public void setMemberNum(long memberNum) {
+		this.memberNum = memberNum;
+	}
+
 }

@@ -13,8 +13,6 @@ import javaTools.Hex;
 import javaTools.http.AuthType;
 import javaTools.http.HttpRequestMethod;
 import nasa.NaSaRpcClient;
-import nasa.RPC.ListUnspent;
-import nasa.RPC.SendRawTransaction;
 import nasa.data.TxInput;
 import nasa.data.TxOutput;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
@@ -30,6 +28,7 @@ import constants.*;
 import crypto.KeyTools;
 import crypto.Hash;
 import javaTools.JsonTools;
+import nasa.data.UTXO;
 import org.bitcoinj.core.ECKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -88,7 +87,7 @@ public class Wallet {
 
     public static String sendTxByApip(byte[] priKey, List<SendTo> sendToList, String opReturnStr, long cd, int maxCashes, ApipClient apipClient) {
         String txSigned = makeTx(priKey, null, sendToList, opReturnStr, cd, maxCashes, apipClient, null);
-        apipClient.broadcastTx(HttpRequestMethod.POST, txSigned, AuthType.FC_SIGN_BODY);
+        apipClient.broadcastTx(txSigned, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
         Object data = apipClient.checkResult();
         return (String)data;
     }
@@ -115,7 +114,7 @@ public class Wallet {
 
         if(apipClient!=null) {
             cashList = getCashListFromApip(fid, maxCashes, apipClient);
-            bestHeight = apipClient.getClientData().getResponseBody().getBestHeight();
+            bestHeight = apipClient.getFcClientEvent().getResponseBody().getBestHeight();
         }else if(esClient!=null){
             FcReplier replier = getCashListFromEs(fid, true, maxCashes, null, null, esClient);
             if(replier.getCode()!=0)return null;
@@ -195,12 +194,7 @@ public class Wallet {
         fcdsl.addNewFilter().addNewTerms().addNewFields(VALID).addNewValues(TRUE);
         fcdsl.addSize(maxCashes);
         fcdsl.addSort(CD, ASC).addSort(CASH_ID, ASC);
-        apipClient.cashSearch(fcdsl);//BlockchainAPIs.cashSearchPost(apipClient.getApiAccount().getApiUrl(), fcdsl, apipClient.getApiAccount().getVia(), apipClient.getSessionKey());
-        Object data = apipClient.checkResult();
-//            if (data == null) return null;
-
-        cashList = DataGetter.getCashList(data);
-        return cashList;
+        return apipClient.cashSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);//BlockchainAPIs.cashSearchPost(apipClient.getApiAccount().getApiUrl(), fcdsl, apipClient.getApiAccount().getVia(), apipClient.getSessionKey());
     }
 
     public static FcReplier sendTx(String txSigned, @Nullable ApipClient apipClient, @Nullable NaSaRpcClient naSaRpcClient) {
@@ -214,15 +208,15 @@ public class Wallet {
                 fcReplier.setBestHeight(bestHeight);
             }
         }else if(apipClient!=null){
-            apipClient.broadcastTx(HttpRequestMethod.POST, txSigned, AuthType.FC_SIGN_BODY);
+            apipClient.broadcastTx(txSigned, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
             apipClient.checkResult();
-            return apipClient.getClientData().getResponseBody();
+            return apipClient.getFcClientEvent().getResponseBody();
         }else fcReplier.setOtherError("No client to send tx.");
         return fcReplier;
     }
 
     public Double getFeeRate()  {
-        if(apipClient!=null)return apipClient.feeRate();
+        if(apipClient!=null)return apipClient.feeRate(HttpRequestMethod.GET, AuthType.FREE);
         else if(esClient!=null)return calcFeeRate(esClient);
         else if(nasaClient!=null)return nasaClient.estimateFee(3);
         else return 0D;
@@ -307,7 +301,7 @@ public class Wallet {
         String txSigned = createTransactionSignFch(cashList, priKey, sendToList, null);
 
         if(apipClient!=null) {
-            apipClient.broadcastTx(HttpRequestMethod.POST, txSigned,AuthType.FC_SIGN_BODY );
+            apipClient.broadcastTx(txSigned, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY );
             data = apipClient.checkResult();
         }else if(nasaClient!=null){
             data = nasaClient.sendRawTransaction(txSigned);
@@ -323,13 +317,13 @@ public class Wallet {
             do {
                 List<Cash> newCashList = getCashListFromApip(fid, onlyValid, size, sortList, last, apipClient);
                 if(newCashList==null){
-                    log.debug(this.apipClient.getClientData().getMessage());
+                    log.debug(this.apipClient.getFcClientEvent().getMessage());
                     return cashList;
                 }
                 if(newCashList.isEmpty())return cashList;
                 cashList.addAll(newCashList);
 
-                fcReplier= this.apipClient.getClientData().getResponseBody();
+                fcReplier= this.apipClient.getFcClientEvent().getResponseBody();
                 last = fcReplier.getLast();
             }while(cashList.size()<fcReplier.getTotal());
         }
@@ -367,8 +361,7 @@ public class Wallet {
             fcdsl.addNewFilter().addNewTerms().addNewFields(VALID).addNewValues(TRUE);
         if(last!=null && !last.isEmpty())
             fcdsl.setAfter(last);
-        List<Cash> cashList = apipClient.cashSearch(fcdsl);//BlockchainAPIs.cashSearchPost(apipClient.getApiAccount().getApiUrl(), fcdsl, apipClient.getApiAccount().getVia(), apipClient.getSessionKey());
-        return cashList;
+        return apipClient.cashSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);//BlockchainAPIs.cashSearchPost(apipClient.getApiAccount().getApiUrl(), fcdsl, apipClient.getApiAccount().getVia(), apipClient.getSessionKey());
     }
 
 
@@ -396,13 +389,13 @@ public class Wallet {
             result = esClient.search(searchBuilder.build(),Cash.class);
 
         } catch (IOException e) {
-            cashListReturn.setCode(1);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("Can't get cashes. Check ES.");
             return cashListReturn;
         }
 
         if(result==null){
-            cashListReturn.setCode(1);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("Can't get cashes.Check ES.");
             return cashListReturn;
         }
@@ -464,7 +457,7 @@ public class Wallet {
         }
 
         if(!done){
-            cashListReturn.setCode(4);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("Can't meet the conditions.");
             return cashListReturn;
         }
@@ -504,11 +497,16 @@ public class Wallet {
         return null;
     }
 
-    public long getBestHeight(){
-        if(nasaClient!=null)return nasaClient.getBestHeight();
-        if(esClient!=null)return getBestHeight(esClient);
-        if(apipClient!=null)return apipClient.ping();
-        return 0;
+    public Long getBestHeight(){
+        try {
+            if(nasaClient!=null)return nasaClient.getBestHeight();
+            if(esClient!=null)return getBestHeight(esClient);
+            if (apipClient != null) {
+                apipClient.ping();
+                return apipClient.getFcClientEvent().getResponseBody().getBestHeight();
+            }
+        }catch (Exception ignore){}
+        return null;
     }
     public static long getBestHeight(ElasticsearchClient esClient) {
         long bestHeight = 0;
@@ -522,9 +520,9 @@ public class Wallet {
         return bestHeight;
     }
     public FcReplier getCashListFromNasaNode(String fid, String minConf, boolean includeUnsafe,NaSaRpcClient naSaRpcClient){
-        nasa.data.Utxo[] utxos = new ListUnspent().listUnspent(fid, minConf,includeUnsafe, naSaRpcClient.getUrl(), naSaRpcClient.getUsername(), naSaRpcClient.getPassword());
+        UTXO[] utxos = new NaSaRpcClient(naSaRpcClient.getUrl(), naSaRpcClient.getUsername(), naSaRpcClient.getPassword()).listUnspent(fid, minConf,includeUnsafe);
         List<Cash> cashList = new ArrayList<>();
-        for(nasa.data.Utxo utxo:utxos){
+        for(UTXO utxo:utxos){
             Cash cash = new Cash();
             cash.setOwner(utxo.getAddress());
             cash.setBirthTxId(utxo.getTxid());
@@ -633,7 +631,7 @@ public class Wallet {
         String txSigned = createTransactionSignFch(cashList, priKey, sendToList, msg);
 
         System.out.println("Broadcast with " + urlHead + " ...");
-        return apipClient.broadcastTx(HttpRequestMethod.POST, txSigned, AuthType.FC_SIGN_BODY);
+        return apipClient.broadcastTx(txSigned, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
     }
 
     private static CashToInputsResult cashListToInputs(List<Cash> cashList) {
@@ -796,24 +794,28 @@ public class Wallet {
 //
 //    }
 
-    public static CashListReturn getCashForCd(String addrRequested, long cd, ElasticsearchClient esClient) throws IOException {
-        CashListReturn cashListReturn;
+    public static CashListReturn getCashForCd(String addrRequested, long cd, ElasticsearchClient esClient)  {
+        CashListReturn cashListReturn = new CashListReturn();
+        int code = 0;
+        String msg = null;
+        try {
+            cashListReturn = getCdFromCashList(cd, addrRequested, esClient);
+            if (cashListReturn.getCashList() != null) return cashListReturn;
+            code = cashListReturn.getCode();
+            msg = cashListReturn.getMsg();
 
-        cashListReturn = getCdFromCashList(cd, addrRequested, esClient);
+            cashListReturn = getCdFromOneCash(addrRequested, cd, esClient);
+            if (cashListReturn.getCashList() == null || cashListReturn.getCashList().isEmpty()) {
+                cashListReturn.setCode(code);
+                cashListReturn.setMsg(msg);
+            }
 
-        if (cashListReturn.getCashList() != null) return cashListReturn;
-
-        int code = cashListReturn.getCode();
-        String msg = cashListReturn.getMsg();
-
-        cashListReturn = getCdFromOneCash(addrRequested, cd, esClient);
-
-        if (cashListReturn.getCashList() == null || cashListReturn.getCashList().isEmpty()) {
-            cashListReturn.setCode(code);
-            cashListReturn.setMsg(msg);
+            return cashListReturn;
+        } catch (IOException e) {
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
+            cashListReturn.setMsg("Failed to get data from ES.");
+            return cashListReturn;
         }
-
-        return cashListReturn;
     }
 
     private static CashListReturn getCdFromOneCash(String addrRequested, long cd, ElasticsearchClient esClient) throws IOException {
@@ -834,7 +836,17 @@ public class Wallet {
 
         List<Hit<Cash>> hitList = result.hits().hits();
 
-        if (hitList == null || hitList.size() == 0) return cashListReturn;
+        if (hitList == null) {
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
+            cashListReturn.setMsg("Failed to get cash list from ES.");
+            return cashListReturn;
+        }
+
+        if ( hitList.size() == 0) {
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
+            cashListReturn.setMsg("No cash match the condition.");
+            return cashListReturn;
+        }
 
         for (Hit<Cash> hit : hitList) {
             Cash cash = hit.source();
@@ -849,15 +861,14 @@ public class Wallet {
         return cashListReturn;
     }
 
-    private static CashListReturn getCdFromCashList(long cd, String addrRequested, ElasticsearchClient esClient) throws IOException {
+    private static CashListReturn getCdFromCashList(long cd, String fid, ElasticsearchClient esClient) throws IOException {
         String index = IndicesNames.CASH;
         CashListReturn cashListReturn = new CashListReturn();
 
         SearchResponse<Cash> result = esClient.search(s -> s.index(index)
                 .query(q -> q.bool(b -> b
-                                        .must(m -> m.term(t -> t.field(OWNER).value(addrRequested)))
+                                        .must(m -> m.term(t -> t.field(OWNER).value(fid)))
                                         .must(m1 -> m1.term(t1 -> t1.field(FieldNames.VALID).value(true)))
-//                                .must(m2->m2.range(r1->r1.field(Strings.CD).lte(JsonData.of(cd))))
                         )
                 )
                 .trackTotalHits(tr -> tr.enabled(true))
@@ -866,15 +877,15 @@ public class Wallet {
                 .size(100), Cash.class);
 
         if (result == null) {
-            cashListReturn.setCode(1);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("Can't get cashes.");
             return cashListReturn;
         }
 
         long sum = (long) result.aggregations().get("sum").sum().value();
 
-        if (sum < cd) {
-            cashListReturn.setCode(2);
+        if (cd !=0 && sum < cd) {
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("No enough cd balance: " + sum + " cd");
             return cashListReturn;
         }
@@ -884,8 +895,8 @@ public class Wallet {
 
         List<Hit<Cash>> hitList = result.hits().hits();
         if (hitList.size() == 0) {
-            cashListReturn.setCode(3);
-            cashListReturn.setMsg("Get cashes failed.");
+            cashListReturn.setCode(ReplyCodeMessage.Code2007CashNoFound);
+            cashListReturn.setMsg(ReplyCodeMessage.Msg2007CashNoFound);
             return cashListReturn;
         }
 
@@ -896,18 +907,18 @@ public class Wallet {
             cashList.add(cash);
         }
 
-        checkUnconfirmed(addrRequested, cashList);
+        checkUnconfirmed(fid, cashList);
 
         List<Cash> meetList = new ArrayList<>();
         long adding = 0;
         for (Cash cash : cashList) {
             adding += cash.getCd();
             meetList.add(cash);
-            if (adding > cd) break;
+            if (adding >= cd) break;
         }
 
         if (adding < cd) {
-            cashListReturn.setCode(4);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("Can not get enough cd from 100 cashes. Merge cashes with small cd first please.");
             return cashListReturn;
         }
@@ -935,13 +946,13 @@ public class Wallet {
                     .sort(s1 -> s1.field(f -> f.field(FieldNames.CD).order(SortOrder.Asc)))
                     .size(100), Cash.class);
         } catch (IOException e) {
-            cashListReturn.setCode(1);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("Can not get cashes. Check ES.");
             return cashListReturn;
         }
 
         if (result == null) {
-            cashListReturn.setCode(1);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("Can not get cashes.Check ES.");
             return cashListReturn;
         }
@@ -952,14 +963,14 @@ public class Wallet {
         long sum = (long) result.aggregations().get(FieldNames.SUM).sum().value();
 
         if (sum < value) {
-            cashListReturn.setCode(2);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("No enough balance: " + sum / Constants.COIN_TO_SATOSHI + " fch");
             return cashListReturn;
         }
 
         List<Hit<Cash>> hitList = result.hits().hits();
         if (hitList.size() == 0) {
-            cashListReturn.setCode(3);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("Get cashes failed.");
             return cashListReturn;
         }
@@ -981,7 +992,7 @@ public class Wallet {
             if (adding > value) break;
         }
         if (adding < value) {
-            cashListReturn.setCode(4);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("Can't get enough amount from 100 cashes. Merge cashes with small cd first please. " + adding / Million + "f can be paid.");
             return cashListReturn;
         }
@@ -1015,13 +1026,13 @@ public class Wallet {
             result = esClient.search(searchBuilder.build(), Cash.class);
 
         } catch (IOException e) {
-            cashListReturn.setCode(1);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("Can't get cashes. Check ES.");
             return cashListReturn;
         }
 
         if (result == null) {
-            cashListReturn.setCode(1);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("Can't get cashes.Check ES.");
             return cashListReturn;
         }
@@ -1032,14 +1043,14 @@ public class Wallet {
         long sum = (long) result.aggregations().get(FieldNames.SUM).sum().value();
 
         if (sum < value) {
-            cashListReturn.setCode(2);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("No enough balance: " + sum / Constants.COIN_TO_SATOSHI + " fch");
             return cashListReturn;
         }
 
         List<Hit<Cash>> hitList = result.hits().hits();
         if (hitList.size() == 0) {
-            cashListReturn.setCode(3);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("Get cashes failed.");
             return cashListReturn;
         }
@@ -1064,7 +1075,7 @@ public class Wallet {
             if (adding > value + fee) break;
         }
         if (adding < value + fee) {
-            cashListReturn.setCode(4);
+            cashListReturn.setCode(ReplyCodeMessage.Code1020OtherError);
             cashListReturn.setMsg("Can't get enough amount from 100 cashes. Merge cashes with small cd first. " + adding / Million + "f can be paid." + "Request " + value / Million + ". Fee " + fee / Million);
             return cashListReturn;
         }
@@ -1102,7 +1113,7 @@ public class Wallet {
 
     public static List<TxInput> cashToInputList(List<Cash> cashList, byte[] priKey) {
         List<TxInput> inputList = new ArrayList<>();
-        JsonTools.gsonPrint(cashList);
+        JsonTools.printJson(cashList);
         for (Cash cash : cashList) {
             TxInput txInput = new TxInput();
             txInput.setIndex(cash.getBirthIndex());
@@ -1170,7 +1181,7 @@ public class Wallet {
             String opReturn = "a";
             String signedTx = DogeTxMaker.createTransactionSignDoge(txInputList, txOutputs, opReturn, fromAddr, fee.getFeerate());
             System.out.println(signedTx);
-            String txId = new SendRawTransaction().sendRawTransaction(signedTx, url, username, password);
+            String txId = new NaSaRpcClient(url, username, password).sendRawTransaction(signedTx);
             if (txId == null) {
                 throw new RuntimeException("Failed to send tx.");
             }

@@ -335,7 +335,17 @@ public class FcClientEvent {
                         return false;
                     }
                 }
-                case BYTES -> responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
+                case BYTES -> {
+                    responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
+                    if(responseBodyBytes==null){
+                        code= ReplyCodeMessage.Code1020OtherError;
+                        message = "The response body is null.";
+                        return false;
+                    }
+                    code= ReplyCodeMessage.Code0Success;
+                    message=ReplyCodeMessage.Msg0Success;
+                    return true;
+                }
                 case FILE -> {
                     String fileName;
                     if(responseFileName==null)fileName= StringTools.getTempName();
@@ -380,15 +390,14 @@ public class FcClientEvent {
     }
 
     private boolean checkResponseCode() {
-        if(responseBody!=null){
+        if(responseBodyType.equals(ResponseBodyType.STRING) && responseBody!=null){
             if(responseBody.getMessage()!=null)
                 message = responseBody.getMessage();
             if(responseBody.getCode()!=null) {
                 code = responseBody.getCode();
             }
-            return code==0;
         }
-        return false;
+        return code == 0;
     }
 
 
@@ -925,7 +934,7 @@ public class FcClientEvent {
         this.signatureOfResponse = signatureOfResponse;
     }
 
-    public int getCode() {
+    public Integer getCode() {
         return code;
     }
 

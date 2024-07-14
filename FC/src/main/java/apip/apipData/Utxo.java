@@ -5,8 +5,16 @@ public class Utxo {
     private String txId;
     private int index;
     private double amount;
-    private long cd;
     private String issuer;
+    private long birthTime;
+
+    public long getBirthTime() {
+        return birthTime;
+    }
+
+    public void setBirthTime(long birthTime) {
+        this.birthTime = birthTime;
+    }
 
     public static Utxo cashToUtxo(fch.fchData.Cash cash) {
         Utxo utxo = new Utxo();
@@ -14,8 +22,9 @@ public class Utxo {
         utxo.setTxId(cash.getBirthTxId());
         utxo.setIndex(cash.getBirthIndex());
         utxo.setAmount((double) cash.getValue()/100000000);
-        utxo.setCd(cash.getCd());
+//        utxo.setCd(cash.getCd());
         utxo.setIssuer(cash.getIssuer());
+        utxo.setBirthTime(cash.getBirthTime());
         return utxo;
     }
 
@@ -49,14 +58,6 @@ public class Utxo {
 
     public void setAmount(double amount) {
         this.amount = amount;
-    }
-
-    public long getCd() {
-        return cd;
-    }
-
-    public void setCd(long cd) {
-        this.cd = cd;
     }
 
     public String getIssuer() {

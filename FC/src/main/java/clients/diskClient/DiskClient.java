@@ -83,8 +83,7 @@ public class DiskClient extends Client {
 //        boolean done = fcClientEvent.get(did, localPath);
 //        if(done)return (String) fcClientEvent.getResponseBody().getData();
 //        else return fcClientEvent.getMessage();
-        fcClientEvent = requestFile(HttpRequestMethod.GET, ApiNames.SN_0, ApiNames.Version1,ApiNames.GetApi,urlParamMap,null,localPath,AuthType.FREE,null);
-        Object data = checkResult();
+        Object data = requestFile(ApiNames.SN_0, ApiNames.Version1, ApiNames.Get, urlParamMap, null, localPath, AuthType.FREE, null, HttpRequestMethod.GET);
         return (String)data;
     }
 
@@ -98,8 +97,7 @@ public class DiskClient extends Client {
 //        Object data = checkResult();
 //        if(data!=null)return (String) data;
 //        return fcClientEvent.getMessage();
-        fcClientEvent = requestFile(method, ApiNames.SN_0, ApiNames.Version1,ApiNames.GetApi,urlParamMap,null,localPath,AuthType.FC_SIGN_URL,sessionKey);
-        Object data = checkResult();
+        Object data = requestFile(ApiNames.SN_0, ApiNames.Version1, ApiNames.Get, urlParamMap, null, localPath, AuthType.FC_SIGN_URL, sessionKey, method);
         return (String)data;
     }
 
@@ -112,8 +110,7 @@ public class DiskClient extends Client {
 //        if(done)return String.valueOf(fcClientEvent.getResponseBody().getData());
 //        else return fcClientEvent.getMessage();
 
-        fcClientEvent = requestJsonByFcdslUrl(ApiNames.SN_0, ApiNames.Version1,ApiNames.CheckApi, urlParamMap,null);
-        Object data = checkResult();
+        Object data  = requestJsonByUrlParams(ApiNames.SN_0, ApiNames.Version1,ApiNames.Check, urlParamMap,null);
         return String.valueOf(data);
     }
 
@@ -138,8 +135,7 @@ public class DiskClient extends Client {
 //        if(done) return DataGetter.getDiskDataInfoList(fcClientEvent.getResponseBody().getData());
 //        else return null;
 
-        fcClientEvent = requestJsonByFcdslUrl(ApiNames.SN_0, ApiNames.Version1,ApiNames.CheckApi, urlParamMap,null);
-        Object data = checkResult();
+        Object data = requestJsonByUrlParams(ApiNames.SN_0, ApiNames.Version1,ApiNames.Check, urlParamMap,null);
         return DataGetter.getDiskDataInfoList(data);
     }
 
@@ -149,8 +145,7 @@ public class DiskClient extends Client {
                     .addSort(DID,ASC);
         }
 
-        fcClientEvent = requestJsonByFcdsl(HttpRequestMethod.GET, ApiNames.SN_0, ApiNames.Version1,ApiNames.CheckApi, fcdsl, null,AuthType.FC_SIGN_URL);
-        Object data = checkResult();
+        Object data = requestJsonByFcdsl(ApiNames.SN_0, ApiNames.Version1, ApiNames.Check, fcdsl, AuthType.FC_SIGN_URL, null, HttpRequestMethod.GET);
         return DataGetter.getDiskDataInfoList(data);
     }
 
@@ -207,8 +202,7 @@ public class DiskClient extends Client {
 //        fcClientEvent.post(sessionKey, FcClientEvent.RequestBodyType.FILE,fileName);
 //        Object data = checkResult( ApiType.DISK);
 
-        fcClientEvent = requestJsonByFile(ApiNames.SN_0, ApiNames.Version1,ApiNames.PutApi,null,sessionKey,fileName);
-        Object data = checkResult();
+        Object data = requestJsonByFile(ApiNames.SN_0, ApiNames.Version1,ApiNames.Put,null,sessionKey,fileName);
 
         if(sessionFreshen)data = checkResult();
         if(data==null)return null;

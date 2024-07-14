@@ -51,7 +51,7 @@ public class Order {
     }
 
     public static boolean checkWebhook(String hookMethod, String sid, Params params, ApiAccount apipAccount, BufferedReader br, JedisPool jedisPool) {
-        String endpoint = Path.of(params.getUrlHead(), ApiNames.EndpointAPI).toString();
+        String endpoint = Path.of(params.getUrlHead(), ApiNames.Endpoint).toString();
         ApipClient apipClient = (ApipClient) apipAccount.getClient();
 
         Map<String, String> dataMap = apipClient.checkSubscription(endpoint);

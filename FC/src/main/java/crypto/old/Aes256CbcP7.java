@@ -64,7 +64,7 @@ public class Aes256CbcP7 {
         System.out.println("Key:"+Hex.toHexString(key));
         System.out.println("Iv:"+Hex.toHexString(iv));
         Affair affair = encryptFile(sourcePath, destPath, key);
-        JsonTools.gsonPrint(affair);
+        JsonTools.printJson(affair);
         decryptFile(destPath,sourcePath+"_1",key,iv);
         System.out.println(Hash.sha256x2(new File(destPath)));
     }

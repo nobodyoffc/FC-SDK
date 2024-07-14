@@ -3,6 +3,7 @@ package apip.apipData;
 import co.elastic.clients.elasticsearch._types.FieldSort;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.SortOrder;
+import constants.FieldNames;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,7 +27,7 @@ public class Sort {
     }
 
     public static List<SortOptions> makeHeightTxIndexSort() {
-        return makeTwoFieldsSort(HEIGHT, DESC, TX_INDEX, DESC);
+        return makeTwoFieldsSort(HEIGHT, DESC, FieldNames.TX_INDEX, DESC);
     }
 
     public static List<SortOptions> makeTwoFieldsSort(String field1, String order1, String field2, String order2) {

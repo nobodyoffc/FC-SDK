@@ -1,10 +1,10 @@
 package fch;
 
-import nasa.RPC.GetRawTx;
 import javaTools.BytesTools;
 import crypto.KeyTools;
 
 
+import nasa.NaSaRpcClient;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
@@ -46,7 +46,8 @@ public class TxParserFch {
     }
 
     public static String getFirstSenderFch(String txId, String apiUrl, String userName, String apiPassword) {
-        String rawTxHex = new GetRawTx().getRawTx(txId, apiUrl, userName, apiPassword);
+        NaSaRpcClient naSaRpcClient = new NaSaRpcClient(apiUrl, userName, apiPassword);
+        String rawTxHex = naSaRpcClient.getRawTx(txId);
         byte[] rawTxBytes = HexFormat.of().parseHex(rawTxHex);
         byte[] firstTxIdBytes = BytesTools.invertArray(Arrays.copyOfRange(rawTxBytes, 5, 37));
 
@@ -54,7 +55,7 @@ public class TxParserFch {
         byte[] indexBytes = Arrays.copyOfRange(rawTxBytes, 37, 41);
         long index = BytesTools.bytes4ToLongLE(indexBytes);
 
-        String rawFirstTx = new GetRawTx().getRawTx(firstTxId, apiUrl, userName, apiPassword);
+        String rawFirstTx = naSaRpcClient.getRawTx(firstTxId);
         Transaction tx = TxParserFch.parseRawTransaction(rawFirstTx);
         List<TransactionOutput> outputs = tx.getOutputs();
 

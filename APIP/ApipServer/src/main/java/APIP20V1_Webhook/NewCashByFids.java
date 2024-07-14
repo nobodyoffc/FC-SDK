@@ -9,7 +9,7 @@ import initial.Initiator;
 import javaTools.http.AuthType;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import server.FcdslRequestHandler;
+import server.RequestChecker;
 import server.Settings;
 
 import javax.servlet.ServletException;
@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-@WebServlet(name = ApiNames.NewCashByFidsAPI, value = "/"+ApiNames.SN_20+"/"+ApiNames.Version2 +"/"+ApiNames.NewCashByFidsAPI)
+@WebServlet(name = ApiNames.NewCashByFids, value = "/"+ApiNames.SN_20+"/"+ApiNames.Version2 +"/"+ApiNames.NewCashByFids)
 public class NewCashByFids extends HttpServlet {
 
     @Override
@@ -39,7 +39,7 @@ public class NewCashByFids extends HttpServlet {
         FcReplier replier = new FcReplier(sid,response);
         try(Jedis jedis = jedisPool.getResource()) {
             //Do FCDSL other request
-            Object other = FcdslRequestHandler.checkOtherRequest(sid, request, authType, replier, jedis);
+            Object other = RequestChecker.checkOtherRequest(sid, request, authType, replier, jedis);
             if (other == null) return;
             //Do this request
             doNewCashByFidsRequest(replier, jedis, other);
@@ -58,8 +58,8 @@ public class NewCashByFids extends HttpServlet {
             webhookRequestBody = gson.fromJson(gson.toJson(other), WebhookRequestBody.class);
 
             webhookRequestBody.setUserName(addr);
-            webhookRequestBody.setMethod(ApiNames.NewCashByFidsAPI);
-            hookUserId = WebhookRequestBody.makeHookUserId(Initiator.sid, addr, ApiNames.NewCashByFidsAPI);
+            webhookRequestBody.setMethod(ApiNames.NewCashByFids);
+            hookUserId = WebhookRequestBody.makeHookUserId(Initiator.sid, addr, ApiNames.NewCashByFids);
             webhookRequestBody.setHookUserId(hookUserId);
             Map<String, String> dataMap = new HashMap<>();
             switch (webhookRequestBody.getOp()) {
@@ -106,7 +106,7 @@ public class NewCashByFids extends HttpServlet {
     private void deleteWebhookFromRedis(String owner) {
         try(Jedis jedis = Initiator.jedisPool.getResource()){
             jedis.select(Constants.RedisDb4Webhook);
-            jedis.hdel(ApiNames.NewCashByFidsAPI,owner);
+            jedis.hdel(ApiNames.NewCashByFids,owner);
             jedis.del(owner);
         }
     }
@@ -114,7 +114,7 @@ public class NewCashByFids extends HttpServlet {
     private String getWebhookFromRedis(String owner) {
         try(Jedis jedis = Initiator.jedisPool.getResource()){
             jedis.select(Constants.RedisDb4Webhook);
-            return jedis.hget(ApiNames.NewCashByFidsAPI, owner);
+            return jedis.hget(ApiNames.NewCashByFids, owner);
         }
     }
 

@@ -2,26 +2,19 @@ package initial;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import config.*;
-import crypto.CryptoDataByte;
-import crypto.Decryptor;
 import javaTools.JsonTools;
 import nasa.NaSaRpcClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import server.Settings;
 import startAPIP.ApipManagerSettings;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.http.HttpServlet;
-import java.io.File;
 import java.io.IOException;
 import java.io.Serial;
 
-import static constants.FieldNames.FORBID_FREE_API;
-import static constants.Strings.*;
-import static server.Settings.addSidBriefToName;
+import static config.Configure.makeConfigFileName;
 
 
 public class Initiator extends HttpServlet {
@@ -49,7 +42,7 @@ public class Initiator extends HttpServlet {
     @Override
     public void init(ServletConfig config) {
         log.debug("initiate APIP web server...");
-        String configFileName = apiType.name()+"_"+CONFIG+DOT_JSON;
+        String configFileName = makeConfigFileName(apiType);
 
         WebServerConfig webServerConfig;
         Configure configure;
@@ -67,21 +60,11 @@ public class Initiator extends HttpServlet {
 
         ApiAccount redisAccount = configure.getApiAccountMap().get(settings.getRedisAccountId());
         jedisPool = redisAccount.connectRedis();
+        byte[] symKey = Configure.getSymKeyForWebServer(webServerConfig, configure,jedisPool);
 
         ApiAccount nasaAccount = configure.getApiAccountMap().get(settings.getNasaAccountId());
-        naSaRpcClient = (NaSaRpcClient) nasaAccount.getClient();
-
-        byte[] symKey;
-        String symKeyCipher;
-        try(Jedis jedis = jedisPool.getResource()){
-            symKeyCipher = jedis.hget(addSidBriefToName(webServerConfig.getSid(), WEB_PARAMS),SYM_KEY_CIPHER);
-        }
-        CryptoDataByte result = new Decryptor().decryptJsonByPassword(symKeyCipher, configure.getNonce().toCharArray());
-        if(result.getCode()!=0){
-            System.out.println("Failed to decrypt symKey for web server:"+result.getMessage());
-            return;
-        }
-        symKey = result.getData();
+        ApiProvider nasaProvider = configure.getApiProviderMap().get(nasaAccount.getProviderId());
+        naSaRpcClient = (NaSaRpcClient) nasaAccount.connectApi(nasaProvider,symKey);
 
         esAccount = configure.getApiAccountMap().get(settings.getEsAccountId());
         ApiProvider esProvider = configure.getApiProviderMap().get(esAccount.getProviderId());
@@ -100,7 +83,7 @@ public class Initiator extends HttpServlet {
          */
     }
 
-//    public static void freshWebParams(WebServerConfig webServerConfig, Jedis jedis) {
+    //    public static void freshWebParams(WebServerConfig webServerConfig, Jedis jedis) {
 //        try {
 //            forbidFreeApi = Boolean.parseBoolean(jedis.hget(addSidBriefToName(webServerConfig.getSid(), WEB_PARAMS), FORBID_FREE_API));
 //            windowTime = Long.parseLong(jedis.hget(addSidBriefToName(webServerConfig.getSid(), WEB_PARAMS), WINDOW_TIME));

@@ -168,6 +168,12 @@ public class FcReplier {
         reply(0,null,data,jedis);
     }
 
+    public void replySingleDataSuccess(Object data, Jedis jedis) {
+        this.got=1L;
+        this.total=1L;
+        reply(0,null,data,jedis);
+    }
+
     public void reply0Success(Jedis jedis) {
         reply(0,null,data,jedis);
     }
@@ -192,7 +198,7 @@ public class FcReplier {
     }
 
     public void replyOtherError(String otherError,Object data, Jedis jedis) {
-        reply(9,otherError,data,jedis);
+        reply(ReplyCodeMessage.Code1020OtherError,otherError,data,jedis);
     }
     public void setOtherError(String otherError) {
         code = ReplyCodeMessage.Code1020OtherError;
@@ -220,8 +226,11 @@ public class FcReplier {
         if(code==ReplyCodeMessage.Code1020OtherError)this.message = otherError;
         else this.message=ReplyCodeMessage.getMsg(code);
         if(data!=null)this.data=data;
+        try {
+            String bestHeightStr = jedis.get(BEST_HEIGHT);
+            bestHeight = Long.parseLong(bestHeightStr);
+        }catch (Exception ignore){}
         updateBalance(sid, requestCheckResult.getApiName(), jedis);
-//        if(code!=0)response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         String sessionKey = requestCheckResult.getSessionKey();
         String replyStr = this.toNiceJson();
         if(sessionKey !=null){

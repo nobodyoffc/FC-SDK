@@ -10,6 +10,7 @@ public class Service {
 	protected String[] urls;
 	protected String[] waiters;
 	protected String[] protocols;
+	protected String[] services;
 	protected String[] codes;
 	private Object params;
 	protected String owner;
@@ -150,5 +151,13 @@ public class Service {
 	}
 	public void setCloseStatement(String closeStatement) {
 		this.closeStatement = closeStatement;
+	}
+
+	public String[] getServices() {
+		return services;
+	}
+
+	public void setServices(String[] services) {
+		this.services = services;
 	}
 }

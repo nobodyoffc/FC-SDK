@@ -1,7 +1,6 @@
 package server.serviceManagers;
 
 import clients.apipClient.ApipClient;
-import clients.apipClient.ApipClientEvent;
 import feip.feipData.DataOnChain;
 import feip.feipData.Service;
 import feip.feipData.ServiceData;
@@ -90,7 +89,7 @@ public abstract class ServiceManager {
         Service service1 = apipClient.serviceById(sid);
         if(service1==null)return;
         service = service1;
-        checkBalance(apipAccount, apipClient.getClientData(), symKey, apipClient);
+        checkBalance(apipAccount, apipClient.getFcClientEvent(), symKey, apipClient);
     }
 
     private void showService() {

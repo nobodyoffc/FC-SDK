@@ -90,13 +90,13 @@ public class Pusher implements Runnable{
         methodFidEndpointInfoMapMap = new HashMap<>();
 
         //Method: newCashByFids
-        Map<String, String> newCashByFidsHookInfoStrMap = jedis.hgetAll(ApiNames.NewCashByFidsAPI);
+        Map<String, String> newCashByFidsHookInfoStrMap = jedis.hgetAll(ApiNames.NewCashByFids);
         Map<String, WebhookRequestBody> newCashByFidsHookInfoMap = new HashMap<>();
         for(String owner: newCashByFidsHookInfoStrMap.keySet()){
             String webhookInfoStr = newCashByFidsHookInfoStrMap.get(owner);
             newCashByFidsHookInfoMap.put(owner,gson.fromJson(webhookInfoStr, WebhookRequestBody.class));
         }
-        methodFidEndpointInfoMapMap.put(ApiNames.NewCashByFidsAPI,newCashByFidsHookInfoMap);
+        methodFidEndpointInfoMapMap.put(ApiNames.NewCashByFids,newCashByFidsHookInfoMap);
         //More method:
     }
 
@@ -117,10 +117,10 @@ public class Pusher implements Runnable{
         Map<String, WebhookRequestBody> newCashByFidsWebhookInfoMap = new HashMap<>();
         for (WebhookRequestBody webhookInfo : webhookInfoList) {
             switch (webhookInfo.getMethod()) {
-                case ApiNames.NewCashByFidsAPI -> newCashByFidsWebhookInfoMap.put(webhookInfo.getUserName(), webhookInfo);
+                case ApiNames.NewCashByFids -> newCashByFidsWebhookInfoMap.put(webhookInfo.getUserName(), webhookInfo);
             }
         }
-        methodFidEndpointInfoMapMap.put(ApiNames.NewCashByFidsAPI, newCashByFidsWebhookInfoMap);
+        methodFidEndpointInfoMapMap.put(ApiNames.NewCashByFids, newCashByFidsWebhookInfoMap);
     }
 
     private List<WebhookRequestBody> getWebhookInfoListFromEs(ElasticsearchClient esClient) {
@@ -137,9 +137,9 @@ public class Pusher implements Runnable{
 
         for(String method: methodFidWatchedFidsMapMap.keySet()){
             switch (method){
-                case ApiNames.NewCashByFidsAPI-> putNewCashByFids(methodFidWatchedFidsMapMap.get(method),sinceHeight);
+                case ApiNames.NewCashByFids -> putNewCashByFids(methodFidWatchedFidsMapMap.get(method),sinceHeight);
                 //TODO untested
-                case ApiNames.NewOpReturnByFidsAPI-> putNewOpReturnByFids(methodFidWatchedFidsMapMap.get(method),sinceHeight);
+                case ApiNames.NewOpReturnByFids -> putNewOpReturnByFids(methodFidWatchedFidsMapMap.get(method),sinceHeight);
             }
         }
     }
@@ -149,7 +149,7 @@ public class Pusher implements Runnable{
             WebhookRequestBody webhookInfo = ownerWebhookInfoMap.get(owner);
             ArrayList<Cash> newCashList = getNewCashList(webhookInfo,sinceHeight);
             if(newCashList==null)return;
-            pushDataList(webhookInfo,ApiNames.NewCashByFidsAPI,newCashList);
+            pushDataList(webhookInfo,ApiNames.NewCashByFids,newCashList);
         }
     }
 
@@ -158,7 +158,7 @@ public class Pusher implements Runnable{
             WebhookRequestBody webhookInfo = ownerWebhookInfoMap.get(owner);
             ArrayList<OpReturn> newOpReturnList = getNewOpReturnList(webhookInfo,sinceHeight);
             if(newOpReturnList==null)return;
-            pushDataList(webhookInfo,ApiNames.NewOpReturnByFidsAPI,newOpReturnList);
+            pushDataList(webhookInfo,ApiNames.NewOpReturnByFids,newOpReturnList);
         }
     }
 
@@ -228,7 +228,7 @@ public class Pusher implements Runnable{
         try {
             return EsTools.getListByTermsSinceHeight(esClient,IndicesNames.CASH, FieldNames.OWNER,fids,sinceHeight, FieldNames.CASH_ID,SortOrder.Asc,Cash.class);
         } catch (IOException e) {
-            log.error("Get new cash list for "+ApiNames.NewCashByFidsAPI+" from ES wrong.",e);
+            log.error("Get new cash list for "+ApiNames.NewCashByFids +" from ES wrong.",e);
             return null;
         }
     }
@@ -241,7 +241,7 @@ public class Pusher implements Runnable{
         try {
             return EsTools.getListByTermsSinceHeight(esClient,IndicesNames.OPRETURN, FieldNames.RECIPIENT,fids,sinceHeight, FieldNames.TX_ID,SortOrder.Asc, OpReturn.class);
         } catch (IOException e) {
-            log.error("Get new OpReturn list for "+ApiNames.NewOpReturnByFidsAPI+" from ES wrong.",e);
+            log.error("Get new OpReturn list for "+ApiNames.NewOpReturnByFids +" from ES wrong.",e);
             return null;
         }
     }

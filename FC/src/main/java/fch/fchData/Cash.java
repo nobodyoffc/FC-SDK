@@ -12,7 +12,7 @@ public class Cash {
 	private String issuer; //first input fid when this cash was born.
 
 	//from utxo
-	private Integer birthIndex;		//index of cash. Order in cashs of the tx when created.
+	private Integer birthIndex;		//index of cash. Order in cashes of the tx when created.
 	private String type;	//type of the script. P2PKH,P2SH,OP_RETURN,Unknown,MultiSig
 	private String owner; 	//address
 	private Long value;		//in satoshi

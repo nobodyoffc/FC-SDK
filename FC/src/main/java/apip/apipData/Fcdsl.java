@@ -1,10 +1,14 @@
 package apip.apipData;
 
+import clients.Client;
 import javaTools.JsonTools;
 import appTools.Inputer;
 import appTools.Menu;
 import javaTools.StringTools;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 import java.io.BufferedReader;
@@ -17,6 +21,7 @@ import static constants.Strings.ASC;
 import static constants.Strings.DESC;
 
 public class Fcdsl {
+    private static final Logger log = LoggerFactory.getLogger(Fcdsl.class);
     private String index;
     private List<String> ids;
     private FcQuery query;
@@ -295,16 +300,10 @@ public class Fcdsl {
         }
         return stringBuilder.toString();
     }
-    public static boolean confirmAdd(String fieldName, BufferedReader br) {
-        while (true) {
-            System.out.println("Add " + fieldName + " ? y/n:");
+    public static boolean askIfAdd(String fieldName, BufferedReader br) {
+            System.out.println("Add " + fieldName + " ? y /others:");
             String input = Inputer.inputString(br);
-            if ("y".equals(input)) {
-                return true;
-            } else if ("n".equals(input)) {
-                return false;
-            }
-        }
+        return "y".equals(input);
     }
 
     public static Fcdsl addFilterTermsToFcdsl(RequestBody requestBody, String field, String value) {
@@ -353,15 +352,43 @@ public class Fcdsl {
         return fcdsl;
     }
 
+    @Nullable
+    public static Fcdsl makeTermsFilter(Fcdsl fcdsl, String filterFiled, String filterValue) {
+        if(fcdsl == null) fcdsl = new Fcdsl();
+
+        if(fcdsl.getFilter()!=null){
+            if(fcdsl.getFilter().getTerms()!=null){
+                log.info("The fcdsl.filter.terms should be reserved. Clear it.");
+                return null;
+            }
+            else fcdsl.getFilter().addNewTerms().addNewFields(filterFiled).addNewValues(filterValue);
+        }else fcdsl.addNewFilter().addNewTerms().addNewFields(filterFiled).addNewValues(filterValue);
+        return fcdsl;
+    }
+
+    @Nullable
+    public static Fcdsl makeTermsExcept(Fcdsl fcdsl, String exceptFiled, String exceptValue) {
+        if(fcdsl == null) fcdsl = new Fcdsl();
+
+        if(fcdsl.getExcept()!=null){
+            if(fcdsl.getExcept().getTerms()!=null){
+                log.info("The fcdsl.except.terms should be reserved. Clear it.");
+                return null;
+            }
+            else fcdsl.getExcept().addNewTerms().addNewFields(exceptFiled).addNewValues(exceptValue);
+        }else fcdsl.addNewExcept().addNewTerms().addNewFields(exceptFiled).addNewValues(exceptValue);
+        return fcdsl;
+    }
+
     public void promoteSearch(int defaultSize, String defaultSort, BufferedReader br) {
-        if (confirmAdd(QUERY, br)) inputQuery(br);
-        if (confirmAdd(FILTER, br)) inputFilter(br);
-        if (confirmAdd(EXCEPT, br)) inputExcept(br);
+        if (askIfAdd(QUERY, br)) inputQuery(br);
+        if (askIfAdd(FILTER, br)) inputFilter(br);
+        if (askIfAdd(EXCEPT, br)) inputExcept(br);
         System.out.println("The default size is " + defaultSize + ".");
-        if (confirmAdd(SIZE, br)) inputSize(br);
+        if (askIfAdd(SIZE, br)) inputSize(br);
         System.out.println("The default sort is " + defaultSort + ".");
-        if (confirmAdd(SORT, br)) inputSort(br);
-        if (confirmAdd(AFTER, br)) inputAfter(br);
+        if (askIfAdd(SORT, br)) inputSort(br);
+        if (askIfAdd(AFTER, br)) inputAfter(br);
     }
 
     public boolean isBadFcdsl() {
@@ -584,7 +611,7 @@ public class Fcdsl {
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.setIndex("cid");
         fcdsl.setSize("2");
-        JsonTools.gsonPrint(fcdsl);
+        JsonTools.printJson(fcdsl);
     }
 
 

@@ -76,7 +76,7 @@ public class Rewarder {
         }
 
         System.out.println("Check the reward parameters:");
-        JsonTools.gsonPrint(rewardParams);
+        JsonTools.printJson(rewardParams);
         Menu.anyKeyToContinue(br);
     }
     public RewardInfo doReward(List<ApiAccount> chargedAccountList,byte[] priKey) {

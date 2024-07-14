@@ -49,7 +49,7 @@ public class Inputer extends appTools.Inputer {
 
                 if(apipClient!=null){
                     String priKeyCipher = new Encryptor(AlgorithmId.FC_EccK1AesCbc256_No1_NrC7).encryptToJsonBySymKey(priKey,symKey);
-                    apipClient.checkMaster(priKeyCipher,br);
+                    apipClient.checkMaster(priKeyCipher,symKey,br);
                 }
                 return fid;
             }

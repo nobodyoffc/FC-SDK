@@ -17,6 +17,8 @@ import clients.esClient.EsTools;
 import clients.redisClient.RedisTools;
 import config.ApiAccount;
 import constants.*;
+import javaTools.http.AuthType;
+import javaTools.http.HttpRequestMethod;
 import nasa.NaSaRpcClient;
 import redis.clients.jedis.JedisPool;
 import server.balance.BalanceInfo;
@@ -266,7 +268,7 @@ protected void waitNewOrder() {
     }
 
     protected List<Cash> getNewCashListFromFile(long lastHeight) {
-        String method = ApiNames.NewCashByFidsAPI;
+        String method = ApiNames.NewCashByFids;
         long bestHeight=lastHeight;
         List<Cash> allCashList = new ArrayList<>();
 
@@ -285,8 +287,8 @@ protected void waitNewOrder() {
                     if (webhookPushBody.getSinceHeight() > lastHeight) {
                         if(apipClient!=null) {
                             allCashList = getNewCashListFromApip(lastHeight, account, apipClient);
-                            if (apipClient.getClientData() != null && apipClient.getClientData().getCode() == 0)
-                                bestHeight = apipClient.getClientData().getResponseBody().getBestHeight();
+                            if (apipClient.getFcClientEvent() != null && apipClient.getFcClientEvent().getCode() == 0)
+                                bestHeight = apipClient.getFcClientEvent().getResponseBody().getBestHeight();
                         }else {
                             allCashList = getNewCashListFromEs(lastHeight,account,esClient);
                             Block block = EsTools.getBestOne(esClient, BLOCK, HEIGHT, SortOrder.Desc, Block.class);
@@ -494,10 +496,7 @@ protected void waitNewOrder() {
         fcdsl.addSort(BIRTH_HEIGHT,DESC).addSort(FieldNames.CASH_ID,ASC);
         fcdsl.addNewFilter().addNewTerms().addNewFields(OWNER).addNewValues(account);
         fcdsl.setSize(String.valueOf(3000));
-        apipClient.cashSearch(fcdsl);
-        Object data = apipClient.checkApipV1Result();
-        if(data==null)return null;
-        return DataGetter.getCashList(data);
+        return apipClient.cashSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
     }
 
     protected List<Cash> getNewCashListFromEs(long lastHeight, String account, ElasticsearchClient esClient) {

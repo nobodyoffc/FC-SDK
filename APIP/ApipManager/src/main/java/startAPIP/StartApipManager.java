@@ -8,15 +8,10 @@ import clients.redisClient.RedisTools;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import config.ApiType;
 import config.Configure;
-import constants.ApiNames;
-import constants.FieldNames;
 import constants.Strings;
-import crypto.CryptoDataByte;
-import crypto.old.EccAes256K1P7;
 import feip.feipData.Service;
 import feip.feipData.serviceParams.ApipParams;
 import feip.feipData.serviceParams.Params;
-import javaTools.Hex;
 import mempool.MempoolCleaner;
 import mempool.MempoolScanner;
 import nasa.NaSaRpcClient;
@@ -53,7 +48,6 @@ import static constants.IndicesNames.WEBHOOK;
 import static constants.IndicesNames.*;
 import static constants.Strings.*;
 import static server.Counter.checkUserBalance;
-import static server.Settings.setNPrices;
 
 public class StartApipManager {
 
@@ -97,7 +91,7 @@ private static Pusher pusher = null;
 		jedisPool = (JedisPool) settings.getRedisAccount().getClient();
 		naSaRpcClient = (NaSaRpcClient) settings.getNasaAccount().getClient();
 
-		Configure.makeWebConfig(sid,configure, settings,symKey, apiType,jedisPool,br);
+		Configure.checkWebConfig(sid,configure, settings,symKey, apiType,jedisPool,br);
 
 		//Check indices in ES
 		checkApipIndices(esClient);

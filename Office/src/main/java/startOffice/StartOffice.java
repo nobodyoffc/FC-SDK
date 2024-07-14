@@ -5,6 +5,7 @@ import apip.apipData.Fcdsl;
 import apip.apipData.Sort;
 import appTools.Menu;
 import appTools.Shower;
+import clients.FeipClient;
 import clients.apipClient.ApipClient;
 import clients.apipClient.DataGetter;
 import clients.diskClient.DiskClient;
@@ -12,7 +13,6 @@ import clients.esClient.EsTools;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import config.Configure;
 import constants.FieldNames;
-import constants.ReplyCodeMessage;
 import crypto.CryptoDataByte;
 import crypto.Decryptor;
 import fcData.FcReplier;
@@ -21,6 +21,8 @@ import fch.ParseTools;
 import fch.Wallet;
 import fch.fchData.Cash;
 import javaTools.Hex;
+import javaTools.http.AuthType;
+import javaTools.http.HttpRequestMethod;
 import nasa.NaSaRpcClient;
 import redis.clients.jedis.JedisPool;
 
@@ -77,14 +79,14 @@ public class StartOffice {
 
         if(fidInfo!=null && fidInfo.getCid()==null){
             if(Inputer.askIfYes(br,"No CID yet. Set CID?")){
-                ApipClient.setCid(fid,userPriKeyCipher,bestHeight,symKey,apipClient,br);
+                FeipClient.setCid(fid,userPriKeyCipher,bestHeight,symKey,apipClient,br);
                 return;
             }
         }
 
         if(fidInfo!=null &&fidInfo.getMaster()==null){
             if(Inputer.askIfYes(br,"No master yet. Set master for this FID?")){
-                ApipClient.setMaster(fid,userPriKeyCipher,bestHeight,symKey,apipClient,br);
+                FeipClient.setMaster(fid,userPriKeyCipher,bestHeight,symKey,apipClient,br);
                 return;
             }
         }
@@ -152,15 +154,8 @@ public class StartOffice {
                 fcdsl.addSort(CASH_ID, ASC);
 
 
-                apipClient.cashSearch(fcdsl);
-                Object data = apipClient.checkResult();
-                if (data == null) {
-                    apipClient.getClientData().getResponseBody().printCodeMessage();
-                    if(apipClient.getClientData().getResponseBody().getCode()== ReplyCodeMessage.Code1011DataNotFound) {
-                        System.out.println("Try again.");
-                    }else return;
-                }
-                List<Cash>cashList = DataGetter.getCashList(data);
+                List<Cash>cashList = apipClient.cashSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+
                 showCashList(cashList);
                 if(appTools.Inputer.askIfYes(br,"Merge/split them?")){
                     int issueNum = appTools.Inputer.inputInteger(br,"Input the number of the new cashes you want:",100);
@@ -204,7 +199,7 @@ public class StartOffice {
             onlyValid = true;
 
         cashList = Wallet.getCashListFromApip(fid, onlyValid,40, sorts, lastList,apipClient);
-        FcReplier fcReplier= apipClient.getClientData().getResponseBody();
+        FcReplier fcReplier= apipClient.getFcClientEvent().getResponseBody();
         if (fcReplier.getCode() != 0) {
             fcReplier.printCodeMessage();
         }else {

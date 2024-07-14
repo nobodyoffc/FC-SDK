@@ -1,5 +1,6 @@
 package initial;
 
+import clients.redisClient.RedisTools;
 import constants.ApiNames;
 import fcData.FcReplier;
 import javaTools.http.AuthType;
@@ -12,7 +13,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-@WebServlet("/"+ApiNames.PingApi)
+import static constants.Strings.PARAMS;
+import static constants.Strings.PRICE_PER_K_BYTES;
+import static server.Settings.addSidBriefToName;
+
+@WebServlet("/"+ApiNames.Ping)
 public class Ping extends HttpServlet {
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) {

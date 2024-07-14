@@ -25,7 +25,6 @@ public class Strings {
     public static final String BEST_HEIGHT = "bestHeight";
     public static final String HEIGHT = "height";
     public static final String DESC = "desc";
-    public static final String TX_INDEX = "txIndex";
     public static final String ASC = "asc";
     public static final String N_PRICE = "nPrice";
     public static final String PRICE = "price";
@@ -90,6 +89,7 @@ public class Strings {
     public static final String AGAIN = "again";
     public static final String WEBHOOK_ENDPOINT_SESSION_KEY = "webhookEndpointSessionKey";
     public static final String DOT_JSON = ".json";
+    public static final String DOCS = "docs";
     public static final String BIRTH_HEIGHT = "birthHeight";
     public static final String ORDER = "order";
     public static final String NONCE = "nonce";

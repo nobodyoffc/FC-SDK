@@ -250,7 +250,10 @@ public class Encryptor {
     }
 
     public CryptoDataByte encryptByAsyOneWay(@NotNull byte[] data, @NotNull byte[] pubKeyB){
-        return encryptByAsy(data, null, pubKeyB);
+        byte[] priKeyA;
+        ECKey ecKey = new ECKey();
+        priKeyA = ecKey.getPrivKeyBytes();
+        return encryptByAsy(data, priKeyA, pubKeyB);
     }
 
     public CryptoDataByte encryptByAsyTwoWay(@NotNull byte[] data, @NotNull byte[]priKeyA, @NotNull byte[] pubKeyB){

@@ -99,7 +99,6 @@ public class CryptoSign {
 
     public static DataForOffLineTx parseDataForOffLineTxFromOther(Object other) {
         Gson gson = new Gson();
-        JsonTools.gsonPrint(other);
         return gson.fromJson(gson.toJson(other), DataForOffLineTx.class);
     }
 }

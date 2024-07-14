@@ -103,7 +103,6 @@ public class AffairMaker {
         DataForOffLineTx dataForOffLineTx = new DataForOffLineTx();
         dataForOffLineTx.setFromFid(account);
         dataForOffLineTx.setSendToList(new ArrayList<>(sendToMap.values()));
-        dataForOffLineTx.setCd(0);
         dataForOffLineTx.setMsg(msg);
 
         String rawTxStr = CryptoSign.makeRawTxForCs(dataForOffLineTx,cashList);

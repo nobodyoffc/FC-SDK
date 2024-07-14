@@ -1,40 +1,39 @@
 package startApipClient;
 
 
-import apip.apipData.CidInfo;
-import apip.apipData.Fcdsl;
-import apip.apipData.RequestBody;
-import apip.apipData.Session;
+import apip.apipData.*;
 import appTools.Inputer;
 import appTools.Menu;
 import appTools.Shower;
 import clients.apipClient.*;
-import com.google.gson.Gson;
-import config.ApiAccount;
 import config.Configure;
 import constants.ApiNames;
-import crypto.Decryptor;
-import crypto.Hash;
+import crypto.EncryptType;
 import crypto.KeyTools;
-import crypto.old.EccAes256K1P7;
+import fcData.FcReplier;
 import fch.Wallet;
-import fch.fchData.SendTo;
+import fch.fchData.*;
+import feip.feipData.*;
+import feip.feipData.serviceParams.ApipParams;
 import javaTools.BytesTools;
 import javaTools.Hex;
-import javaTools.ImageTools;
 import javaTools.JsonTools;
-import org.jetbrains.annotations.Nullable;
+import javaTools.http.AuthType;
+import javaTools.http.HttpRequestMethod;
+import org.bouncycastle.util.encoders.Base64;
 
 import java.io.BufferedReader;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 
-import static clients.apipClient.ApipClient.setCid;
-import static clients.apipClient.ApipClient.setMaster;
-import static config.ApiAccount.decryptSessionKey;
-import static constants.Constants.APIP_Account_JSON;
+import static appTools.Inputer.inputString;
+import static clients.FeipClient.setCid;
+import static clients.FeipClient.setMaster;
+import static constants.ApiNames.*;
 import static fch.Inputer.inputGoodFid;
 
 public class StartApipClient {
@@ -46,7 +45,6 @@ public class StartApipClient {
     private static String userPriKeyCipher;
     private static long bestHeight;
     private static ApipClientSettings settings;
-
 
     public static void main(String[] args) {
         br = new BufferedReader(new InputStreamReader(System.in));
@@ -88,7 +86,7 @@ public class StartApipClient {
         menu.setName("Apip Client");
         ArrayList<String> menuItemList = new ArrayList<>();
         menuItemList.add("Example");
-        menuItemList.add("FreeGet");
+        menuItemList.add("BasicAPIs");
         menuItemList.add("OpenAPI");
         menuItemList.add("Blockchain");
         menuItemList.add("Identity");
@@ -97,7 +95,7 @@ public class StartApipClient {
         menuItemList.add("Personal");
         menuItemList.add("Publish");
         menuItemList.add("Wallet");
-        menuItemList.add("CryptoTools");
+        menuItemList.add("Crypto");
         menuItemList.add("SwapTools");
         menuItemList.add("Settings");
 
@@ -110,15 +108,15 @@ public class StartApipClient {
             switch (choice) {
                 case 1 -> showExample();
                 case 2 -> basicApi();
-//                case 3 -> openAPI(symKey);
-//                case 4 -> blockchain();
-//                case 5 -> identity();
-//                case 6 -> organize();
-//                case 7 -> construct();
-//                case 8 -> personal();
-//                case 9 -> publish();
-//                case 10 -> wallet();
-//                case 11 -> cryptoTools();
+                case 3 -> openAPI(symKey);
+                case 4 -> blockchain();
+                case 5 -> identity();
+                case 6 -> organize();
+                case 7 -> construct();
+                case 8 -> personal();
+                case 9 -> publish();
+                case 10 -> wallet();
+                case 11 -> crypto();
 //                case 12 -> swapTools();
 //                case 13 -> setting(symKey);
                 case 0 -> {
@@ -186,15 +184,15 @@ public class StartApipClient {
             int choice = menu.choose(br);
 
             switch (choice) {
-//                case 1 -> broadcast();
-//                case 2 -> getApps();
-//                case 3 -> getServices();
-//                case 4 -> getAvatar();
-//                case 5 -> getCashes();
-//                case 6 -> getFidCid();
-//                case 7 -> getFreeService();
-//                case 8 -> getService();
-//                case 9 -> getTotals();
+                case 1 -> apipClient.pingFree();
+                case 2 -> chainInfo();
+                case 3 -> getService();
+                case 4 -> fidCidSeek();
+                case 5 -> getFidCid();
+                case 6 -> getAvatar();
+                case 7 -> cashValid(DEFAULT_SIZE, "valid:desc->birthHeight:desc->cashId:asc");
+//                case 8 -> broadcast();
+
                 case 0 -> {
                     return;
                 }
@@ -206,12 +204,12 @@ public class StartApipClient {
 //        System.out.println("Input the rawTx:");
 //        String rawTx = Inputer.inputString(br);
 //        System.out.println("Broadcasting...");
-//        ApipClientEvent diskClientData = FreeGetAPIs.broadcast( rawTx);
+//        ApipClientEvent diskClientData = apipClient.broadcast(rawTx);
 //        System.out.println(diskClientData.getResponseBodyStr());
 //        Menu.anyKeyToContinue(br);
 //    }
 //
-//    public static void getCashes() {
+//    public static void cashListGet() {
 //        String id = inputGoodFid(br, "Input the FID:");
 //        System.out.println("Getting cashes...");
 //        ApipClientEvent diskClientData = FreeGetAPIs.getCashes( id, 0);
@@ -258,1247 +256,1356 @@ public class StartApipClient {
 //        Menu.anyKeyToContinue(br);
 //    }
 //
-//    public static void getService() {
-//        System.out.println("Getting the default service information...");
-//        ApipClientEvent diskClientData = OpenAPIs.getService(apipAccount.getApiUrl());
-//        System.out.println(diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void openAPI(byte[] symKey) {
-//        System.out.println("OpenAPI...");
-//        Menu menu = new Menu();
-//
-//        ArrayList<String> menuItemList = new ArrayList<>();
-//        menu.setName("OpenAPI");
-//        menuItemList.add("getService");
-//        menuItemList.add("SignInPost");
-//        menuItemList.add("SignInEccPost");
-//        menuItemList.add("TotalsGet");
-//        menuItemList.add("TotalsPost");
-//        menuItemList.add("generalPost");
-//
-//
-//        menu.add(menuItemList);
-//
-//        while (true) {
-//            System.out.println(" << Maker manager>>");
-//            menu.show();
-//            int choice = menu.choose(br);
-//            switch (choice) {
-//                case 1 -> getService();
-//                case 2 -> signInPost(symKey, null);
-//                case 3 -> signInEccPost(symKey, null);
-//                case 4 -> totalsGet();
-//                case 5 -> totalsPost();
-//                case 6 -> generalPost();
-//                case 0 -> {
-//                    return;
-//                }
-//            }
-//        }
-//    }
-//
-//    public static void generalPost( ) {
-//        Fcdsl fcdsl = new Fcdsl();
-//        System.out.println("Input the index name. Enter to exit:");
-//        String input = Inputer.inputString(br);
-//        if ("".equals(input)) return;
-//        fcdsl.setIndex(input);
-//
-//        fcdsl.promoteInput();
-//
-//        if (fcdsl.isBadFcdsl()) {
-//            System.out.println("Fcdsl wrong:");
-//            System.out.println(JsonTools.toNiceJson(fcdsl));
-//            return;
-//        }
-//        System.out.println(JsonTools.toNiceJson(fcdsl));
-//        Menu.anyKeyToContinue(br);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = OpenAPIs.generalPost(fcdsl.getIndex(),  fcdsl);
-//        System.out.println(diskClientData.getResponseBodyStr());
-//        ;
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void totalsGet() {
-//        System.out.println("Get request for totals...");
-//        ApipClientEvent diskClientData = OpenAPIs.totalsGet(apipAccount.getApiUrl());
-//        System.out.println(diskClientData.getResponseBodyStr());
-//        ;
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void totalsPost( ) {
-//        System.out.println("Post request for totals...");
-//        ApipClientEvent diskClientData = OpenAPIs.totalsPost( );
-//        System.out.println(diskClientData.getResponseBodyStr());
-//        ;
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static byte[] signInEccPost(byte[] symKey, RequestBody.SignInMode mode) {
-//        byte[] priKey = EccAes256K1P7.decryptJsonBytes(userPriKeyCipher, symKey);
-//        if (priKey == null) return null;
-//        System.out.println("Sign in for EccAES256K1P7 encrypted sessionKey...");
-//        ApipClientEvent diskClientData = OpenAPIs.signInEccPost( priKey, mode);
-//
-//        System.out.println(diskClientData.getResponseBodyStr());
-//
-//        Gson gson = new Gson();
-//        Session session = gson.fromJson(gson.toJson(diskClientData.getResponseBody().getData()), Session.class);
-//        String sessionKeyCipherFromApip = session.getSessionKeyCipher();
-//        byte[] newSessionKey = new Decryptor().decryptJsonByAsyOneWay(sessionKeyCipherFromApip,priKey).getData();
-//
-//        ApiAccount.updateSession(apipAccount,symKey, session, newSessionKey);
-//        ApiAccount.writeApipParamsToFile(apipAccount, APIP_Account_JSON);
-//
-//        return newSessionKey;
-//    }
-//
-//    public static byte[] signInPost(byte[] symKey, RequestBody.SignInMode mode) {
-//        byte[] priKey = EccAes256K1P7.decryptJsonBytes(userPriKeyCipher, symKey);
-//        if (priKey == null) return null;
-//
-//        System.out.println("Sign in...");
-//        ApipClientEvent diskClientData = OpenAPIs.signInPost(  priKey, mode);
-//        System.out.println(JsonTools.toNiceJson(diskClientData.getResponseBody()));
-//
-//        Gson gson = new Gson();
-//        Session session = gson.fromJson(gson.toJson(diskClientData.getResponseBody().getData()), Session.class);
-//
-//        byte[] newSessionKey = HexFormat.of().parseHex(session.getSessionKey());
-//
-//        ApiAccount.updateSession(apipAccount,symKey, session, newSessionKey);
-//        ApiAccount.writeApipParamsToFile(apipAccount, APIP_Account_JSON);
-//        return newSessionKey;
-//    }
-//
-//    public static void blockchain( ) {
-//        System.out.println("Blockchain...");
-//        while (true) {
-//            Menu menu = new Menu();
-//            menu.setName("Blockchain");
-//            menu.add(ApiNames.BlockchainAPIs);
-//            menu.show();
-//            int choice = menu.choose(br);
-//
-//            switch (choice) {
-//                case 1 -> blockByIds();
-//                case 2 -> blockSearch(DEFAULT_SIZE, "height:desc->blockId:asc");
-//                case 3 -> blockByHeights();
-//                case 4 -> cashByIds();
-//                case 5 -> cashSearch(DEFAULT_SIZE, "valid:desc->birthHeight:desc->cashId:asc");
-//                case 6 -> cashValid(DEFAULT_SIZE, "cd:asc->value:desc->cashId:asc");
-//                case 7 -> fidByIds();
-//                case 8 -> fidSearch(DEFAULT_SIZE, "lastHeight:desc->fid:asc");
-//                case 9 -> opReturnByIds();
-//                case 10 -> opReturnSearch(DEFAULT_SIZE, "height:desc->txIndex:desc->txId:asc");
-//                case 11 -> p2shByIds();
-//                case 12 -> p2shSearch(DEFAULT_SIZE, "birthHeight:desc->fid:asc");
-//                case 13 -> txByIds();
-//                case 14 -> txSearch(DEFAULT_SIZE, "height:desc->txId:asc");
-//                case 15 -> chainInfo();
-//                case 0 -> {
-//                    return;
-//                }
-//            }
-//        }
-//    }
-//
-//    public static void blockByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input blockIds:", 0);
-//        System.out.println("Requesting blockByIds...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.blockByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void blockSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting blockSearch...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.blockSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void blockByHeights( ) {
-//        String[] heights = Inputer.inputStringArray(br, "Input block heights:", 0);
-//        System.out.println("Requesting blockByHeights...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.blockByHeightPost( heights);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void cashByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input cashIds:", 0);
-//        System.out.println("Requesting cashByIds...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.cashByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void cashValid(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting cashValid...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.cashValidPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void cashSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting cashSearch...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.cashSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void fidByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
-//        System.out.println("Requesting fidByIds...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.fidByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void fidSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting fidSearch...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.fidSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void opReturnByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input opReturnIds:", 0);
-//        System.out.println("Requesting opReturnByIds...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.opReturnByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void opReturnSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting opReturnSearch...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.opReturnSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void p2shByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input p2shIds:", 0);
-//        System.out.println("Requesting p2shByIds...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.p2shByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void p2shSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting p2shSearch...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.p2shSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void txByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input txIds:", 0);
-//        System.out.println("Requesting txByIds...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.txByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void txSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting txSearch...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.txSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void chainInfo() {
-//        System.out.println("Requesting chainInfo...");
-//        ApipClientEvent diskClientData = BlockchainAPIs.chainInfo(apipAccount.getApiUrl());
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//
-//    }
-//
-//    @Nullable
-//    public static Fcdsl inputFcdsl(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = new Fcdsl();
-//
-//        fcdsl.promoteSearch(defaultSize, defaultSort,br);
-//
-//        if (fcdsl.isBadFcdsl()) {
-//            System.out.println("Fcdsl wrong:");
-//            System.out.println(JsonTools.toNiceJson(fcdsl));
-//            return null;
-//        }
-//        System.out.println("fcdsl:\n" + JsonTools.toNiceJson(fcdsl));
-//
-//        Menu.anyKeyToContinue(br);
-//        return fcdsl;
-//    }
-//
-//
-//    public static void identity( ) {
-//        System.out.println("Identity...");
-//        while (true) {
-//            Menu menu = new Menu();
-//            menu.setName("Identity");
-//            menu.add(ApiNames.IdentityAPIs);
-//            menu.show();
-//            int choice = menu.choose(br);
-//
-//            switch (choice) {
-//                case 1 -> cidInfoByIds();
-//                case 2 -> cidInfoSearch(DEFAULT_SIZE, "nameTime:desc->fid:asc");
-//                case 3 -> cidHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 4 -> fidCidSeek(DEFAULT_SIZE, "lastHeight:desc->cashId:asc");
-//                case 5 -> getFidCid();
-//                case 6 -> nobodyByIds();
-//                case 7 -> nobodySearch(DEFAULT_SIZE, "deathHeight:desc->deathTxIndex:desc");
-//                case 8 -> homepageHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 9 -> noticeFeeHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 10 -> reputationHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 11 -> avatars();
-//                case 12 -> getAvatar();
-//                case 0 -> {
-//                    return;
-//                }
-//            }
-//        }
-//    }
-//
-//    public static void cidInfoByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
-//        System.out.println("Requesting cidInfoByIds...");
-//        ApipClientEvent diskClientData = IdentityAPIs.cidInfoByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void cidInfoSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = IdentityAPIs.cidInfoSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void fidCidSeek(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = IdentityAPIs.fidCidSeekPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void getFidCid() {
-//        System.out.println("Input FID or CID:");
-//        String id = Inputer.inputString(br);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = FreeGetAPIs.getFidCid( id);
-//        System.out.println(diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void nobodyByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = IdentityAPIs.nobodyByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void nobodySearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = IdentityAPIs.nobodySearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void cidHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = IdentityAPIs.cidHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void homepageHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = IdentityAPIs.homepageHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void noticeFeeHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = IdentityAPIs.noticeFeeHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void reputationHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = IdentityAPIs.reputationHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void avatars( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = IdentityAPIs.avatarsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void getAvatar() {
-//        String fid = inputGoodFid(br, "Input FID:");
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = FreeGetAPIs.getAvatar( fid);
-//        byte[] imageBytes = diskClientData.getResponseBodyBytes();
-//        ImageTools.displayPng(imageBytes);
-//        ImageTools.savePng(imageBytes, "test.png");
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void organize( ) {
-//        System.out.println("Organize...");
-//        while (true) {
-//            Menu menu = new Menu();
-//            menu.setName("Organize");
-//            menu.add(ApiNames.OrganizeAPIs);
-//            menu.show();
-//            int choice = menu.choose(br);
-//
-//            switch (choice) {
-//                case 1 -> groupByIds();
-//                case 2 -> groupSearch(DEFAULT_SIZE, "tCdd:desc->gid:asc");
-//                case 3 -> groupMembers();
-//                case 4 -> groupOpHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 5 -> myGroups();
-//                case 6 -> teamByIds();
-//                case 7 -> teamSearch(DEFAULT_SIZE, "active:desc->tRate:desc->tid:asc");
-//                case 8 -> teamMembers();
-//                case 9 -> teamExMembers();
-//                case 10 -> teamOpHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 11 -> teamRateHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 12 -> teamOtherPersons();
-//                case 13 -> myTeams();
-//                case 0 -> {
-//                    return;
-//                }
-//            }
-//        }
-//    }
-//
-//    public static void groupByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input GIDs:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = OrganizeAPIs.groupByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void groupSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = OrganizeAPIs.groupSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void groupMembers( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input GIDs:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = OrganizeAPIs.groupMembersPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void groupOpHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        ApipClientEvent diskClientData = OrganizeAPIs.groupOpHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void myGroups( ) {
-//        System.out.println("Input the FID. Enter to exit:");
-//        String id = Inputer.inputString(br);
-//        if ("".equals(id)) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = OrganizeAPIs.myGroupsPost( id);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void teamByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input TIDs:", 0);
-//        ApipClientEvent diskClientData = OrganizeAPIs.teamByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void teamSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = OrganizeAPIs.teamSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void teamMembers( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input TIDs:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = OrganizeAPIs.teamMembersPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void teamExMembers( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input TIDs:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = OrganizeAPIs.teamExMembersPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void teamRateHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = OrganizeAPIs.teamRateHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void teamOpHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = OrganizeAPIs.teamOpHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void teamOtherPersons( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input TIDs:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = OrganizeAPIs.teamOtherPersonsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void myTeams( ) {
-//        System.out.println("Input the FID. Enter to exit:");
-//        String id = Inputer.inputString(br);
-//        if ("".equals(id)) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = OrganizeAPIs.myTeamsPost( id);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void construct( ) {
-//        System.out.println("Construct...");
-//        while (true) {
-//            Menu menu = new Menu();
-//            menu.setName("Construct");
-//            menu.add(ApiNames.ConstructAPIs);
-//            menu.show();
-//            int choice = menu.choose(br);
-//
-//            switch (choice) {
-//                case 1 -> protocolByIds();
-//                case 2 -> protocolSearch(DEFAULT_SIZE, "active:desc->tRate:desc->pid:asc");
-//                case 3 -> protocolOpHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 4 -> protocolRateHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 5 -> codeByIds();
-//                case 6 -> codeSearch(DEFAULT_SIZE, "active:desc->tRate:desc->codeId:asc");
-//                case 7 -> codeOpHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 8 -> codeRateHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 9 -> serviceByIds();
-//                case 10 -> serviceSearch(DEFAULT_SIZE, "active:desc->tRate:desc->sid:asc");
-//                case 11 -> serviceOpHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 12 -> serviceRateHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 13 -> appByIds();
-//                case 14 -> appSearch(DEFAULT_SIZE, "active:desc->tRate:desc->aid:asc");
-//                case 15 -> appOpHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 16 -> appRateHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 0 -> {
-//                    return;
-//                }
-//            }
-//        }
-//    }
-//
-//    public static void protocolByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input PIDs:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.protocolByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void protocolSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.protocolSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void protocolRateHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.protocolRateHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void protocolOpHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.protocolOpHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void codeByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input codeIds:", 0);
-//        ApipClientEvent diskClientData = ConstructAPIs.codeByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void codeSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.codeSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void codeRateHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.codeRateHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void codeOpHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.codeOpHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void serviceByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input SIDs:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.serviceByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void serviceSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.serviceSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void serviceRateHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.serviceRateHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void serviceOpHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.serviceOpHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void appByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input AIDs:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.appByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void appSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.appSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void appRateHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.appRateHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void appOpHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.appOpHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void personal( ) {
-//        System.out.println("Personal...");
-//        while (true) {
-//            Menu menu = new Menu();
-//            menu.setName("Personal");
-//            menu.add(ApiNames.PersonalAPIs);
-//            menu.show();
-//            int choice = menu.choose(br);
-//
-//            switch (choice) {
-//                case 1 -> boxByIds();
-//                case 2 -> boxSearch(DEFAULT_SIZE, "lastHeight:desc->bid:asc");
-//                case 3 -> boxHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 4 -> contactByIds();
-//                case 5 -> contacts(DEFAULT_SIZE, "birthHeight:desc->contactId:asc");
-//                case 6 -> contactsDeleted(DEFAULT_SIZE, "lastHeight:desc->contactId:asc");
-//                case 7 -> secretByIds();
-//                case 8 -> secrets(DEFAULT_SIZE, "birthHeight:desc->secretId:asc");
-//                case 9 -> secretsDeleted(DEFAULT_SIZE, "lastHeight:desc->secretId:asc");
-//                case 10 -> mailByIds();
-//                case 11 -> mails(DEFAULT_SIZE, "birthHeight:desc->mailId:asc");
-//                case 12 -> mailsDeleted(DEFAULT_SIZE, "lastHeight:desc->mailId:asc");
-//                case 13 -> mailThread(DEFAULT_SIZE, "birthHeight:desc->mailId:asc");
-//                case 0 -> {
-//                    return;
-//                }
-//            }
-//        }
-//    }
-//
-//    public static void boxByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input BIDs:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PersonalAPIs.boxByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void boxSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PersonalAPIs.boxSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void boxHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PersonalAPIs.boxHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void contactByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input contactIds:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PersonalAPIs.contactByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void contacts(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PersonalAPIs.contactsPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void contactsDeleted(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PersonalAPIs.contactsDeletedPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void secretByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input secretIds:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PersonalAPIs.secretByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void secrets(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PersonalAPIs.secretsPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void secretsDeleted(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PersonalAPIs.secretsDeletedPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void mailByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input mailIds:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PersonalAPIs.mailByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void mails(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PersonalAPIs.mailsPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void mailsDeleted(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PersonalAPIs.mailsDeletedPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void mailThread(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PersonalAPIs.mailThreadPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void publish( ) {
-//        System.out.println("Publish...");
-//        while (true) {
-//            Menu menu = new Menu();
-//            menu.setName("Publish");
-//            menu.add(ApiNames.PublishAPIs);
-//            menu.show();
-//            int choice = menu.choose(br);
-//
-//            switch (choice) {
-//                case 1 -> proofByIds();
-//                case 2 -> proofSearch(DEFAULT_SIZE, "lastHeight:desc->bid:asc");
-//                case 3 -> proofHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 4 -> statementByIds();
-//                case 5 -> statementSearch(DEFAULT_SIZE, "birthHeight:desc->contactId:asc");
-//                case 6 -> nidSearch(DEFAULT_SIZE, "birthHeight:desc->nameId:asc");
-//                case 7 -> tokenByIds();
-//                case 8 -> tokenSearch(DEFAULT_SIZE, "lastHeight:desc->tokenId:asc");
-//                case 9 -> tokenHistory(DEFAULT_SIZE, "height:desc->index:desc");
-//                case 10 -> tokenHolderByIds();
-//                case 11 -> myTokens(DEFAULT_SIZE, "lastHeight:desc->id:asc");
-//                case 12 -> tokenHolders(DEFAULT_SIZE, "lastHeight:desc->id:asc");
-//                case 0 -> {
-//                    return;
-//                }
-//            }
-//        }
-//    }
-//
-//    public static void tokenByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input tokenIds:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PublishAPIs.tokenByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void tokenSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PublishAPIs.tokenSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void tokenHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PublishAPIs.tokenHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void tokenHolderByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input tokenHolderIds:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PublishAPIs.tokenHolderByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void myTokens(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PublishAPIs.myTokensPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void tokenHolders(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PublishAPIs.tokenHoldersPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void proofByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input proofIds:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PublishAPIs.proofByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void proofSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PublishAPIs.proofSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void proofHistory(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PublishAPIs.proofHistoryPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void statementByIds( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input statementIds:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PublishAPIs.statementByIdsPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void statementSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PublishAPIs.statementSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void nidSearch(int defaultSize, String defaultSort) {
-//        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
-//        if (fcdsl == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = PublishAPIs.nidSearchPost( fcdsl);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void wallet( ) {
-//        System.out.println("Wallet...");
-//        while (true) {
-//            Menu menu = new Menu();
-//            menu.setName("Wallet");
-//            menu.add(ApiNames.WalletAPIs);
-//            menu.show();
-//            int choice = menu.choose(br);
-//
-//            switch (choice) {
-//                case 1 -> broadcastTx();
-//                case 2 -> decodeRawTx();
-//                case 3 -> cashValidForPay();
-//                case 4 -> cashValidForCd();
-//                case 5 -> unconfirmed();
-//                case 0 -> {
-//                    return;
-//                }
-//            }
-//        }
-//    }
-//
-//    public static void broadcastTx( ) {
-//        String txHex;
-//        while (true) {
-//            System.out.println("Input the hex of the TX:");
-//            txHex = Inputer.inputString(br);
-//            if (Hex.isHexString(txHex)) {
-//                System.out.println("It's not a hex. Try again.");
-//                break;
-//            }
-//        }
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = WalletAPIs.broadcastTxPost( txHex);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void decodeRawTx( ) {
-//        String txHex;
-//        while (true) {
-//            System.out.println("Input the hex of the raw TX:");
-//            txHex = Inputer.inputString(br);
-//            if (Hex.isHexString(txHex)) break;
-//            System.out.println("It's not a hex. Try again.");
-//        }
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = WalletAPIs.decodeRawTxPost( txHex);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void cashValidForPay( ) {
-//        String fid;
-//
-//        while (true) {
-//            System.out.println("Input the sender's FID:");
-//            fid = Inputer.inputString(br);
-//            if (KeyTools.isValidFchAddr(fid)) break;
-//            System.out.println("It's not a FID. Try again.");
-//        }
-//        Double amount = Inputer.inputDouble(br, "Input the amount:");
-//        if (amount == null) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = WalletAPIs.cashValidForPayPost( fid, amount);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void cashValidForCd( ) {
-//        String fid;
-//
-//        while (true) {
-//            System.out.println("Input the sender's FID:");
-//            fid = Inputer.inputString(br);
-//            if (KeyTools.isValidFchAddr(fid)) break;
-//            System.out.println("It's not a FID. Try again.");
-//        }
-//        int cd = Inputer.inputInteger(br, "Input the required CD:", 0);
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = WalletAPIs.cashValidForCdPost( fid, cd);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void unconfirmed( ) {
-//        String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
-//        ApipClientEvent diskClientData = WalletAPIs.unconfirmedPost( ids);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void cryptoTools( ) {
-//        System.out.println("CryptoTools");
-//        while (true) {
-//            Menu menu = new Menu();
-//            menu.setName("CryptoTools");
-//            menu.add(ApiNames.CryptoToolsAPIs);
-//            menu.show();
-//            int choice = menu.choose(br);
-//
-//            switch (choice) {
-//                case 1 -> addresses();
-//                case 2 -> encrypt();
-//                case 3 -> verify();
-//                case 4 -> sha256();
-//                case 5 -> sha256x2();
-//                case 6 -> sha256Bytes();
-//                case 7 -> sha256x2Bytes();
-//                case 8 -> offLineTx();
-//                case 9 -> offLineTxByCd();
-//                case 0 -> {
-//                    return;
-//                }
-//            }
-//        }
-//    }
-//
-//    public static void addresses( ) {
-//        System.out.println("Input the address or public key. Enter to exit:");
-//        String addrOrKey = Inputer.inputString(br);
-//        if ("".equals(addrOrKey)) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = CryptoToolAPIs.addressesPost( addrOrKey);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void encrypt( ) {
-//        System.out.println("Input the text. Enter to exit:");
-//        String msg = Inputer.inputString(br);
-//        if ("".equals(msg)) return;
-//        System.out.println("Requesting ...");
-//        System.out.println("Input the pubKey or symKey. Enter to exit:");
-//        String key = Inputer.inputString(br);
-//        if ("".equals(key)) return;
-//
-//        ApipClientEvent diskClientData = CryptoToolAPIs.encryptPost( key, msg);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void verify( ) {
-//        System.out.println("Input the signature. Enter to exit:");
-//        String signature = Inputer.inputString(br);
-//        if ("".equals(signature)) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = CryptoToolAPIs.verifyPost( signature);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void sha256( ) {
-//        System.out.println("Input the text. Enter to exit:");
-//        String text = Inputer.inputString(br);
-//        if ("".equals(text)) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = CryptoToolAPIs.sha256Post( text);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void sha256x2( ) {
-//        System.out.println("Input the text. Enter to exit:");
-//        String text = Inputer.inputString(br);
-//        if ("".equals(text)) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = CryptoToolAPIs.sha256x2Post( text);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void sha256Bytes( ) {
-//        System.out.println("Input the text. Enter to exit:");
-//        String text = Inputer.inputString(br);
-//        if ("".equals(text)) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = CryptoToolAPIs.sha256BytesPost( text);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void sha256x2Bytes( ) {
-//        System.out.println("Input the text. Enter to exit:");
-//        String text = Inputer.inputString(br);
-//        if ("".equals(text)) return;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = CryptoToolAPIs.sha256x2BytesPost( text);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void offLineTx( ) {
-//
-//        String fid = inputGoodFid(br, "Input the sender's FID:");
-//
-//        List<SendTo> sendToList = SendTo.inputSendToList();
-//
-//        System.out.println("Input the text of OpReturn. Enter to skip:");
-//        String msg = Inputer.inputString(br);
-//        if ("".equals(msg)) msg = null;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = CryptoToolAPIs.offLineTxPost( fid, sendToList, msg);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void offLineTxByCd( ) {
-//
-//        String fid = inputGoodFid(br, "Input the FID:");
-//
-//        int cd = Inputer.inputInteger(br, "Input the required CD:", 0);
-//
-//        List<SendTo> sendToList = SendTo.inputSendToList();
-//
-//        System.out.println("Input the text of OpReturn. Enter to skip:");
-//        String msg = Inputer.inputString(br);
-//        if ("".equals(msg)) msg = null;
-//        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = CryptoToolAPIs.offLineTxByCdPost( fid, sendToList, msg, cd);
-//        System.out.println("Result:\n" + diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
+    public static void getService() {
+        System.out.println("Getting the default service information...");
+        FcReplier replier = ApipClient.getService(apipClient.getUrlHead(), ApipParams.class, ApiNames.Version2);
+        if(replier!=null)JsonTools.printJson(replier);
+        else System.out.println("Failed to get service.");
+        Menu.anyKeyToContinue(br);
+    }
+//
+    public static void openAPI(byte[] symKey) {
+        System.out.println("OpenAPI...");
+        Menu menu = new Menu();
+
+        ArrayList<String> menuItemList = new ArrayList<>();
+        menu.setName("OpenAPI");
+        menuItemList.add("getService");
+        menuItemList.add("SignInPost");
+        menuItemList.add("SignInEccPost");
+        menuItemList.add("TotalsGet");
+        menuItemList.add("TotalsPost");
+        menuItemList.add("generalPost");
+
+
+        menu.add(menuItemList);
+
+        while (true) {
+            System.out.println(" << Maker manager>>");
+            menu.show();
+            int choice = menu.choose(br);
+            switch (choice) {
+                case 1 -> getService();
+                case 2 -> signInPost(symKey, RequestBody.SignInMode.NORMAL);
+                case 3 -> signInEccPost(symKey, RequestBody.SignInMode.NORMAL);
+                case 4 -> totalsGet();
+                case 5 -> totalsPost();
+                case 6 -> generalPost();
+                case 0 -> {
+                    return;
+                }
+            }
+        }
+    }
+
+    public static void generalPost( ) {
+        Fcdsl fcdsl = new Fcdsl();
+        System.out.println("Input the index name. Enter to exit:");
+        String input = Inputer.inputString(br);
+        if ("".equals(input)) return;
+        fcdsl.setIndex(input);
+
+        fcdsl.promoteInput(br);
+
+        if (fcdsl.isBadFcdsl()) {
+            System.out.println("Fcdsl wrong:");
+            System.out.println(JsonTools.toNiceJson(fcdsl));
+            return;
+        }
+        System.out.println(JsonTools.toNiceJson(fcdsl));
+        Menu.anyKeyToContinue(br);
+        System.out.println("Requesting ...");
+        FcReplier replier = apipClient.general(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(replier);
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void totalsGet() {
+        System.out.println("Get request for totals...");
+        Map<String, String> result = apipClient.totals(HttpRequestMethod.GET, AuthType.FREE);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void totalsPost( ) {
+        System.out.println("Post request for totals...");
+        Map<String, String> result  = apipClient.totals(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static byte[] signInEccPost(byte[] symKey, RequestBody.SignInMode mode) {
+        System.out.println("Post request for signInEcc...");
+        Session session = apipClient.signInEcc(apipClient.getApiAccount(), RequestBody.SignInMode.NORMAL, symKey);
+        JsonTools.printJson(session);
+        Menu.anyKeyToContinue(br);
+        return Hex.fromHex(session.getSessionKey());
+    }
+
+    public static byte[] signInPost(byte[] symKey, RequestBody.SignInMode mode) {
+        System.out.println("Post request for signIn...");
+        Session session = apipClient.signIn(apipClient.getApiAccount(), RequestBody.SignInMode.NORMAL, symKey);
+        JsonTools.printJson(session);
+        Menu.anyKeyToContinue(br);
+        return Hex.fromHex(session.getSessionKey());
+    }
+
+    public static void blockchain( ) {
+        System.out.println("Blockchain...");
+        while (true) {
+            Menu menu = new Menu();
+            menu.setName("Blockchain");
+            menu.add(ApiNames.BlockchainAPIs);
+            menu.show();
+            int choice = menu.choose(br);
+
+            switch (choice) {
+                case 1 -> blockByIds();
+                case 2 -> blockSearch(DEFAULT_SIZE, "height:desc->blockId:asc");
+                case 3 -> blockByHeights();
+                case 4 -> cashByIds();
+                case 5 -> cashSearch(DEFAULT_SIZE, "valid:desc->birthHeight:desc->cashId:asc");
+                case 6 -> fidByIds();
+                case 7 -> fidSearch(DEFAULT_SIZE, "lastHeight:desc->fid:asc");
+                case 8 -> opReturnByIds();
+                case 9 -> opReturnSearch(DEFAULT_SIZE, "height:desc->txIndex:desc->txId:asc");
+                case 10 -> p2shByIds();
+                case 11 -> p2shSearch(DEFAULT_SIZE, "birthHeight:desc->fid:asc");
+                case 12 -> txByIds();
+                case 13 -> txSearch(DEFAULT_SIZE, "height:desc->txId:asc");
+                case 14 -> txByFid();
+                case 15 -> chainInfo();
+                case 16 -> blockTimeHistory();
+                case 17 -> difficultyHistory();
+                case 18 -> hashRateHistory();
+                case 0 -> {
+                    return;
+                }
+            }
+        }
+    }
+
+    public static void blockByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input blockIds:", 0);
+        System.out.println("Requesting blockByIds...");
+        Map<String, BlockInfo> result = apipClient.blockByIds(HttpRequestMethod.POST,AuthType.FC_SIGN_BODY,ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void blockSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting blockSearch...");
+        List<BlockInfo> result = apipClient.blockSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void blockByHeights( ) {
+        String[] heights = Inputer.inputStringArray(br, "Input block heights:", 0);
+        System.out.println("Requesting blockByHeights...");
+        Map<String, BlockInfo> result = apipClient.blockByHeights(HttpRequestMethod.POST,AuthType.FC_SIGN_BODY,heights);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void cashByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input cashIds:", 0);
+        System.out.println("Requesting cashByIds...");
+        Map<String, Cash> result = apipClient.cashByIds(HttpRequestMethod.POST,AuthType.FC_SIGN_BODY,ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void cashValid(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting cashValid...");
+        List<Cash> result = apipClient.cashValid(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void cashSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting cashSearch...");
+        List<Cash> result = apipClient.cashSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void fidByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
+        System.out.println("Requesting fidByIds...");
+        Map<String, Address> result = apipClient.fidByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void fidSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting fidSearch...");
+        List<Address> result = apipClient.fidSearch(fcdsl,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void opReturnByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input opReturnIds:", 0);
+        System.out.println("Requesting opReturnByIds...");
+        Map<String, OpReturn> result = apipClient.opReturnByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void opReturnSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting opReturnSearch...");
+        List<OpReturn> result = apipClient.opReturnSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void p2shByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input p2shIds:", 0);
+        System.out.println("Requesting p2shByIds...");
+        Map<String, P2SH> result = apipClient.p2shByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void p2shSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting p2shSearch...");
+        List<P2SH> result = apipClient.p2shSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void txByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input txIds:", 0);
+        System.out.println("Requesting txByIds...");
+        Map<String, TxInfo> result = apipClient.txByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void txSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting txSearch...");
+        List<TxInfo> result = apipClient.txSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void txByFid( ) {
+        String fid = Inputer.inputString(br, "Input FID");
+        int size = fch.Inputer.inputInteger(br,"Input the size:",0);
+        String[] last=null;
+        String lastStr = Inputer.inputString(br,"Input the last values spited with ','");
+        if(!lastStr.isEmpty()) last = lastStr.split(",");
+        System.out.println("Requesting txByIds...");
+        List<TxInfo> result = apipClient.txByFid(fid, size, last, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void chainInfo() {
+        Long height = Inputer.inputLongWithNull(br,"Input the height you want. Enter to query by the best height:");
+        System.out.println("Requesting chainInfo...");
+        FchChainInfo result = apipClient.chainInfo(height,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void blockTimeHistory() {
+        Long startTime = Inputer.inputLongWithNull(br,"Input the start timestamp:");
+        Long endTime = Inputer.inputLongWithNull(br,"Input the end timestamp:");
+        Integer count = Inputer.inputInteger(br,"Input the data count:",0);
+        System.out.println("Requesting chainInfo...");
+        Map<Long, Long> result = apipClient.blockTimeHistory(startTime,endTime,count,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void difficultyHistory() {
+        Long startTime = Inputer.inputLongWithNull(br,"Input the start timestamp:");
+        Long endTime = Inputer.inputLongWithNull(br,"Input the end timestamp:");
+        Integer count = Inputer.inputInteger(br,"Input the data count:",0);
+        System.out.println("Requesting chainInfo...");
+        Map<Long, String> result = apipClient.difficultyHistory(startTime,endTime,count,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void hashRateHistory() {
+        Long startTime = Inputer.inputLongWithNull(br,"Input the start timestamp:");
+        Long endTime = Inputer.inputLongWithNull(br,"Input the end timestamp:");
+        Integer count = Inputer.inputInteger(br,"Input the data count:",0);
+        System.out.println("Requesting chainInfo...");
+        Map<Long, String> result = apipClient.hashRateHistory(startTime,endTime,count,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static Fcdsl inputFcdsl(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = new Fcdsl();
+
+        fcdsl.promoteSearch(defaultSize, defaultSort,br);
+
+        if (fcdsl.isBadFcdsl()) {
+            System.out.println("Fcdsl wrong:");
+            System.out.println(JsonTools.toNiceJson(fcdsl));
+            return null;
+        }
+        System.out.println("fcdsl:\n" + JsonTools.toNiceJson(fcdsl));
+
+        Menu.anyKeyToContinue(br);
+        return fcdsl;
+    }
+
+    public static void identity( ) {
+        System.out.println("Identity...");
+        while (true) {
+            Menu menu = new Menu();
+            menu.setName("Identity");
+            menu.add(ApiNames.IdentityAPIs);
+            menu.show();
+            int choice = menu.choose(br);
+
+            switch (choice) {
+                case 1 -> cidInfoByIds();
+                case 2 -> cidInfoSearch(DEFAULT_SIZE, "nameTime:desc->fid:asc");
+                case 3 -> cidHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 4 -> fidCidSeek();
+                case 5 -> getFidCid();
+                case 6 -> nobodyByIds();
+                case 7 -> nobodySearch(DEFAULT_SIZE, "deathHeight:desc->deathTxIndex:desc");
+                case 8 -> homepageHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 9 -> noticeFeeHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 10 -> reputationHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 11 -> getAvatar();
+                case 12 -> avatars();
+                case 0 -> {
+                    return;
+                }
+            }
+        }
+    }
+
+    public static void cidInfoByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
+        System.out.println("Requesting cidInfoByIds...");
+        Map<String, CidInfo> result = apipClient.cidInfoByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void cidInfoSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<CidInfo> result = apipClient.cidInfoSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void fidCidSeek() {
+        String searchStr = inputString(br,"Input the whole or part of the FID or CID you are looking for");
+        System.out.println("Requesting ...");
+        Map<String, String[]> result = apipClient.fidCidSeek(searchStr);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void getFidCid() {
+        System.out.println("Input FID or CID:");
+        String id = Inputer.inputString(br);
+        System.out.println("Requesting ...");
+        CidInfo result = apipClient.getFidCid(id);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void nobodyByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
+        System.out.println("Requesting nobodyByIds...");
+        Map<String, Nobody> result = apipClient.nobodyByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void nobodySearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<Nobody> result = apipClient.nobodySearch(fcdsl,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void cidHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<CidHist> result = apipClient.cidHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void homepageHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<CidHist> result = apipClient.homepageHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void noticeFeeHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<CidHist> result = apipClient.noticeFeeHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void reputationHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<CidHist> result = apipClient.reputationHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void avatars( ) {
+        String[] fids = fch.Inputer.inputFidArray(br, "Input FIDs:", 0);
+
+        System.out.println("Requesting avatars...");
+        Map<String, String> result = apipClient.avatars(fids, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        if(result==null)return;
+        for(String key : result.keySet()){
+            try (FileOutputStream fos = new FileOutputStream(key+".png")) {
+                byte[] bytes = Base64.decode(result.get(key));
+                fos.write(bytes);
+                System.out.println("PNG file saved as '"+key+".png'.");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void getAvatar() {
+        String fid = inputGoodFid(br, "Input FID:");
+        System.out.println("Requesting ...");
+        byte[] result = apipClient.getAvatar(fid);
+        try (FileOutputStream fos = new FileOutputStream(fid+".png")) {
+            fos.write(result);
+            System.out.println("PNG file saved as '"+fid+".png'.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void organize( ) {
+        System.out.println("Organize...");
+        while (true) {
+            Menu menu = new Menu();
+            menu.setName("Organize");
+            menu.add(ApiNames.OrganizeAPIs);
+            menu.show();
+            int choice = menu.choose(br);
+
+            switch (choice) {
+                case 1 -> groupByIds();
+                case 2 -> groupSearch(DEFAULT_SIZE, "tCdd:desc->gid:asc");
+                case 3 -> groupMembers();
+                case 4 -> groupOpHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 5 -> myGroups();
+                case 6 -> teamByIds();
+                case 7 -> teamSearch(DEFAULT_SIZE, "active:desc->tRate:desc->tid:asc");
+                case 8 -> teamMembers();
+                case 9 -> teamExMembers();
+                case 10 -> teamOpHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 11 -> teamRateHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 12 -> teamOtherPersons();
+                case 13 -> myTeams();
+                case 0 -> {
+                    return;
+                }
+            }
+        }
+    }
+
+    public static void groupByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input GIDs:", 0);
+        System.out.println("Requesting ...");
+        apipClient.groupByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void groupSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        apipClient.groupSearch(fcdsl,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void groupMembers( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input GIDs:", 0);
+        System.out.println("Requesting ...");
+        apipClient.groupMembers(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void groupOpHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        apipClient.groupOpHistory(fcdsl,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void myGroups( ) {
+        System.out.println("Input the FID. Enter to exit:");
+        String id = Inputer.inputString(br);
+        if ("".equals(id)) return;
+        System.out.println("Requesting ...");
+        apipClient.myGroups(id,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void teamByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input TIDs:", 0);
+        apipClient.teamByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void teamSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        apipClient.teamSearch(fcdsl,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void teamMembers( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input TIDs:", 0);
+        System.out.println("Requesting ...");
+        apipClient.teamMembers(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void teamExMembers( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input TIDs:", 0);
+        System.out.println("Requesting ...");
+        apipClient.teamExMembers(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY,ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void teamRateHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        apipClient.teamRateHistory(fcdsl,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void teamOpHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        apipClient.teamOpHistory(fcdsl,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void teamOtherPersons( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input TIDs:", 0);
+        System.out.println("Requesting ...");
+        apipClient.teamOtherPersons(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY,ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void myTeams( ) {
+        System.out.println("Input the FID. Enter to exit:");
+        String id = Inputer.inputString(br);
+        if ("".equals(id)) return;
+        System.out.println("Requesting ...");
+        apipClient.myTeams(id,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void construct( ) {
+        System.out.println("Construct...");
+        while (true) {
+            Menu menu = new Menu();
+            menu.setName("Construct");
+            menu.add(ApiNames.ConstructAPIs);
+            menu.show();
+            int choice = menu.choose(br);
+
+            switch (choice) {
+                case 1 -> protocolByIds();
+                case 2 -> protocolSearch(DEFAULT_SIZE, "active:desc->tRate:desc->pid:asc");
+                case 3 -> protocolOpHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 4 -> protocolRateHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 5 -> codeByIds();
+                case 6 -> codeSearch(DEFAULT_SIZE, "active:desc->tRate:desc->codeId:asc");
+                case 7 -> codeOpHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 8 -> codeRateHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 9 -> serviceByIds();
+                case 10 -> serviceSearch(DEFAULT_SIZE, "active:desc->tRate:desc->sid:asc");
+                case 11 -> serviceOpHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 12 -> serviceRateHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 13 -> appByIds();
+                case 14 -> appSearch(DEFAULT_SIZE, "active:desc->tRate:desc->aid:asc");
+                case 15 -> appOpHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 16 -> appRateHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 0 -> {
+                    return;
+                }
+            }
+        }
+    }
+
+    public static void protocolByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input PIDs:", 0);
+        System.out.println("Requesting protocolByIds...");
+        Map<String, Protocol> result = apipClient.protocolByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void protocolSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting protocolSearch...");
+        List<Protocol> result = apipClient.protocolSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void protocolOpHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting protocolOpHistory...");
+        List<ProtocolHistory> result = apipClient.protocolOpHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void protocolRateHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<ProtocolHistory> result = apipClient.protocolRateHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void codeByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input Code_IDs:", 0);
+        System.out.println("Requesting codeByIds...");
+        Map<String, Code> result = apipClient.codeByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void codeSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting protocolSearch...");
+        List<Code> result = apipClient.codeSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void codeRateHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting odeRateHistory...");
+        List<CodeHistory> result = apipClient.codeRateHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void codeOpHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting codeOpHistory...");
+        List<CodeHistory> result = apipClient.codeOpHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void serviceByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input SIDs:", 0);
+        System.out.println("Requesting ...");
+        Map<String, Service> result = apipClient.serviceByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void serviceSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<Service> result = apipClient.serviceSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void serviceRateHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<ServiceHistory> result = apipClient.serviceRateHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void serviceOpHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<ServiceHistory> result = apipClient.serviceOpHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void appByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input AIDs:", 0);
+        System.out.println("Requesting ...");
+        Map<String, App> result = apipClient.appByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void appSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<App> result = apipClient.appSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void appRateHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<AppHistory> result = apipClient.appRateHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void appOpHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<AppHistory> result = apipClient.appOpHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+
+    public static void personal( ) {
+        System.out.println("Personal...");
+        while (true) {
+            Menu menu = new Menu();
+            menu.setName("Personal");
+            menu.add(ApiNames.PersonalAPIs);
+            menu.show();
+            int choice = menu.choose(br);
+
+            switch (choice) {
+                case 1 -> boxByIds();
+                case 2 -> boxSearch(DEFAULT_SIZE, "lastHeight:desc->bid:asc");
+                case 3 -> boxHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 4 -> contactByIds();
+                case 5 -> contacts(DEFAULT_SIZE, "birthHeight:desc->contactId:asc");
+                case 6 -> contactsDeleted(DEFAULT_SIZE, "lastHeight:desc->contactId:asc");
+                case 7 -> secretByIds();
+                case 8 -> secrets(DEFAULT_SIZE, "birthHeight:desc->secretId:asc");
+                case 9 -> secretsDeleted(DEFAULT_SIZE, "lastHeight:desc->secretId:asc");
+                case 10 -> mailByIds();
+                case 11 -> mails(DEFAULT_SIZE, "birthHeight:desc->mailId:asc");
+                case 12 -> mailsDeleted(DEFAULT_SIZE, "lastHeight:desc->mailId:asc");
+                case 13 -> mailThread(DEFAULT_SIZE, "birthHeight:desc->mailId:asc");
+                case 0 -> {
+                    return;
+                }
+            }
+        }
+    }
+
+    public static void boxByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input BIDs:", 0);
+        System.out.println("Requesting ...");
+        Map<String, Box> result = apipClient.boxByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void boxSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<Box> result = apipClient.boxSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void boxHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<BoxHistory> result = apipClient.boxHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+
+    public static void contactByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input Contact_Ids:", 0);
+        System.out.println("Requesting ...");
+        Map<String, Contact> result = apipClient.contactByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void contacts(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<Contact> result = apipClient.contacts(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void contactsDeleted(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<Contact> result = apipClient.contactDeleted(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+
+    public static void secretByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input Secret_Ids:", 0);
+        System.out.println("Requesting ...");
+        Map<String, Secret> result = apipClient.secretByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void secrets(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<Secret> result = apipClient.secrets(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void secretsDeleted(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<Secret> result = apipClient.secretDeleted(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+
+    public static void mailByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input Mail_Ids:", 0);
+        System.out.println("Requesting ...");
+        Map<String, Mail> result = apipClient.mailByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void mails(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<Mail> result = apipClient.mails(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void mailsDeleted(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<Mail> result = apipClient.mailDeleted(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void mailThread(int defaultSize, String defaultSort) {
+        String fidA = fch.Inputer.inputGoodFid(br,"Input the FID:");
+        String fidB = fch.Inputer.inputGoodFid(br,"Input another FID:");
+        if(fidA==null ||fidB==null)return;
+        Long startTime = Inputer.inputDate(br,"yyyy-mm-dd","Input the start time. Enter to skip:");
+        Long endTime = Inputer.inputDate(br,"yyyy-mm-dd","Input the end time. Enter to skip:");
+
+        System.out.println("Requesting ...");
+        List<Mail> result = apipClient.mailThread(fidA,fidB,startTime,endTime, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+
+    public static void proofByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input Proof_Ids:", 0);
+        System.out.println("Requesting ...");
+        Map<String, Proof> result = apipClient.proofByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void proofSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<Proof> result = apipClient.proofSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void proofHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<ProofHistory> result = apipClient.proofHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void statementByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input Statement_Ids:", 0);
+        System.out.println("Requesting ...");
+        Map<String, Statement> result = apipClient.statementByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void statementSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<Statement> result = apipClient.statementSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void nidSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<Nid> result = apipClient.nidSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void tokenByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input Token_Ids:", 0);
+        System.out.println("Requesting ...");
+        Map<String, Token> result = apipClient.tokenByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void tokenSearch(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<Token> result = apipClient.tokenSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void tokenHistory(int defaultSize, String defaultSort) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<TokenHistory> result = apipClient.tokenHistory(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void myTokens( ) {
+        System.out.println("Input the FID. Enter to exit:");
+        String id = Inputer.inputString(br);
+        if ("".equals(id)) return;
+        System.out.println("Requesting ...");
+        apipClient.myTokens(id,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+    public static void tokenHoldersByIds( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input Token_Ids:", 0);
+        System.out.println("Requesting ...");
+        Map<String, TokenHolder> result = apipClient.tokenHoldersByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void tokenHolderSearch(int defaultSize, String defaultSort ) {
+        Fcdsl fcdsl = inputFcdsl(defaultSize, defaultSort);
+        if (fcdsl == null) return;
+        System.out.println("Requesting ...");
+        List<TokenHolder> result = apipClient.tokenHolderSearch(fcdsl,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void publish( ) {
+        System.out.println("Publish...");
+        while (true) {
+            Menu menu = new Menu();
+            menu.setName("Publish");
+            menu.add(ApiNames.PublishAPIs);
+            menu.show();
+            int choice = menu.choose(br);
+
+            switch (choice) {
+                case 1 -> proofByIds();
+                case 2 -> proofSearch(DEFAULT_SIZE, "lastHeight:desc->bid:asc");
+                case 3 -> proofHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 4 -> statementByIds();
+                case 5 -> statementSearch(DEFAULT_SIZE, "birthHeight:desc->contactId:asc");
+                case 6 -> nidSearch(DEFAULT_SIZE, "birthHeight:desc->nameId:asc");
+                case 7 -> tokenByIds();
+                case 8 -> tokenSearch(DEFAULT_SIZE, "lastHeight:desc->tokenId:asc");
+                case 9 -> tokenHistory(DEFAULT_SIZE, "height:desc->index:desc");
+                case 10 -> tokenHoldersByIds();
+                case 11 -> myTokens();
+                case 12 -> tokenHolderSearch(DEFAULT_SIZE, "lastHeight:desc->id:asc");
+                case 0 -> {
+                    return;
+                }
+            }
+        }
+    }
+
+
+    public static void wallet( ) {
+        System.out.println("Wallet...");
+        while (true) {
+            Menu menu = new Menu();
+            menu.setName("Wallet");
+            menu.add(BroadcastTx,
+                    DecodeTx,
+                    "cashValidForPay",
+                    "cashValidForCd",
+                    Unconfirmed,
+                    FeeRate,
+                    "offLineTxForPay",
+                    "offLineTxByCd");
+            menu.show();
+            int choice = menu.choose(br);
+
+            switch (choice) {
+                case 1 -> broadcastTx();
+                case 2 -> decodeTx();
+                case 3 -> cashValidForPay();
+                case 4 -> cashValidForCd();
+                case 5 -> unconfirmed();
+                case 6 -> feeRate();
+                case 7 -> offLineTxForPay();
+                case 8 -> offLineTxByCd();
+                case 0 -> {
+                    return;
+                }
+            }
+        }
+    }
+
+    public static void broadcastTx() {
+        String txHex;
+        while (true) {
+            System.out.println("Input the hex of the TX:");
+            txHex = Inputer.inputString(br);
+            if (Hex.isHexString(txHex)) break;
+            System.out.println("It's not a hex. Try again.");
+        }
+        System.out.println("Requesting ...");
+        apipClient.broadcastTx(txHex,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void decodeTx( ) {
+        String txHex;
+        while (true) {
+            System.out.println("Input the hex of the raw TX:");
+            txHex = Inputer.inputString(br);
+            if (Hex.isHexString(txHex)) break;
+            System.out.println("It's not a hex. Try again.");
+        }
+        System.out.println("Requesting ...");
+        apipClient.decodeTx(txHex,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void cashValidForPay( ) {
+        String fid;
+
+        while (true) {
+            System.out.println("Input the sender's FID:");
+            fid = Inputer.inputString(br);
+            if (KeyTools.isValidFchAddr(fid)) break;
+            System.out.println("It's not a FID. Try again.");
+        }
+        Double amount = Inputer.inputDouble(br, "Input the amount:");
+        if (amount == null) return;
+        System.out.println("Requesting ...");
+        apipClient.cashValidForPay(fid, amount, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void cashValidForCd( ) {
+        String fid;
+
+        while (true) {
+            System.out.println("Input the sender's FID:");
+            fid = Inputer.inputString(br);
+            if (KeyTools.isValidFchAddr(fid)) break;
+            System.out.println("It's not a FID. Try again.");
+        }
+        long cd = Inputer.inputLong(br, "Input the required CD:");
+        System.out.println("Requesting ...");
+        apipClient.cashValidForCd(fid, cd, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void unconfirmed( ) {
+        String[] ids = Inputer.inputStringArray(br, "Input FIDs:", 0);
+        System.out.println("Requesting ...");
+        apipClient.unconfirmed(HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY,ids);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void feeRate( ) {
+        System.out.println("Requesting ...");
+        apipClient.feeRate(HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void crypto( ) {
+        System.out.println("CryptoTools");
+        while (true) {
+            Menu menu = new Menu();
+            menu.setName("CryptoTools");
+            menu.add(ApiNames.CryptoToolsAPIs);
+            menu.show();
+            int choice = menu.choose(br);
+
+            switch (choice) {
+                case 1 -> addresses();
+                case 2 -> encrypt();
+                case 3 -> verify();
+                case 4 -> sha256();
+                case 5 -> sha256x2();
+                case 6 -> sha256Bytes();
+                case 7 -> sha256x2Bytes();
+                case 8 -> ripemd160();
+                case 9 -> keccakSha3();
+                case 10 -> checkSum4();
+                case 11 -> hexToBase58();
+                case 0 -> {
+                    return;
+                }
+            }
+        }
+    }
+
+    public static void addresses( ) {
+        System.out.println("Input the address or public key. Enter to exit:");
+        String addrOrKey = Inputer.inputString(br);
+        if ("".equals(addrOrKey)) return;
+        System.out.println("Requesting ...");
+        apipClient.addresses(addrOrKey,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void encrypt( ) {
+        System.out.println("Input the text. Enter to exit:");
+        String msg = Inputer.inputString(br);
+        if ("".equals(msg)) return;
+        String key=null;
+        String fid=null;
+        EncryptType type = Inputer.chooseOne(EncryptType.values(),"Choose the type of encrypting:",br);
+        switch (type){
+            case Password -> {
+                System.out.println("Input the password no more than 64 chars. Enter to exit:");
+                key = Inputer.inputString(br);
+            }
+            case SymKey -> {
+                System.out.println("Input the symKey. Enter to exit:");
+                key = Inputer.inputString(br);
+            }
+            case AsyOneWay ->{
+                System.out.println("Input the pubKey or FID. Enter to exit:");
+                key = Inputer.inputString(br);
+                if(KeyTools.isValidFchAddr(key)) {
+                    fid = key;
+                    key =null;
+                }
+            }
+            default -> {
+                System.out.println("Only for Password, SymKey, AsyOneWay.");
+                return;
+            }
+        }
+
+        if ("".equals(key)) return;
+        System.out.println("Requesting ...");
+
+        apipClient.encrypt(type,msg,key,fid,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void verify( ) {
+        System.out.println("Input the signature. Enter to exit:");
+        String signature = Inputer.inputString(br);
+        if ("".equals(signature)) return;
+        System.out.println("Requesting ...");
+        apipClient.verify(signature,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void sha256( ) {
+        System.out.println("Input the text. Enter to exit:");
+        String text = Inputer.inputString(br);
+        if ("".equals(text)) return;
+        System.out.println("Requesting ...");
+        apipClient.sha256(text,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void sha256x2( ) {
+        System.out.println("Input the text. Enter to exit:");
+        String text = Inputer.inputString(br);
+        if ("".equals(text)) return;
+        System.out.println("Requesting ...");
+        apipClient.sha256x2(text,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void sha256Bytes( ) {
+        System.out.println("Input the Hex. Enter to exit:");
+        String text = Inputer.inputString(br);
+        if ("".equals(text)) return;
+        System.out.println("Requesting ...");
+        apipClient.sha256Bytes(text,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void sha256x2Bytes( ) {
+        System.out.println("Input the Hex. Enter to exit:");
+        String text = Inputer.inputString(br);
+        if ("".equals(text)) return;
+        System.out.println("Requesting ...");
+        apipClient.sha256x2Bytes(text,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void ripemd160( ) {
+        System.out.println("Input the Hex. Enter to exit:");
+        String text = Inputer.inputString(br);
+        if ("".equals(text)) return;
+        System.out.println("Requesting ...");
+        apipClient.ripemd160(text,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void keccakSha3( ) {
+        System.out.println("Input the Hex. Enter to exit:");
+        String text = Inputer.inputString(br);
+        if ("".equals(text)) return;
+        System.out.println("Requesting ...");
+        apipClient.KeccakSha3(text,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void hexToBase58( ) {
+        System.out.println("Input the Hex. Enter to exit:");
+        String text = Inputer.inputString(br);
+        if ("".equals(text)) return;
+        System.out.println("Requesting ...");
+        apipClient.hexToBase58(text,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void checkSum4( ) {
+        System.out.println("Input the Hex. Enter to exit:");
+        String text = Inputer.inputString(br);
+        if ("".equals(text)) return;
+        System.out.println("Requesting ...");
+        apipClient.checkSum4(text,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void offLineTxForPay( ) {
+
+        String fid = inputGoodFid(br, "Input the sender's FID:");
+
+        List<SendTo> sendToList = SendTo.inputSendToList(br);
+
+        System.out.println("Input the text of OpReturn. Enter to skip:");
+        String msg = Inputer.inputString(br);
+        if ("".equals(msg)) msg = null;
+        System.out.println("Requesting ...");
+        apipClient.offLineTx(fid,sendToList,msg,null,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
+    public static void offLineTxByCd( ) {
+
+        String fid = inputGoodFid(br, "Input the FID:");
+        long cd = Inputer.inputInteger(br, "Input the required CD:", 0);
+        List<SendTo> sendToList = SendTo.inputSendToList(br);
+        System.out.println("Input the text of OpReturn. Enter to skip:");
+        String msg = Inputer.inputString(br);
+        if ("".equals(msg)) msg = null;
+        System.out.println("Requesting ...");
+        apipClient.offLineTx(fid,sendToList,msg,cd,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
+        Menu.anyKeyToContinue(br);
+    }
+
 //
 //    public static void swapTools( ) {
 //        System.out.println("SwapTools...");

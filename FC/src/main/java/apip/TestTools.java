@@ -240,7 +240,7 @@ public class TestTools {
         if (urlTail == null) return;
         Fcdsl fcdsl = new Fcdsl();
         dataRequestBody.setFcdsl(fcdsl);
-        if (urlTail.equals(ApiNames.APIP1V1Path + ApiNames.GeneralAPI)) askIndex(dataRequestBody);
+        if (urlTail.equals(ApiNames.APIP1V1Path + ApiNames.General)) askIndex(dataRequestBody);
         if (askByIds(dataRequestBody)) return;
         if (!askMatchAll()) {
             askQuery(dataRequestBody);

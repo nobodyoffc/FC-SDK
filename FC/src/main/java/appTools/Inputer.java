@@ -10,6 +10,8 @@ import java.io.BufferedReader;
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 
@@ -38,6 +40,7 @@ public class Inputer {
         if (num == 0) return null;
         char[] password = new char[num - 1];
         System.arraycopy(input, 0, password, 0, num - 1);
+        if(password.length==0)password=null;
         return password;
     }
 
@@ -221,7 +224,35 @@ public class Inputer {
                 System.out.println("It isn't a integer. Input again:");
             }
         }
+    }
 
+    public static Integer inputIntegerWithNull(BufferedReader br, String ask, int maximum) {
+        String str;
+        Integer num = null;
+        while (true) {
+            System.out.println(ask);
+            try {
+                str = br.readLine();
+            } catch (IOException e) {
+                System.out.println("BufferReader wrong.");
+                return null;
+            }
+
+            if ("".equals(str)) return null;
+
+            try {
+                num = Integer.parseInt(str);
+                if (maximum > 0) {
+                    if (num > maximum) {
+                        System.out.println("It's bigger than " + maximum + ".");
+                        continue;
+                    }
+                }
+                return num;
+            } catch (Exception e) {
+                System.out.println("It isn't a integer. Input again:");
+            }
+        }
     }
 
     public static long inputLong(BufferedReader br, String ask) {
@@ -243,6 +274,28 @@ public class Inputer {
                     System.out.println("It isn't a long integer. Input again:");
                 }
             } else return 0;
+        }
+    }
+
+    public static Long inputLongWithNull(BufferedReader br, String ask) {
+        String str;
+        Long num = null;
+        while (true) {
+            System.out.println(ask);
+            try {
+                str = br.readLine();
+            } catch (IOException e) {
+                System.out.println("BufferReader wrong.");
+                return null;
+            }
+            if (!("".equals(str))) {
+                try {
+                    num = Long.parseLong(str);
+                    return num;
+                } catch (Exception e) {
+                    System.out.println("It isn't a long integer. Input again:");
+                }
+            } else return null;
         }
     }
 
@@ -533,7 +586,7 @@ public class Inputer {
         List<String> keyList = stringTMap.keySet().stream().toList();
         for(int i=0;i<keyList.size();i++){
             String key = keyList.get(i);
-            System.out.println((i+1)+" "+ key +" "+stringTMap.get(key).toString());
+            System.out.println((i+1)+" "+ key);// +" "+stringTMap.get(key).toString());
         }
         Shower.printUnderline(10);
         int choice = inputInteger(br,"Choose the number. Enter to skip:",stringTMap.size());
@@ -554,5 +607,27 @@ public class Inputer {
             }
         }
         return sum==1;
+    }
+
+    public static Long inputDate(BufferedReader br,String pattern,String ask)  {
+        System.out.println(ask+"("+pattern+")");
+
+        Long timestamp=null;
+        try {
+            String inputDate = br.readLine();
+            if("".equals(inputDate))return null;
+            timestamp = convertDateToTimestamp(inputDate, pattern);
+        } catch (ParseException e) {
+            System.out.println("Invalid date format. Please use '" + pattern + "'.");
+        } catch (IOException e) {
+            return null;
+        }
+        return timestamp;
+    }
+
+    public static long convertDateToTimestamp(String dateStr, String pattern) throws ParseException {
+        SimpleDateFormat dateFormat = new SimpleDateFormat(pattern);
+        Date date = dateFormat.parse(dateStr);
+        return date.getTime();
     }
 }

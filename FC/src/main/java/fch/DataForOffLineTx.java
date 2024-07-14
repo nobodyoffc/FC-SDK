@@ -7,7 +7,7 @@ import java.util.List;
 public class DataForOffLineTx {
     private String fromFid;
     private List<SendTo> sendToList;
-    private long cd;
+    private Long cd;
     private String msg;
 
     public String getFromFid() {
@@ -26,11 +26,11 @@ public class DataForOffLineTx {
         this.sendToList = sendToList;
     }
 
-    public long getCd() {
+    public Long getCd() {
         return cd;
     }
 
-    public void setCd(long cd) {
+    public void setCd(Long cd) {
         this.cd = cd;
     }
 

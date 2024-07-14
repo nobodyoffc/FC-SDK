@@ -75,6 +75,7 @@ public class TxTest {
         pubKeyList.add(HexFormat.of().parseHex(pubkeyC));
 
         P2SH p2SH = genMultiP2sh(pubKeyList, 2);
+        if(p2SH==null)return;
         String mFid = p2SH.getFid();
 
         System.out.println("Multisig address:" + mFid);
@@ -84,11 +85,11 @@ public class TxTest {
         ApipClient apipClient = new ApipClient();
         apipClient.setUrlHead(urlHead);
         apipClient.setSessionKey(sessionKey);
-
-        Map<String, P2SH> p2SHMap = apipClient.p2shByIds(HttpRequestMethod.POST,AuthType.FC_SIGN_BODY , mFid);
+        String id = mFid;
+        Map<String, P2SH> p2SHMap = apipClient.p2shByIds(HttpRequestMethod.POST,AuthType.FC_SIGN_BODY,mFid);
         if(p2SHMap==null)return;
         P2SH p2sh = p2SHMap.get(mFid);
-        JsonTools.gsonPrint(p2sh);
+        JsonTools.printJson(p2sh);
 
         //Get cashes of the multisig address
 
@@ -110,7 +111,7 @@ public class TxTest {
 
         if(cashList==null)return;
 
-        JsonTools.gsonPrint(cashList);
+        JsonTools.printJson(cashList);
 
         //Make raw tx
         byte[] rawTx = createMultiSignRawTx(cashList, sendToList, msg, p2sh, DEFAULT_FEE_RATE);

@@ -24,8 +24,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-import static config.ApiAccount.updateSession;
-
 public class StartDiskClient {
     public static final int DEFAULT_SIZE = 20;
     private static String fid;
@@ -85,14 +83,14 @@ public class StartDiskClient {
 
     private static void signInEcc(Configure configure) {
         Session session = diskClient.signInEcc(settings.getDiskAccount(), RequestBody.SignInMode.NORMAL, symKey);
-        JsonTools.gsonPrint(session);
+        JsonTools.printJson(session);
         configure.saveConfig();
         Menu.anyKeyToContinue(br);
     }
 
     private static void signIn(Configure configure) {
         Session session = diskClient.signIn(settings.getDiskAccount(), RequestBody.SignInMode.NORMAL,symKey);
-        JsonTools.gsonPrint(session);
+        JsonTools.printJson(session);
         configure.saveConfig();
         Menu.anyKeyToContinue(br);
     }
@@ -280,11 +278,11 @@ public class StartDiskClient {
         byte[] priKey = EccAes256K1P7.decryptJsonBytes(apiAccount.getUserPriKeyCipher(), symKey);
         if (priKey == null) return null;
         System.out.println("Sign in for the priKey encrypted sessionKey...");
-        Session session = apipClient.signInEcc(priKey, RequestBody.SignInMode.NORMAL);
-        String sessionKeyCipherFromApip = session.getSessionKeyCipher();
-        byte[] newSessionKey = EccAes256K1P7.decryptWithPriKey(sessionKeyCipherFromApip, priKey);
-
-        updateSession(apiAccount,symKey, session, newSessionKey);
-        return newSessionKey;
+        Session session = apipClient.signInEcc(apiAccount, RequestBody.SignInMode.NORMAL,symKey);
+//        String sessionKeyCipherFromApip = session.getSessionKeyCipher();
+//        byte[] newSessionKey = EccAes256K1P7.decryptWithPriKey(sessionKeyCipherFromApip, priKey);
+//
+//        updateSession(apiAccount,symKey, session, newSessionKey);
+        return Hex.fromHex(session.getSessionKey());
     }
 }

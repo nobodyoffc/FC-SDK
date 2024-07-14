@@ -849,6 +849,6 @@ public class TxCreator {
 
         System.out.println("Broadcast with " + urlHead + " ...");
 
-        return apipClient.broadcastTx(HttpRequestMethod.POST, txSigned, AuthType.FC_SIGN_BODY);
+        return apipClient.broadcastTx(txSigned, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
     }
 }

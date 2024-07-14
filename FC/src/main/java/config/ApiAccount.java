@@ -2,35 +2,34 @@ package config;
 
 import apip.ApipTools;
 import apip.apipData.RequestBody;
-import feip.feipData.serviceParams.ApipParams;
 import apip.apipData.Session;
-import fch.ParseTools;
-import fch.TxCreator;
-import fch.fchData.Cash;
-import fch.fchData.SendTo;
-import feip.feipData.Service;
-import feip.feipData.serviceParams.DiskParams;
-import feip.feipData.serviceParams.Params;
-import javaTools.http.AuthType;
-import javaTools.http.HttpRequestMethod;
-import nasa.NaSaRpcClient;
-import nasa.RPC.GetBlockchainInfo;
 import appTools.Inputer;
 import appTools.Menu;
 import clients.ApiUrl;
 import clients.Client;
 import clients.apipClient.ApipClient;
+import clients.diskClient.DiskClient;
+import clients.esClient.EsClientMaker;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
 import constants.ApiNames;
 import crypto.*;
-//import crypto.old.EccAes256K1P7;
-import clients.esClient.EsClientMaker;
-import clients.diskClient.DiskClient;
+import fcData.FcReplier;
+import fch.ParseTools;
+import fch.TxCreator;
+import fch.fchData.Cash;
+import fch.fchData.SendTo;
+import feip.feipData.Service;
+import feip.feipData.serviceParams.ApipParams;
+import feip.feipData.serviceParams.DiskParams;
+import feip.feipData.serviceParams.Params;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.JsonTools;
 import javaTools.NumberTools;
+import javaTools.http.AuthType;
+import javaTools.http.HttpRequestMethod;
+import nasa.NaSaRpcClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -216,7 +215,7 @@ public class ApiAccount {
         NaSaRpcClient naSaRpcClient = new NaSaRpcClient(apiUrl,userName,password);
 
 
-        GetBlockchainInfo.BlockchainInfo blockchainInfo = naSaRpcClient.getBlockchainInfo();
+        NaSaRpcClient.BlockchainInfo blockchainInfo = naSaRpcClient.getBlockchainInfo();
 
         if(blockchainInfo==null) return null;
 
@@ -465,9 +464,13 @@ public class ApiAccount {
     }
 
     static Service getService(String urlHead) {
-        Service service = ApipClient.getService(urlHead,ApipParams.class);
-        System.out.println("Got the service:");
-        System.out.println(JsonTools.toNiceJson(service));
+        FcReplier replier = ApipClient.getService(urlHead, ApipParams.class, ApiNames.Version2);
+        if(replier==null)return null;
+        Service service = (Service) replier.getData();
+        if(service!=null) {
+            System.out.println("Got the service:");
+            System.out.println(JsonTools.toNiceJson(service));
+        }
         return service;
     }
 
@@ -654,16 +657,14 @@ public class ApiAccount {
 
     private void inputPasswordCipher(byte[] symKey, BufferedReader br) throws IOException {
         while (true) {
-            if (Inputer.askIfYes(br, "Input the password?")) {
-                char[] password = Inputer.inputPassword(br, "Input the password:");
+            char[] password = Inputer.inputPassword(br, "Input the password. Enter to ignore:");
+            if(password!=null)
                 this.passwordCipher = new Encryptor(FC_Aes256Cbc_No1_NrC7).encryptToJsonBySymKey(BytesTools.utf8CharArrayToByteArray(password), symKey);
-                return;
-            }
-            if (Inputer.askIfYes(br, "Input the password cipher?")) {
-                String input = inputKeyCipher(br, "user's passwordCipher", symKey);
-                if (input == null) continue;
-                this.passwordCipher = input;
-            }
+            if(this.passwordCipher==null) {
+               String input = inputKeyCipher(br, "user's passwordCipher", symKey);
+               if (input == null) continue;
+               this.passwordCipher = input;
+           }
             return;
         }
     }
@@ -761,7 +762,7 @@ public class ApiAccount {
         byte[] priKey = cryptoDataByte.getData();
         String txHex = TxCreator.createTransactionSignFch(cashList, priKey, sendToList, null);
 
-        String result = apipClient.broadcastTx(HttpRequestMethod.GET, txHex, AuthType.FREE);
+        String result = apipClient.broadcastTx(txHex, HttpRequestMethod.GET, AuthType.FREE);
 
         if(result!=null) {
             log.debug("Paid for service: " + payValue + " f to " + params.getAccount() + ". \nWait for confirmation for a few minutes.");
@@ -814,7 +815,7 @@ public class ApiAccount {
 
         String txHex = TxCreator.createTransactionSignFch(cashList, priKey, sendToList, null);
 
-        String result = apipClient.broadcastTx(HttpRequestMethod.GET,txHex, AuthType.FREE);
+        String result = apipClient.broadcastTx(txHex, HttpRequestMethod.GET, AuthType.FREE);
         if(result==null){
             log.error("Failed to buy APIP service. Failed to broadcast TX.");
             return 0;
@@ -853,16 +854,18 @@ public class ApiAccount {
             inputPriKeyCipher(symKey,br);
         }
 
-        byte[] sessionKey1 =
-                checkSessionKey(symKey, ApiNames.APIP0V1Path,apiProvider.getType());
-
-        if(sessionKey1==null) return null;
-
-        sessionKey = sessionKey1;
-        log.debug("Connected to the APIP service: " + providerId + " on " + apiUrl);
         apipClient = (ApipClient) client;
         apipClient.setUrlHead(apiUrl);
         apipClient.setVia(via);
+
+        byte[] sessionKey1 =
+                checkSessionKey(symKey, ApiNames.APIP0V1Path,apiProvider.getType());
+
+        if(sessionKey1==null) {
+            System.out.println("Failed to get the sessionKey of APIP service from "+apiUrl+". Only free APIs are available.");
+        }else sessionKey = sessionKey1;
+        log.debug("Connected to the APIP service: " + providerId + " on " + apiUrl);
+
         return apipClient;
     }
 
@@ -903,22 +906,22 @@ public class ApiAccount {
 
 
     public boolean checkApipProvider(ApiProvider apiProvider,String apiUrl) {
-        Service apipService = ApipClient.getService(apiUrl,ApipParams.class);
-        if(apipService==null) {
+        FcReplier replier = ApipClient.getService(apiUrl,ApipParams.class, ApiNames.Version2);
+        if(replier==null || replier.getData()==null) {
             System.out.println("Failed to get APIP service from "+apiUrl);
             return false;
         }
-        service = apipService;
-        serviceParams = (ApipParams) apipService.getParams();
+        service = (Service) replier.getData();
+        serviceParams = (ApipParams) service.getParams();
 
-        providerId = apipService.getSid();
-        if(apipService.getUrls()!=null && apipService.getUrls().length>0)
-            apiProvider.setOrgUrl(apipService.getUrls()[0]);
-        ApipParams apipParams = (ApipParams) apipService.getParams();
+        providerId = service.getSid();
+        if(service.getUrls()!=null && service.getUrls().length>0)
+            apiProvider.setOrgUrl(service.getUrls()[0]);
+        ApipParams apipParams = (ApipParams) service.getParams();
         if(apipParams!=null && apipParams.getUrlHead()!=null)
             this.apiUrl = apipParams.getUrlHead();
-        apiProvider.setOwner(apipService.getOwner());
-        apiProvider.setProtocols(apipService.getProtocols());
+        apiProvider.setOwner(service.getOwner());
+        apiProvider.setProtocols(service.getProtocols());
         apiProvider.setTicks(new String[]{"fch"});
 
         return true;
@@ -1073,7 +1076,7 @@ public class ApiAccount {
                 byte[] priKey = decryptUserPriKey(userPriKeyCipher,symKey);
                 if(priKey==null)return null;
                 Client client1 = (Client)client;
-                session = client1.signInEcc(priKey, mode);
+                session = client1.signInEcc(this, RequestBody.SignInMode.NORMAL,symKey);
                 BytesTools.clearByteArray(priKey);
             }
         }

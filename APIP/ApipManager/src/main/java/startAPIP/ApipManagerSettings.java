@@ -44,15 +44,15 @@ public class ApipManagerSettings extends Settings {
 
         setInitForServer(sid, config, br);
 
-        esAccount = checkApiAccount(esAccountId, ApiType.ES, config, symKey, null);
+        esAccount = config.checkAPI(esAccountId,ApiType.ES,symKey);//checkApiAccount(esAccountId, ApiType.ES, config, symKey, null);
         if(esAccount.getClient()!=null)esAccountId = esAccount.getId();
         else System.out.println("No ES service.");
 
-        nasaAccount = checkApiAccount(nasaAccountId, ApiType.REDIS, config, symKey, null);
+        nasaAccount = config.checkAPI(nasaAccountId,ApiType.NASA_RPC,symKey);//checkApiAccount(nasaAccountId, ApiType.REDIS, config, symKey, null);
         if(nasaAccount.getClient()!=null)nasaAccountId=nasaAccount.getId();
         else System.out.println("No Nasa node RPC service.");
 
-        redisAccount = checkApiAccount(redisAccountId,ApiType.REDIS,config,symKey,null);
+        redisAccount = config.checkAPI(redisAccountId,ApiType.REDIS,symKey);//checkApiAccount(redisAccountId,ApiType.REDIS,config,symKey,null);
         if(redisAccount.getClient()!=null)redisAccountId = redisAccount.getId();
         else System.out.println("No Redis service.");
 
@@ -278,7 +278,7 @@ public class ApipManagerSettings extends Settings {
     private void updateFromWebhook(BufferedReader br)  {
         try {
             fromWebhook = appTools.Inputer.promptAndSet(br, FieldNames.FROM_WEBHOOK,this.fromWebhook);
-            if(fromWebhook)listenPath = System.getProperty(UserHome) + "/" + ApiNames.NewCashByFidsAPI;
+            if(fromWebhook)listenPath = System.getProperty(UserHome) + "/" + ApiNames.NewCashByFids;
             saveSettings(mainFid);
             System.out.println("It's '"+fromWebhook +"' now.");
             Menu.anyKeyToContinue(br);

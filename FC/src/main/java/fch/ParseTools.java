@@ -11,6 +11,7 @@ import crypto.Hash;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.nio.file.*;
 import java.text.DecimalFormat;
@@ -26,6 +27,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static tx.NumberTools.roundDouble2;
 
 public class ParseTools {
+    public static double bitsToDifficulty(long bits) {
+        // Decode the "bits" field
+        int exponent = (int) ((bits >> 24) & 0xff);
+        long mantissa = bits & 0xffffff;
+        BigInteger target = BigInteger.valueOf(mantissa).shiftLeft((exponent - 3) * 8);
+
+        // The maximum target based on the original Bitcoin difficulty adjustment system
+        BigInteger maxTarget = new BigInteger("00000000FFFF0000000000000000000000000000000000000000000000000000", 16);
+
+        // Calculate the difficulty as the ratio of the max target to the current target
+        return maxTarget.divide(target).doubleValue();
+    }
+    public static double difficultyToHashRate(double difficulty){
+        return difficulty * Constants.TWO_POWER_32/60;
+    }
+
+    public static double bitsToHashRate(long bits){
+        return difficultyToHashRate(bitsToDifficulty(bits));
+    }
+
 
     public static VarintResult parseVarint(ByteArrayInputStream blockInputStream) throws IOException {
         //Byte[] List for merge all bytes read./用于保存所读取字节数组的列表。

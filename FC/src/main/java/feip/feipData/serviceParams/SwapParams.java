@@ -130,7 +130,7 @@ public class SwapParams extends Params {
             System.out.println("Goods addr is "+gAddr);
             System.out.println("Money addr is "+gAddr);
             Shower.printUnderline(10);
-            if(apipClient!=null)apipClient.checkMaster(priKeyCipher,br);
+            if(apipClient!=null)apipClient.checkMaster(priKeyCipher,initSymKey,br);
         }else {
             this.gAddr = Inputer.inputString(br, "Input the dealer address of the goods:");
             this.mAddr = Inputer.inputString(br, "Input the dealer address of the money:");

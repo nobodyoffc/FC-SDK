@@ -2,6 +2,9 @@ package config;
 
 
 import clients.Client;
+import constants.ApiNames;
+import constants.Strings;
+import fcData.FcReplier;
 import feip.feipData.serviceParams.ApipParams;
 import feip.feipData.serviceParams.DiskParams;
 import feip.feipData.serviceParams.Params;
@@ -10,6 +13,8 @@ import clients.apipClient.ApipClient;
 import feip.feipData.Service;
 import appTools.Inputer;
 import javaTools.JsonTools;
+import javaTools.http.HttpTools;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +24,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.List;
 
+import static appTools.Inputer.askIfYes;
 import static appTools.Inputer.promptAndUpdate;
+import static config.ApiType.ES;
+import static config.ApiType.REDIS;
+import static constants.Ticks.FCH;
 
 
 public class ApiProvider {
@@ -115,18 +124,19 @@ public class ApiProvider {
         return apiProviderFromFcService(service,type);
     }
 
-    public ApiProvider makeApipProvider(BufferedReader br) {
-        apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service. Enter to choose one:");
+    public void makeApipProvider(BufferedReader br) {
+        apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service. Enter to choose a default one");
         if("".equals(apiUrl)) {
             apiUrl = Inputer.chooseOne(Settings.freeApiMap,"Choose an default APIP service:",br);
-            if(apiUrl==null)return null;
+            if(apiUrl==null)return;
         }
 
-        service = Client.getService(apiUrl, ApipParams.class);//OpenAPIs.getService(apiUrl);
-        if(service==null)return null;
+        FcReplier replier = Client.getService(apiUrl, ApipParams.class, ApiNames.Version2);//OpenAPIs.getService(apiUrl);
+        if(replier==null||replier.getData()==null)return;
+        service = (Service) replier.getData();
         apiParams = (Params) service.getParams();
         System.out.println("Got the service:");
-        JsonTools.gsonPrint(service);
+        JsonTools.printJson(service);
         id = service.getSid();
         owner = service.getOwner();
         protocols = service.getProtocols();
@@ -137,7 +147,6 @@ public class ApiProvider {
         } catch (IOException e) {
             log.debug("BufferReader wrong.");
         }
-        return this;
     }
 
 
@@ -153,15 +162,15 @@ public class ApiProvider {
                     do {
                         inputTicks(br);
                     }while(this.ticks==null|| ticks.length==0);
-                    id = ticks[0]+"@"+apiUrl;
+                    id = makeNasaId();
                 }
                 case ES -> {
                     inputApiURL(br,"http://127.0.0.1:9200");
-                    id = "ES@"+apiUrl;
+                    id = makeSimpleId(ES);
                 }
                 case REDIS -> {
                     inputApiURL(br, "http://127.0.0.1:6379");
-                    id = "Redis@"+apiUrl;
+                    id = makeSimpleId(REDIS);
                 }
                 case DISK -> {
                     if(apipClient==null)throw new RuntimeException("The initial APIP client is null.");
@@ -188,6 +197,16 @@ public class ApiProvider {
         }
     }
 
+    @NotNull
+    private String makeSimpleId(ApiType type) {
+        return type.name() + "@" + apiUrl;
+    }
+
+    @NotNull
+    private String makeNasaId() {
+        return ticks[0] + "@" + apiUrl;
+    }
+
     private void inputSid(BufferedReader br) throws IOException {
         while(true) {
             String input = Inputer.promptAndSet(br, "sid", this.id);
@@ -212,9 +231,13 @@ public class ApiProvider {
     }
 
     private void inputApiURL(BufferedReader br, String defaultUrl) throws IOException {
-        this.apiUrl = Inputer.promptAndSet(br, "the url of API request. The default is "+defaultUrl, this.apiUrl);
-        if(apiUrl==null)
+        while(true) {
+            this.apiUrl = Inputer.promptAndSet(br, "the url of API request. The default is " + defaultUrl, this.apiUrl);
+            if(apiUrl==null)
                 apiUrl=defaultUrl;
+            if(!HttpTools.illegalUrl(apiUrl))break;
+            System.out.println("Illegal URL. Try again.");
+        }
     }
 
     private void inputDocUrl(BufferedReader br) throws IOException {
@@ -236,29 +259,46 @@ public class ApiProvider {
 
     public void updateAll(BufferedReader br) {
         try {
-            this.type = Inputer.chooseOne(ApiType.values(),"Choose the type:",br);//ApiType.valueOf(promptAndUpdate(br, "type ("+ Arrays.toString(ApiType.values())+")", String.valueOf(this.type)));
-            if(type==ApiType.APIP){
-                if(Inputer.askIfYes(br,"The apiUrl is "+apiUrl+". Update it?")){
-                    apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service:");
+            if(this.type==null)
+                    this.type = Inputer.chooseOne(ApiType.values(),"Choose the type:",br);//ApiType.valueOf(promptAndUpdate(br, "type ("+ Arrays.toString(ApiType.values())+")", String.valueOf(this.type)));
+            else if(askIfYes(br,"The type is "+this.type+". Update it? "))
+                this.type = Inputer.chooseOne(ApiType.values(),"Choose the type:",br);
+
+            switch (this.type){
+                case APIP,DISK->{
+                    if(Inputer.askIfYes(br,"The apiUrl is "+apiUrl+". Update it?")) {
+                        apiUrl = Inputer.inputString(br, "Input the urlHead of the APIP service:");
+                    }
                     if(apiUrl==null)return;
-                    service = ApipClient.getService(apiUrl,ApipParams.class);//OpenAPIs.getService(apiUrl);
-                    apiParams = (ApipParams) service.getParams();
-                    orgUrl = promptAndUpdate(br, "url of the organization", this.orgUrl);
-                    docUrl = promptAndUpdate(br, "url of the API documents", this.docUrl);
-                    inputDocUrl(br);
+                    FcReplier replier = ApipClient.getService(apiUrl, ApipParams.class, ApiNames.Version2);//OpenAPIs.getService(apiUrl);
+
+                    if(replier==null||replier.getData()==null)return;
+                    service = (Service) replier.getData();
+                    this.id=service.getSid();
+                    if(service.getParams()!=null)
+                        apiParams = (ApipParams) service.getParams();
+                    if(service.getUrls().length>0)
+                        orgUrl = service.getUrls()[0];//promptAndUpdate(br, "url of the organization", this.orgUrl);
+                    if(orgUrl!=null)docUrl = orgUrl+"/"+ Strings.DOCS;//promptAndUpdate(br, "url of the API documents", this.docUrl);
                     owner = service.getOwner();
                     protocols = service.getProtocols();
-                    return;
+                    if(ticks ==null ||ticks.length==0)ticks = new String[] {FCH};
+            }
+                case ES,REDIS->{
+                    this.apiUrl = promptAndUpdate(br, "url of the API requests", this.apiUrl);
+                    this.id = makeSimpleId(type);
+                }
+                default -> {
+                    this.apiUrl = promptAndUpdate(br, "url of the API requests", this.apiUrl);
+                    this.id = apiUrl;
+                    this.docUrl = promptAndUpdate(br, "url of the API documents", this.docUrl);
+                    this.orgUrl = promptAndUpdate(br, "url of the organization", this.orgUrl);
+                    this.owner = promptAndUpdate(br, "API owner", this.owner);
+                    this.protocols = promptAndUpdate(br, "protocol", this.protocols);
+                    this.ticks = promptAndUpdate(br, "ticks", this.ticks);
                 }
             }
 
-            this.id = promptAndUpdate(br, "sid of API request", this.id);
-            this.apiUrl = promptAndUpdate(br, "url of the API requests", this.apiUrl);
-            this.docUrl = promptAndUpdate(br, "url of the API documents", this.docUrl);
-            this.orgUrl = promptAndUpdate(br, "url of the organization", this.orgUrl);
-            this.owner = promptAndUpdate(br, "API owner", this.owner);
-            this.protocols = promptAndUpdate(br, "protocol", this.protocols);
-            this.ticks = promptAndUpdate(br, "ticks", this.ticks);
         } catch (IOException e) {
             System.out.println("Error reading input");
             e.printStackTrace();
@@ -267,7 +307,6 @@ public class ApiProvider {
             e.printStackTrace();
         }
     }
-
 
 
     public String getId() {
