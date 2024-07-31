@@ -1,74 +1,47 @@
 package fcData;
 
 import com.google.gson.Gson;
-import constants.Constants;
-import constants.FieldNames;
-import javaTools.JsonTools;
+import com.google.gson.GsonBuilder;
+import crypto.Hash;
+import javaTools.BytesTools;
+import javaTools.Hex;
 import crypto.KeyTools;
 import org.bitcoinj.core.ECKey;
 
 import javax.annotation.Nullable;
 import java.security.SignatureException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HexFormat;
 
 public class Signature {
     private String fid;
     private String msg;
     private String sign;
-    private String alg;
+    private AlgorithmId alg;
 
     private String address;
     private String message;
     private String signature;
-    private String algorithm;
+    private AlgorithmId algorithm;
 
     private String symKeyName;
-
-    private Type type;
+    private transient byte[] symKey;
 
     public Signature() {
     }
 
-    public Signature(String symSign) {
-        this.type = Type.SymSign;
-        this.sign = symSign;
-    }
-
     public Signature(String symSign, String symKeyName) {
-        this.type = Type.SymSign;
         this.sign = symSign;
         this.symKeyName = symKeyName;
     }
 
-    public Signature(String fid, String msg, String EcdsaBtcMsgSign) {
-        this.type = Type.AsySign;
-
+    public Signature(String fid, String msg, String sign, AlgorithmId alg, String symKeyName) {
         if (fid != null) {
             this.fid = fid;
             this.address = fid;
         }
 
-        if (msg != null) {
-            this.msg = msg;
-            this.message = msg;
-        }
-
-        if (EcdsaBtcMsgSign != null) {
-            this.sign = EcdsaBtcMsgSign;
-            this.signature = EcdsaBtcMsgSign;
-        }
-
-        this.alg = Constants.EcdsaBtcMsg_No1_NrC7;
-        this.algorithm = Constants.EcdsaBtcMsg_No1_NrC7;
-    }
-
-    public Signature(String fid, String msg, String sign, String alg) {
-        this.type = Type.AsySign;
-
-        if (fid != null) {
-            this.fid = fid;
-            this.address = fid;
+        if (symKeyName != null) {
+            this.symKeyName = symKeyName;
         }
 
         if (msg != null) {
@@ -87,6 +60,31 @@ public class Signature {
         }
     }
 
+    public static String symSign(String msg, String sessionKey) {
+        if(msg==null || sessionKey==null)return null;
+        byte[] replyJsonBytes = msg.getBytes();
+        byte[] keyBytes = Hex.fromHex(sessionKey);
+        byte[] bytes = BytesTools.bytesMerger(replyJsonBytes,keyBytes);
+        byte[] signBytes = Hash.sha256x2(bytes);
+        return Hex.toHex(signBytes);
+    }
+
+    public Signature sign(String msg,byte[] key,AlgorithmId alg){
+        this.alg = alg;
+        this.fid = KeyTools.priKeyToFid(key);
+        this.msg = msg;
+        this.sign=null;
+
+        ECKey ecKey = ECKey.fromPrivate(key);
+
+        switch (alg){
+            case BTC_EcdsaSignMsg_No1_NrC7 -> this.sign = ecKey.signMessage(message);
+            case FC_AesSymSignMsg_No1_NrC7 -> this.sign = symSign(msg, Hex.toHex(key));
+        }
+        return this;
+    }
+
+
     @Nullable
     public static Signature parseSignature(String rawSignJson) {
         Signature signature;
@@ -94,8 +92,8 @@ public class Signature {
             Gson gson = new Gson();
             if (rawSignJson.contains("----")) {
                 signature = parseOldSign(rawSignJson);
+                signature.setAlg(AlgorithmId.BTC_EcdsaSignMsg_No1_NrC7);
             } else {
-                System.out.println(rawSignJson);
                 signature = gson.fromJson(rawSignJson, Signature.class);
                 signature.makeSignature();
             }
@@ -122,68 +120,70 @@ public class Signature {
         if (fid == null && address != null) fid = address;
         if (msg == null && message != null) msg = message;
         if (sign == null && signature != null) sign = signature;
+        if (alg == null && algorithm != null) alg = algorithm;
     }
 
-    public boolean isPrepared() {
+    public boolean isAsyPrepared() {
         return (fid != null && msg != null && sign != null && alg != null);
     }
-
-    public void setBitPayEncryptAlg() {
-        algorithm = Constants.EccAes256BitPay_No1_NrC7;
-        alg = Constants.EccAes256BitPay_No1_NrC7;
+    public boolean isSymPrepared() {
+        return (symKey!= null &&msg != null && sign != null && alg != null);
     }
 
     public boolean verify() {
-        if (!isPrepared()) return false;
-
-        try {
-            String pubKey = ECKey.signedMessageToKey(message, sign).getPublicKeyAsHex();
-            String signFid = KeyTools.pubKeyToFchAddr(pubKey);
-            return fid.equals(signFid);
-        } catch (SignatureException e) {
-            return false;
+        switch (alg){
+            case BTC_EcdsaSignMsg_No1_NrC7 ->{
+                try {
+                    String pubKey = ECKey.signedMessageToKey(message, sign).getPublicKeyAsHex();
+                    String signFid = KeyTools.pubKeyToFchAddr(pubKey);
+                    return fid.equals(signFid);
+                } catch (SignatureException e) {
+                    return false;
+                }
+            }
+            case FC_AesSymSignMsg_No1_NrC7 -> {
+                if(sign==null)return false;
+                byte[] signBytes = BytesTools.bytesMerger(msg.getBytes(), symKey);
+                String doubleSha256Hash = HexFormat.of().formatHex(Hash.sha256x2(signBytes));
+                return sign.equals(doubleSha256Hash);
+            }
         }
+        return false;
     }
 
     public String toJson() {
         Gson gson = new Gson();
-        if (type == Type.AsySign) return gson.toJson(new ShortSign(fid, msg, sign, alg));
-        if (type == Type.SymSign) {
-            return getSymSign(gson);
+        return toJson(gson);
+    }
+
+    public String toNiceJson() {
+        GsonBuilder gsonBuilder = new GsonBuilder();
+        gsonBuilder.setPrettyPrinting();
+        Gson gson = gsonBuilder.create();
+        return toJson(gson);
+    }
+
+    private String toJson(Gson gson) {
+        switch (alg){
+            case BTC_EcdsaSignMsg_No1_NrC7 -> {
+                return gson.toJson(new ShortSign(fid, null, msg, sign, alg));
+            }
+            case FC_AesSymSignMsg_No1_NrC7-> {
+                return gson.toJson(new ShortSign(null, symKeyName, msg, sign, alg));
+            }
         }
-        return gson.toJson(this);
+        return new Gson().toJson(this);
     }
 
-    public String toJsonSym() {
-        Gson gson = new Gson();
-        return getSymSign(gson);
-    }
-
-    private String getSymSign(Gson gson) {
-        if (type == Type.AsySign) return null;
-        if (symKeyName == null) return sign;
-        else {
-            Map<String, String> dataMap = new HashMap<>();
-            dataMap.put(FieldNames.SYM_SIGN, sign);
-            dataMap.put(FieldNames.SYM_KEY_NAME, symKeyName);
-            return gson.toJson(dataMap);
-        }
-    }
-
-    public String toJsonAsyShort() {
-        Gson gson = new Gson();
-        return gson.toJson(new ShortSign(fid, msg, sign, alg));
-    }
-
-    public String toJsonAsyShortNice() {
-        return JsonTools.toNiceJson(new ShortSign(fid, msg, sign, alg));
-    }
-
-    public String toJsonAsyLong() {
-        Gson gson = new Gson();
-        LongSign longSign = new LongSign(fid, msg, sign, alg);
-
-        return gson.toJson(longSign);
+    public Signature fromJson(String signatureJson){
+        Signature signature1 = new Gson().fromJson(signatureJson, Signature.class);
+        signature1.makeSignature();
+        this.fid = signature1.getFid();
+        this.symKeyName = signature1.getSymKeyName();
+        this.msg = signature1.getMsg();
+        this.sign = signature1.getSign();
+        this.alg = signature1.getAlg();
+        return this;
     }
 
     public String getFid() {
@@ -210,11 +210,11 @@ public class Signature {
         this.sign = sign;
     }
 
-    public String getAlg() {
+    public AlgorithmId getAlg() {
         return alg;
     }
 
-    public void setAlg(String alg) {
+    public void setAlg(AlgorithmId alg) {
         this.alg = alg;
     }
 
@@ -242,20 +242,12 @@ public class Signature {
         this.signature = signature;
     }
 
-    public String getAlgorithm() {
+    public AlgorithmId getAlgorithm() {
         return algorithm;
     }
 
-    public void setAlgorithm(String algorithm) {
+    public void setAlgorithm(AlgorithmId algorithm) {
         this.algorithm = algorithm;
-    }
-
-    public Type getType() {
-        return type;
-    }
-
-    public void setType(Type type) {
-        this.type = type;
     }
 
     public String getSymKeyName() {
@@ -272,12 +264,14 @@ public class Signature {
 
     static class ShortSign {
         String fid;
+        String symKeyName;
         String msg;
         String sign;
-        String alg;
+        AlgorithmId alg;
 
-        ShortSign(String fid, String msg, String sign, String alg) {
+        ShortSign(String fid,String symKeyName, String msg, String sign, AlgorithmId alg) {
             this.fid = fid;
+            this.symKeyName = symKeyName;
             this.msg = msg;
             this.sign = sign;
             this.alg = alg;
@@ -288,9 +282,9 @@ public class Signature {
         String address;
         String message;
         String signature;
-        String algorithm;
+        AlgorithmId algorithm;
 
-        LongSign(String fid, String msg, String sign, String alg) {
+        LongSign(String fid, String msg, String sign, AlgorithmId alg) {
             this.address = fid;
             this.message = msg;
             this.signature = sign;
@@ -298,63 +292,11 @@ public class Signature {
         }
     }
 
-    private static class SignFull {
-        private String address;
-        private String message;
-        private String signature;
-
-        public String getAddress() {
-            return address;
-        }
-
-        public void setAddress(String address) {
-            this.address = address;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public void setMessage(String message) {
-            this.message = message;
-        }
-
-        public String getSignature() {
-            return signature;
-        }
-
-        public void setSignature(String signature) {
-            this.signature = signature;
-        }
+    public byte[] getSymKey() {
+        return symKey;
     }
 
-    public static class SignShort {
-        private String fid;
-        private String msg;
-        private String sign;
-
-        public String getFid() {
-            return fid;
-        }
-
-        public void setFid(String fid) {
-            this.fid = fid;
-        }
-
-        public String getMsg() {
-            return msg;
-        }
-
-        public void setMsg(String msg) {
-            this.msg = msg;
-        }
-
-        public String getSign() {
-            return sign;
-        }
-
-        public void setSign(String sign) {
-            this.sign = sign;
-        }
+    public void setSymKey(byte[] symKey) {
+        this.symKey = symKey;
     }
 }

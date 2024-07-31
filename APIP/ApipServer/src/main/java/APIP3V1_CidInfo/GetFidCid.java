@@ -1,21 +1,31 @@
 package APIP3V1_CidInfo;
 
 import apip.apipData.CidInfo;
+import clients.esClient.EsTools;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.aggregations.AggregationBuilders;
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
+import co.elastic.clients.elasticsearch._types.aggregations.TermsAggregation;
+import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
+import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.GetResponse;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
-import constants.ApiNames;
-import constants.IndicesNames;
-import constants.ReplyCodeMessage;
+import constants.*;
 import crypto.KeyTools;
 import fcData.FcReplier;
 import fch.fchData.Address;
+import fch.fchData.Cash;
 import feip.feipData.Cid;
 import initial.Initiator;
+import javaTools.CharArrayTool;
 import javaTools.http.AuthType;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.search.SearchBuilderFactory;
+import redis.clients.jedis.search.aggr.AggregationBuilder;
 import server.RequestCheckResult;
 import server.RequestChecker;
 
@@ -24,9 +34,14 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 
 import static apip.apipData.CidInfo.mergeCidInfo;
+import static constants.FieldNames.OWNER;
+import static constants.FieldNames.VALID;
+import static constants.IndicesNames.ADDRESS;
+import static constants.IndicesNames.CASH;
 
 @WebServlet(name = ApiNames.GetFidCid, value = "/"+ApiNames.SN_3+"/"+ApiNames.Version2 +"/"+ApiNames.GetFidCid)
 public class GetFidCid extends HttpServlet {
@@ -34,7 +49,6 @@ public class GetFidCid extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         FcReplier replier = new FcReplier(Initiator.sid, response);
         replier.reply(ReplyCodeMessage.Code1017MethodNotAvailable,null,null);
-
     }
 
     @Override
@@ -46,7 +60,7 @@ public class GetFidCid extends HttpServlet {
         FcReplier replier = new FcReplier(sid, response);
         //Check authorization
         try (Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
             if (requestCheckResult == null) {
                 return;
             }

@@ -12,6 +12,7 @@ import co.elastic.clients.elasticsearch.core.mget.MultiGetResponseItem;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.TrackHits;
 import co.elastic.clients.json.JsonData;
+import constants.ApiNames;
 import constants.Constants;
 import constants.IndicesNames;
 import constants.ReplyCodeMessage;
@@ -41,7 +42,11 @@ public class FcdslRequestHandler {
     private final RequestBody dataRequestBody;
 
     public FcdslRequestHandler(RequestBody dataRequestBody, HttpServletResponse response, FcReplier replier, ElasticsearchClient esClient) {
-        this.dataRequestBody = dataRequestBody;
+        if(dataRequestBody==null)
+            this.dataRequestBody= new RequestBody();
+        else this.dataRequestBody = dataRequestBody;
+        if(this.dataRequestBody.getFcdsl()==null)
+            this.dataRequestBody.setFcdsl(new Fcdsl());
         this.esClient = esClient;
         this.response = response;
         this.replier = replier;
@@ -51,13 +56,13 @@ public class FcdslRequestHandler {
         FcReplier replier = new FcReplier(sid,response);
         //Check authorization
         try (Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
             if (requestCheckResult == null) {
                 return;
             }
 
             if (requestCheckResult.getRequestBody().getFcdsl().getIds() == null) {
-                replier.reply(ReplyCodeMessage.Code1012BadQuery, null, jedis);
+                replier.replyOtherError("The parameter 'ids' is required.", null, jedis);
                 return;
             }
 
@@ -72,7 +77,7 @@ public class FcdslRequestHandler {
 
             replier.setGot((long) meetMap.size());
             replier.setTotal((long) meetMap.size());
-            replier.reply0Success(meetMap, jedis);
+            replier.reply0Success(meetMap, jedis, null);
         }
     }
     public static <T> void doSearchRequest(String sid, String indexName, Class<T> tClass, List<Sort> sort, HttpServletRequest request, HttpServletResponse response, AuthType authType, ElasticsearchClient esClient, JedisPool jedisPool) {
@@ -86,13 +91,13 @@ public class FcdslRequestHandler {
             List<T> meetList = doRequestForList(sid, indexName, tClass, filterField, filterValue, exceptField, exceptValue, sort, request, response, authType, esClient, replier, jedis);
             if (meetList == null) return;
 
-            replier.reply0Success(meetList, jedis);
+            replier.reply0Success(meetList, jedis, null);
         }
     }
 
     @Nullable
     public static <T> List<T> doRequestForList(String sid, String indexName, Class<T> tClass, String filterField, String filterValue, String exceptField, String exceptValue, List<Sort> sort, HttpServletRequest request, HttpServletResponse response, AuthType authType, ElasticsearchClient esClient, FcReplier replier, Jedis jedis) {
-        RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+        RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
         if (requestCheckResult == null) {
             return null;
         }
@@ -122,9 +127,22 @@ public class FcdslRequestHandler {
 
         FcReplier replier = new FcReplier(sid,response);
         try (Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
             if (requestCheckResult == null) {
                 return;
+            }
+
+            if (requestCheckResult.getApiName().equals(ApiNames.BlockByIds) && requestCheckResult.getRequestBody().getFcdsl().getIds() == null) {
+                replier.replyOtherError("The parameter 'ids' is required.", null, jedis);
+                return;
+            }
+
+            if (requestCheckResult.getApiName().equals(ApiNames.BlockByHeights)) {
+                FcQuery query = requestCheckResult.getRequestBody().getFcdsl().getQuery();
+                if(query == null||query.getTerms()==null) {
+                    replier.replyOtherError("The terms query on the height field is required.", null, jedis);
+                    return;
+                }
             }
 
             //Set default sort.
@@ -165,8 +183,8 @@ public class FcdslRequestHandler {
             //response
             replier.setGot((long) meetList.size());
             replier.setTotal((long) meetList.size());
-            if(isForMap)replier.reply0Success(meetMap, jedis);
-            else replier.reply0Success(meetList,jedis);
+            if(isForMap)replier.reply0Success(meetMap, jedis, null);
+            else replier.reply0Success(meetList,jedis, null);
 
         } catch (Exception e) {
             replier.replyOtherError(e.getMessage(), null, null);
@@ -177,8 +195,13 @@ public class FcdslRequestHandler {
         FcReplier replier = new FcReplier(sid,response);
         //Check authorization
         try (Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
             if (requestCheckResult == null) {
+                return;
+            }
+
+            if (requestCheckResult.getRequestBody().getFcdsl().getIds() == null) {
+                replier.replyOtherError("The parameter 'ids' is required.", null, jedis);
                 return;
             }
 
@@ -217,8 +240,8 @@ public class FcdslRequestHandler {
             if(isForMap)meetMap= ObjectTools.listToMap(cidInfoList,FID);
             replier.setGot((long) cidInfoList.size());
             replier.setTotal((long) cidInfoList.size());
-            if(isForMap)replier.reply0Success(meetMap, jedis);
-            else replier.reply0Success(cidInfoList, jedis);
+            if(isForMap)replier.reply0Success(meetMap, jedis, null);
+            else replier.reply0Success(cidInfoList, jedis, null);
         }
     }
 
@@ -226,11 +249,14 @@ public class FcdslRequestHandler {
 
         FcReplier replier = new FcReplier(sid,response);
         try (Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
             if (requestCheckResult == null) {
                 return;
             }
-
+            if (requestCheckResult.getRequestBody().getFcdsl().getIds() == null) {
+                replier.replyOtherError("The parameter 'ids' is required.", null, jedis);
+                return;
+            }
             //Set default sort.
             ArrayList<Sort> defaultSortList = Sort.makeSortList(HEIGHT, false, TX_ID, true, null, null);
 
@@ -269,8 +295,8 @@ public class FcdslRequestHandler {
             //response
             replier.setGot((long) meetList.size());
             replier.setTotal((long) meetList.size());
-            if(isForMap)replier.reply0Success(meetMap, jedis);
-            else replier.reply0Success(meetList,jedis);
+            if(isForMap)replier.reply0Success(meetMap, jedis, null);
+            else replier.reply0Success(meetList,jedis, null);
 
         } catch (Exception e) {
             replier.replyOtherError(e.getMessage(), null, null);

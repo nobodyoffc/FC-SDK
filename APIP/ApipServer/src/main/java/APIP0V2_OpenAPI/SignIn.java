@@ -22,7 +22,7 @@ import java.util.Map;
 
 import static constants.Strings.*;
 
-@WebServlet(name = ApiNames.SignIn, value = "/"+ApiNames.SN_0+"/"+ApiNames.Version2 +"/"+ ApiNames.SignIn)
+@WebServlet(name = ApiNames.SignIn, value = "/"+ApiNames.Version2 +"/"+ ApiNames.SignIn)
 public class SignIn extends HttpServlet {
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -80,7 +80,7 @@ public class SignIn extends HttpServlet {
                     }
                 }
             }
-            replier.reply0Success(session,jedis);
+            replier.reply0Success(session,jedis, null);
             replier.clean();
         }
     }

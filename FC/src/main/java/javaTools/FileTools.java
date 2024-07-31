@@ -88,7 +88,7 @@ public class FileTools {
 
     public static String writeBytesToDisk(byte[] bytes, String storageDir) {
         String did = Hex.toHex(Hash.sha256x2(bytes));
-        String subDir = getSubPathForFreeDisk(did);
+        String subDir = getSubPathForDisk(did);
         String path = storageDir+subDir;
 
         File file = new File(path,did);
@@ -143,7 +143,7 @@ public class FileTools {
         }
     }
 
-    public static String getSubPathForFreeDisk(String did) {
+    public static String getSubPathForDisk(String did) {
         return "/"+did.substring(0,2)+"/"+did.substring(2,4)+"/"+did.substring(4,6)+"/"+did.substring(6,8);
     }
 

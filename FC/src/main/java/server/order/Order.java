@@ -20,8 +20,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import static appTools.Inputer.askIfYes;
 import static constants.Strings.*;
 
 public class Order {
@@ -63,63 +65,67 @@ public class Order {
         if(result.equalsIgnoreCase("true")){
             webhookRequestDataStr = dataMap.get(Strings.SUBSCRIBE);
             System.out.println(webhookRequestDataStr);
-            if(Inputer.askIfYes(br,"Is your subscription right? y to confirm. Other for no.")){
-                return false;
+            if(!askIfYes(br,"Here is your subscription. Change it?")){
+                return true;
             }
-        }else {
-            if(apipClient.subscribeWebhook(endpoint)){
-                try(Jedis jedis = jedisPool.getResource()){
-                    jedis.select(1);
-                    String sessionName = Session.makeSessionName(apipAccount.getSession().getSessionName());
-                    String hookUserId = WebhookRequestBody.makeHookUserId(sid, apipAccount.getUserId(), hookMethod);
-                    jedis.hset(sessionName, SESSION_KEY, Hex.toHex(apipClient.getSessionKey()));
-                    jedis.hset(sessionName, HOOK_USER_ID,hookUserId);
-                }
-                System.out.println("Subscribed.");
-            }
-            else System.out.println("Failed to subscribe the webhook from "+ apipAccount.getApiUrl());
         }
-        return true;
+
+        if(apipClient.subscribeWebhook(endpoint)){
+            try(Jedis jedis = jedisPool.getResource()){
+                jedis.select(1);
+                String sessionName = Session.makeSessionName(apipAccount.getSession().getSessionName());
+                String hookUserId = WebhookRequestBody.makeHookUserId(sid, apipAccount.getUserId(), hookMethod);
+                jedis.hset(sessionName, SESSION_KEY, Hex.toHex(apipClient.getSessionKey()));
+                jedis.hset(sessionName, HOOK_USER_ID,hookUserId);
+            }
+            System.out.println("Subscribed.");
+            return true;
+        }
+        else System.out.println("Failed to subscribe the webhook from "+ apipAccount.getApiUrl());
+        return false;
     }
 
-    public static void setNPrices(BufferedReader br, ArrayList<String> apiList, String sid, JedisPool jedisPool) {
-        Map<Integer, String> apiMap = apiListToMap(apiList);
-        showAllAPIs(apiMap);
-        while (true) {
-            System.out.println("""
-                    Set nPrices:
-                    \t'a' to set all nPrices,
-                    \t'one' to set all nPrices by 1,
-                    \t'zero' to set all nPrices by 0,
-                    \tan integer to set the corresponding API,
-                    \tor 'q' to quit.\s""");
-            String str = null;
-            try {
-                str = br.readLine();
-                if ("".equals(str)) str = br.readLine();
-                if (str.equals("q")) return;
-                if (str.equals("a")) {
-                    setAllNPrices(apiMap, br, sid, jedisPool);
-                    System.out.println("Done.");
-                    return;
+    public static void setNPrices(String sid, List<String> apiList, JedisPool jedisPool, BufferedReader br, boolean reset) {
+        try(Jedis jedis = jedisPool.getResource()) {
+            if(jedis.exists(Settings.addSidBriefToName(sid, Strings.N_PRICE)))
+                if(!reset)return;
+            Map<Integer, String> apiMap = apiListToMap(apiList);
+            showAllAPIs(apiMap);
+            while (true) {
+                System.out.println("""
+                        Set nPrices:
+                        \t'a' to set all nPrices,
+                        \t'one' to set all nPrices by 1,
+                        \t'zero' to set all nPrices by 0,
+                        \tan integer to set the corresponding API,
+                        \tor 'q' to quit.\s""");
+                String str = null;
+                try {
+                    str = br.readLine();
+                    if ("".equals(str)) str = br.readLine();
+                    if (str.equals("q")) return;
+                    if (str.equals("a")) {
+                        setAllNPrices(apiMap, br, sid, jedisPool);
+                        System.out.println("Done.");
+                        return;
+                    }
+                } catch (Exception e) {
+                    log.error("Set nPrice wrong. ", e);
                 }
-            }catch (Exception e){
-                log.error("Set nPrice wrong. ",e);
-            }
-            if(str==null){
-                log.error("Set nPrice failed. ");
-            }
-            try(Jedis jedis = jedisPool.getResource()) {
+                if (str == null) {
+                    log.error("Set nPrice failed. ");
+                }
+
                 if (str.equals("one")) {
                     for (int i = 0; i < apiMap.size(); i++) {
-                        jedis.hset(Settings.addSidBriefToName(sid,Strings.N_PRICE), apiMap.get(i + 1), "1");
+                        jedis.hset(Settings.addSidBriefToName(sid, Strings.N_PRICE), apiMap.get(i + 1), "1");
                     }
                     System.out.println("Done.");
                     return;
                 }
                 if (str.equals("zero")) {
                     for (int i = 0; i < apiMap.size(); i++) {
-                        jedis.hset(Settings.addSidBriefToName(sid,Strings.N_PRICE), apiMap.get(i + 1), "0");
+                        jedis.hset(Settings.addSidBriefToName(sid, Strings.N_PRICE), apiMap.get(i + 1), "0");
                     }
                     System.out.println("Done.");
                     return;
@@ -168,7 +174,7 @@ public class Order {
         }
     }
 
-    public static Map<Integer, String> apiListToMap(ArrayList<String> apiList) {
+    public static Map<Integer, String> apiListToMap(List<String> apiList) {
 
         Map<Integer, String> apiMap = new HashMap<>();
         for (int i = 0; i < apiList.size(); i++) apiMap.put(i + 1, apiList.get(i));

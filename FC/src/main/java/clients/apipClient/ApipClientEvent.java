@@ -5,7 +5,7 @@ import apip.apipData.*;
 import clients.ApiUrl;
 import clients.FcClientEvent;
 import com.google.gson.Gson;
-import config.ApiType;
+import config.ServiceType;
 import javaTools.http.AuthType;
 
 import javax.annotation.Nullable;
@@ -44,10 +44,10 @@ public class ApipClientEvent extends FcClientEvent {
         super(urlHead, urlTailPath, apiName);
     }
 
-    public ApipClientEvent(String urlHead, ApiType type, String sn, String version, String apiName) {
+    public ApipClientEvent(String urlHead, ServiceType type, String sn, String version, String apiName) {
         super(urlHead, sn, version, apiName);
     }
-    public ApipClientEvent(String urlHead, ApiType type, String sn, String ver, String apiName, Map<String,String>paramMap) {
+    public ApipClientEvent(String urlHead, ServiceType type, String sn, String ver, String apiName, Map<String,String>paramMap) {
         super( urlHead, sn, ver, apiName, paramMap);
     }
 //    public ApipClientEvent(byte[] authKey, String urlHead, ApiType type, String sn, String ver, String apiName, String via, AuthType authType, Map<String,String>paramMap) {
@@ -59,7 +59,7 @@ public class ApipClientEvent extends FcClientEvent {
     public ApipClientEvent(byte[] authKey, String urlHead, String urlTailPath, String apiName, Fcdsl fcdsl, AuthType authType, String via) {
         super(authKey,urlHead,urlTailPath,apiName,fcdsl,authType,via);
     }
-    public ApipClientEvent(String urlHead, ApiType type, String sn, String ver, String apiName, Fcdsl fcdsl, AuthType authType, byte[] authKey, String via) {
+    public ApipClientEvent(String urlHead, ServiceType type, String sn, String ver, String apiName, Fcdsl fcdsl, AuthType authType, byte[] authKey, String via) {
         super(urlHead, sn, ver, apiName, fcdsl, authType, authKey, via);
     }
 

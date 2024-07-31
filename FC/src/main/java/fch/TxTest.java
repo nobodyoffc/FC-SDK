@@ -2,6 +2,7 @@ package fch;
 
 import clients.apipClient.ApipClient;
 import config.ApiAccount;
+import fcData.AlgorithmId;
 import fch.fchData.SendTo;
 import javaTools.http.AuthType;
 import javaTools.http.HttpRequestMethod;
@@ -107,7 +108,7 @@ public class TxTest {
 
         long fee = calcSizeMultiSign(0, sendToList.size(), msg.length(), 2, 3);
 
-        List<Cash> cashList = apipClient.cashValidForPay(HttpRequestMethod.POST, mFid, 0.1 + ((double) fee / COIN_TO_SATOSHI), AuthType.FC_SIGN_BODY);
+        List<Cash> cashList = apipClient.cashValid(mFid, 0.1 + ((double) fee / COIN_TO_SATOSHI),null,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
 
         if(cashList==null)return;
 
@@ -199,7 +200,7 @@ public class TxTest {
 
         long fee = calcTxSize(0, sendToList.size(), msg.length());
 
-        List<Cash> cashList  = apipClient.cashValidForPay(HttpRequestMethod.POST, fid, 0.1 + ((double) fee / COIN_TO_SATOSHI), AuthType.FC_SIGN_BODY);
+        List<Cash> cashList  = apipClient.cashValid(fid,0.1 + ((double) fee / COIN_TO_SATOSHI),null,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
 
         String txSigned = createTimeLockedTransaction(cashList, priKeyBytes, sendToList, 1999900, msg);
         System.out.println(txSigned);
@@ -223,7 +224,7 @@ public class TxTest {
         System.out.println("verify '" + msg + "':" + verify);
         verify = Wallet.schnorrMsgVerify(msg + " ", sign, fid);
         System.out.println("verify '" + msg + " " + "':" + verify);
-        Signature signature = new Signature(fid, msg, sign, Constants.Schnorr_No1_NrC7);
+        Signature signature = new Signature(fid, msg, sign, AlgorithmId.FC_SchnorrSignTx_No1_NrC7, null);
         System.out.println(JsonTools.toNiceJson(signature));
     }
 

@@ -1,5 +1,6 @@
 package server.serviceManagers;
 
+import clients.apipClient.ApipClient;
 import feip.feipData.Service;
 import feip.feipData.serviceParams.Params;
 import feip.feipData.serviceParams.SwapParams;
@@ -25,12 +26,12 @@ public class SwapManager extends ServiceManager {
     @Override
     public Params inputParams(byte[] symKey, BufferedReader br) {
         SwapParams swapParams = new SwapParams();
-        swapParams.inputParams(br, symKey);
+        swapParams.inputParams(br, symKey,(ApipClient) apipAccount.getClient());
         return swapParams;
     }
 
     @Override
     public void updateParams(Params serviceParams, BufferedReader br, byte[] symKey) {
-        serviceParams.updateParams(br,symKey);
+        serviceParams.updateParams(br,symKey,(ApipClient) apipAccount.getClient());
     }
 }

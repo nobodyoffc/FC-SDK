@@ -42,7 +42,7 @@ public class HashRateHistory extends HttpServlet {
         FcReplier replier = new FcReplier(sid,response);
         //Check authorization
         try (Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
             if (requestCheckResult == null) {
                 return;
             }
@@ -77,7 +77,7 @@ public class HashRateHistory extends HttpServlet {
             replier.setGot((long) hist.size());
             long bestHeight = Long.parseLong(jedis.get(BEST_HEIGHT));
             replier.setTotal( bestHeight- 1);
-            replier.reply0Success(hist,jedis);
+            replier.reply0Success(hist,jedis, null);
         }
     }
 }

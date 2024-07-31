@@ -78,8 +78,9 @@ public class ServiceData {
 	}
 
 	private void inputStdName(BufferedReader br) {
-		System.out.println("Input the English name of your service:");
-		setStdName(Inputer.inputString(br));
+		String input = Inputer.inputString(br,"Input the English name of your service");
+		if("".equals(input))return;
+		setStdName(input);
 	}
 
 	private void inputLocalNames(BufferedReader br)  {
@@ -276,12 +277,12 @@ public class ServiceData {
 	}
 
 	private void updateDesc(BufferedReader br) {
-		System.out.println("StdName is: "+desc);
+		System.out.println("Desc is: "+desc);
 		inputDesc(br);
 	}
 
 	private void updateLocalNames(BufferedReader br) {
-		System.out.println("LocalNames are: "+ localNames);
+		System.out.println("LocalNames are: "+ Arrays.toString(localNames));
 		inputLocalNames(br);
 	}
 

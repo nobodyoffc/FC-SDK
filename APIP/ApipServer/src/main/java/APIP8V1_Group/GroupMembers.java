@@ -1,6 +1,5 @@
 package APIP8V1_Group;
 
-import apip.apipData.Sort;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import constants.ApiNames;
 import constants.IndicesNames;
@@ -10,7 +9,6 @@ import initial.Initiator;
 import javaTools.http.AuthType;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import server.FcdslRequestHandler;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -47,7 +45,7 @@ public class GroupMembers extends HttpServlet {
             for(Group group:meetList){
                 dataMap.put(group.getGid(),group.getMembers());
             }
-            replier.reply0Success(dataMap, jedis);
+            replier.reply0Success(dataMap, jedis, null);
         }
     }
 }

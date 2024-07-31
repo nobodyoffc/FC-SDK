@@ -1,7 +1,9 @@
 package constants;
 
 public class Constants {
-    public static final int EMPTY_BLOCK_SIZE = 283;
+    public static final int EMPTY_BLOCK_SIZE = 273;
+    public static final Double MIN_FEE_RATE = 0.00001;
+    public static final int DEFAULT_SESSION_DAYS = 100;
     public static long CDD_CHECK_HEIGHT =3000000;
     public static long CDD_REQUIRED =1;
     public static final Long COIN_TO_SATOSHI = 100000000L;
@@ -67,10 +69,10 @@ public class Constants {
     public static int RedisDb4Webhook = 4;
     public static int RedisDb3Mempool = 3;
     public static int RedisDb0Common = 0;
-    public final static String ECC256k1_AES256CBC = "ECC256k1-AES256CBC";
-    public final static String EccAes256BitPay_No1_NrC7 = "EccAes256BitPay@No1_NrC7";
-    public final static String EcdsaBtcMsg_No1_NrC7 = "EcdsaBtcMsg@No1_NrC7";
-    public final static String Schnorr_No1_NrC7 = "SchnorrMsg@No1_NrC7";
+//    public final static String ECC256k1_AES256CBC = "ECC256k1-AES256CBC";
+//    public final static String EccAes256BitPay_No1_NrC7 = "EccAes256BitPay@No1_NrC7";
+//    public final static String EcdsaBtcMsg_No1_NrC7 = "EcdsaBtcMsg@No1_NrC7";
+//    public final static String Schnorr_No1_NrC7 = "SchnorrMsg@No1_NrC7";
     public static String UrlHead_CID_CASH = "https://cid.cash/APIP";
     public static long DustInSatoshi = 1000;
     public static String Dot_JSON = ".json";
@@ -80,11 +82,16 @@ public class Constants {
     public static long TenDayBlocks = 60*24*10;
 
     public static final String DAYS_PER_YEAR = "400";
-    public static final String MINE_MUTUAL_DAYS = "10";
-    public static final String FUND_MUTUAL_DAYS = "100";
+    public static final String MINE_MATURE_DAYS = "10";
+    public static final String FUND_MATURE_DAYS = "100";
     public static final String BLOCK_TIME_MINUTE = "1";
     public static final String INITIAL_COINBASE_MINE ="25";
     public static final String INITIAL_COINBASE_FUND ="25";
+    public static final String MINE_REDUCTION_RATIO ="20%";
+    public static final String FUND_REDUCTION_RATIO ="50%";
+    public static final String REDUCE_PER_BLOCKS ="576000";
+    public static final String REDUCTION_STOPS_AT_HEIGHT ="11520000";
+    public static final String STABLE_ANNUAL_ISSUANCE = "207,553";
     public static final long START_TIME = 1577836802;
     public static final String GENESIS_BLOCK_ID = "00000000cbe04361b1d6de82b893a7d8419e76e99dd2073ac0db2ba0e652eea8";
     public static final double TWO_POWER_32 = 4294967296D;

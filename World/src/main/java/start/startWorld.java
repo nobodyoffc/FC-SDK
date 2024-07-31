@@ -30,7 +30,7 @@ public class startWorld {
         worldSettings.initiateServer(sid, symKey,configure, br);
 
         Object[] fids = worldSettings.getFidPriKeyCipherMap().keySet().toArray();
-        String fid = (String) Inputer.chooseOne(fids,"Choose ID:",br);
+        String fid = (String) Inputer.chooseOne(fids, null, "Choose ID:",br);
         String priKeyCipher = worldSettings.getFidPriKeyCipherMap().get(fid);
         byte[] priKey = EccAes256K1P7.decryptJsonBytes(priKeyCipher,symKey);
         System.out.println(fid+" is ready.");

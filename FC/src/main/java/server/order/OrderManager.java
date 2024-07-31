@@ -110,7 +110,7 @@ public class OrderManager {
         System.out.println("OrderScanner running is "+ counter.isRunning()+".");
         Menu.askIfToDo("Switch it?",br);
         if(counter.isRunning().get()){
-            counter.shutdown();
+            counter.close();
         }else{
             counter.restart();
         }

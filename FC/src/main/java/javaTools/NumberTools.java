@@ -68,6 +68,8 @@ public class NumberTools {
     }
 
     public static String numberToPlainString(String number,String deci){
+        number.replaceAll(",","");
+
         BigDecimal bigDecimal = new BigDecimal(number);
 
         // Get a NumberFormat instance for formatting numbers with commas

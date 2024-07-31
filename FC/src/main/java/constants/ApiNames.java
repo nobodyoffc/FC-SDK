@@ -1,13 +1,10 @@
 package constants;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class ApiNames {
     public static final String Version1 ="v1";
     public static final String Version2 ="v2";
-    public static final String ApipApiType ="APIP";
-    public static final String DiskApiType ="DISK";
     public static final String SN_0 = "sn0";
     public static final String SN_1 = "sn1";
     public static final String SN_2 = "sn2";
@@ -31,6 +28,7 @@ public class ApiNames {
     public static final String SN_19 = "sn19";
     public static final String SN_20 = "sn20";
     public static final String SN_21 = "sn21";
+    public static final String Carve = "carve";
 
     public static String makeUrlTailPath(String sn,String ver){
         return "/"+sn+"/"+ver+"/";
@@ -38,7 +36,7 @@ public class ApiNames {
 
     public static String[] OpenAPIs;
     public static String[] FcdslAPIs;
-    public static String[] FreeGetAPIs;
+    public static String[] FreeAPIs;
     public static String[] SwapHallAPIs;
     public static String[] BlockchainAPIs;
     public static String[] IdentityAPIs;
@@ -47,9 +45,10 @@ public class ApiNames {
     public static String[] PersonalAPIs;
     public static String[] PublishAPIs;
     public static String[] WalletAPIs;
-    public static String[] CryptoToolsAPIs;
+    public static String[] CryptoAPIs;
     public static String[] DiskAPIs;
     public static String[] ApipAPIs;
+    public static String[] EndpointAPIs;
     //APIP path
     public static final String APIP0V1Path = "/apip0/v1/";
     public static final String APIP1V1Path = "/apip1/v1/";
@@ -210,10 +209,15 @@ public class ApiNames {
     public static final String TokenHoldersByIds = "tokenHoldersByIds";
     public static final String TokenHolderSearch = "tokenHolderSearch";
     public static final String TokenSearch = "tokenSearch";
+
+    public static final String Circulating = "circulating";
+    public static final String Richlist = "richlist";
+    public static final String FreecashInfo = "freecashInfo";
+    public static final String TotalSupply = "totalSupply";
     public static final String Put = "put";
     public static final String Get = "get";
     public static final String Check = "check";
-    public static final String List = "list";
+    public static final String LIST = "list";
 
     public static final String ChainInfo ="chainInfo";
     public static final String DifficultyHistory ="difficultyHistory";
@@ -224,7 +228,8 @@ public class ApiNames {
 
 
     public static ArrayList<String> freeApiList = new ArrayList<>();
-    public static ArrayList<String> diskApiList = new ArrayList<>();
+    public static ArrayList<String> DiskApiList = new ArrayList<>();
+    public static ArrayList<String> ApipApiList = new ArrayList<>();
 
     static {
 
@@ -285,7 +290,7 @@ public class ApiNames {
                 OffLineTx
         };
 
-        CryptoToolsAPIs = new String[]{
+        CryptoAPIs = new String[]{
                 Addresses,
                 Encrypt, Verify,
                 Sha256, Sha256x2, Sha256Bytes, Sha256x2Bytes,
@@ -293,24 +298,25 @@ public class ApiNames {
                 CheckSum4,HexToBase58
         };
 
-        List<String> apipApiList = new ArrayList<>();
+        ApipApiList.addAll(java.util.List.of(OpenAPIs));
+        ApipApiList.addAll(java.util.List.of(BlockchainAPIs));
+        ApipApiList.addAll(java.util.List.of(IdentityAPIs));
+        ApipApiList.addAll(java.util.List.of(OrganizeAPIs));
+        ApipApiList.addAll(java.util.List.of(ConstructAPIs));
+        ApipApiList.addAll(java.util.List.of(PersonalAPIs));
+        ApipApiList.addAll(java.util.List.of(PublishAPIs));
+        ApipApiList.addAll(java.util.List.of(WalletAPIs));
+        ApipApiList.addAll(java.util.List.of(CryptoAPIs));
 
-        apipApiList.addAll(java.util.List.of(OpenAPIs));
-        apipApiList.addAll(java.util.List.of(BlockchainAPIs));
-        apipApiList.addAll(java.util.List.of(IdentityAPIs));
-        apipApiList.addAll(java.util.List.of(OrganizeAPIs));
-        apipApiList.addAll(java.util.List.of(ConstructAPIs));
-        apipApiList.addAll(java.util.List.of(PersonalAPIs));
-        apipApiList.addAll(java.util.List.of(PublishAPIs));
-        apipApiList.addAll(java.util.List.of(WalletAPIs));
-        apipApiList.addAll(java.util.List.of(CryptoToolsAPIs));
-
-        ApipAPIs = apipApiList.toArray(new String[0]);
+        ApipAPIs = ApipApiList.toArray(new String[0]);
         DiskAPIs = new String[]{
-                Put, Get, Check, List, Ping, SignIn, SignInEcc
+                Put, Get, Check, LIST, Ping, SignIn, SignInEcc
+        };
+        EndpointAPIs = new String[]{
+                TotalSupply,Circulating,Richlist,FreecashInfo
         };
 
-        FreeGetAPIs = new String[]{
+        FreeAPIs = new String[]{
                 Ping, ChainInfo, GetService, FidCidSeek, GetFidCid,GetAvatar, CashValid, Broadcast
         };
 
@@ -324,13 +330,13 @@ public class ApiNames {
         freeApiList.add(ApiNames.GetFidCid);
         freeApiList.add(ApiNames.GetServices);
 
-        diskApiList.add(SignIn);
-        diskApiList.add(SignInEcc);
-        diskApiList.add(Put);
-        diskApiList.add(Get);
-        diskApiList.add(Check);
-        diskApiList.add(List);
-        diskApiList.add(Ping);
+        DiskApiList.add(SignIn);
+        DiskApiList.add(SignInEcc);
+        DiskApiList.add(Put);
+        DiskApiList.add(Get);
+        DiskApiList.add(Check);
+        DiskApiList.add(LIST);
+        DiskApiList.add(Ping);
 
         SwapHallAPIs = new String[]{
                 SwapRegister, SwapUpdate, SwapState,

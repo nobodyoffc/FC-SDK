@@ -540,7 +540,7 @@ public class NaSaRpcClient {
     public BlockchainInfo getBlockchainInfo(){
         RpcRequest jsonRPC2Request = new RpcRequest(GETBLOCKCHAININFO, null);
         Object result = RpcRequest.requestRpc(url, username, password, "getBlockchainInfo", jsonRPC2Request);
-        return BlockchainInfo.makeBlockchainInfo(result);
+        return ObjectTools.objectToClass(result,BlockchainInfo.class);//BlockchainInfo.makeBlockchainInfo(result);
     }
     public static class BlockchainInfo {
         private String chain;
@@ -558,10 +558,10 @@ public class NaSaRpcClient {
         private BlockchainInfo.Bip9Softfork bip9_softforks;
         private String warnings;
 
-        private static BlockchainInfo makeBlockchainInfo(Object res) {
-            Gson gson = new Gson();
-            return gson.fromJson(gson.toJson(res), BlockchainInfo.class);
-        }
+//        private static BlockchainInfo makeBlockchainInfo(Object res) {
+//            Gson gson = new Gson();
+//            return gson.fromJson(gson.toJson(res), BlockchainInfo.class);
+//        }
 
         public String getChain() {
             return chain;
@@ -1400,7 +1400,8 @@ public class NaSaRpcClient {
         String[] params = new String[]{hex};
         RpcRequest jsonRPC2Request = new RpcRequest(SENDRAWTRANSACTION, params);
         Object result = RpcRequest.requestRpc(url, username, password, SENDRAWTRANSACTION, jsonRPC2Request);
-        return (String) result;
+        if(Hex.isHexString((String) result) )return (String) result;
+        else return JsonTools.toNiceJson(result);
     }
 
     public Object decodeRawTransaction(String hex){

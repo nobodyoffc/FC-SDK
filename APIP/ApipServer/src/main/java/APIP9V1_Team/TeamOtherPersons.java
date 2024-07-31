@@ -49,7 +49,7 @@ public class TeamOtherPersons extends HttpServlet {
                 teamOtherPersons.setNotAgreeMembers(team.getNotAgreeMembers());
                 dataMap.put(team.getTid(),teamOtherPersons);
             }
-            replier.reply0Success(dataMap, jedis);
+            replier.reply0Success(dataMap, jedis, null);
         }
     }
 }

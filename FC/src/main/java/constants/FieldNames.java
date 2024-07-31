@@ -27,6 +27,8 @@ public class FieldNames {
     public static final String USED_CIDS = "usedCids";
     public static final String FID = "fid";
     public static final String LISTEN_PATH = "listenPath";
+    public static final String LOCAL_DATA_PATH = "localDataPath";
+
     public static final String FROM_WEBHOOK = "fromWebhook";
     public static final String OPEN_DISK_SID_BRIEF = "openDiskSidBrief";
     public static final String SETTINGS = "settings";
@@ -75,6 +77,7 @@ public class FieldNames {
     public static final String IncomeCount = "incomeCount";
     public static final String IncomeValue = "incomeValue";
     public static final String TxValueMap = "txValueMap";
+    public static final String MODE = "mode";
     public static String Contact_Id = "contactId";
     public static String Secret_Id = "secretId";
     public static String Mail_Id = "mailId";

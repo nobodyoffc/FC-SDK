@@ -5,11 +5,13 @@ import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.NumberTools;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -55,7 +57,7 @@ public class Inputer {
     }
 
     public static String inputString(BufferedReader br, String ask) {
-        System.out.println(ask+":");
+        System.out.println(ask);
         return inputString(br);
     }
 
@@ -434,6 +436,17 @@ public class Inputer {
         return "y".equals(input);
     }
 
+    public static boolean confirmDefault(BufferedReader br, String name) {
+        System.out.println("The only one is: "+ name+".\nEnter to choose it. 'n' or others to ignore it: ");
+        String input;
+        try {
+            input = br.readLine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return "".equals(input);
+    }
+
 
     public static String[] promptAndSet(BufferedReader reader, String fieldName, String[] currentValues) throws IOException {
         String ask = "Enter " + fieldName + " (Press Enter to skip): ";
@@ -553,12 +566,32 @@ public class Inputer {
         return path;
     }
 
-    public static <T> T chooseOne(T[] values,String ask,BufferedReader br) {
+    public static <T> T chooseOne(T[] values, @Nullable String showStringFieldName, String ask, BufferedReader br) {
         if(values==null || values.length==0)return null;
+        Field keyField = null;
         System.out.println(ask);
         Shower.printUnderline(10);
-        for(int i=0;i<values.length;i++){
-            System.out.println((i+1)+" "+values[i].toString());
+        try {
+            if (showStringFieldName != null) {
+                keyField = values[0].getClass().getDeclaredField(showStringFieldName);
+                keyField.setAccessible(true);
+            }
+            String showing;
+            for (int i = 0; i < values.length; i++) {
+                if (showStringFieldName == null) {
+                    showing = values[i].toString();
+                } else showing = (String) keyField.get(values[i]);
+
+                if (values.length == 1) {
+                    if (confirmDefault(br, showing)) return values[0];
+                    else return null;
+                }
+
+                System.out.println((i + 1) + " " + showing);
+            }
+        }catch (NoSuchFieldException | IllegalAccessException e) {
+            System.out.println(e.getMessage());
+            return null;
         }
         Shower.printUnderline(10);
         int choice = inputInteger(br,"Choose the number. 0 to skip:",values.length);
@@ -566,12 +599,32 @@ public class Inputer {
         return values[choice-1];
     }
 
-    public static <T> T chooseOne(List<T> values, String ask, BufferedReader br) {
+    public static <T> T chooseOne(List<T> values, @Nullable String showStringFieldName, String ask, BufferedReader br) {
         if(values==null || values.isEmpty())return null;
-        System.out.println(ask);
-        Shower.printUnderline(10);
-        for(int i=0;i<values.size();i++){
-            System.out.println((i+1)+" "+values.get(i).toString());
+
+        Field keyField = null;
+        String showing;
+        try {
+            if(showStringFieldName!=null) {
+                keyField = values.get(0).getClass().getDeclaredField(showStringFieldName);
+                keyField.setAccessible(true);
+            }
+            System.out.println(ask);
+            Shower.printUnderline(10);
+            for(int i=0;i<values.size();i++){
+                if(showStringFieldName==null) {
+                    showing = values.get(i).toString();
+                } else showing = (String) keyField.get(values.get(i));
+
+                if(values.size()==1){
+                    if(confirmDefault(br,showing))return values.get(0);
+                    else return null;
+                }
+                System.out.println((i+1)+" "+ showing);
+            }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            System.out.println(e.getMessage());
+            return null;
         }
         Shower.printUnderline(10);
         int choice = inputInteger(br,"Choose the number. 0 to skip:",values.size());
@@ -579,15 +632,40 @@ public class Inputer {
         return values.get(choice-1);
     }
 
-    public static <T> String chooseOne(Map<String,T> stringTMap, String ask, BufferedReader br) {
+    public static <T> String chooseOne(Map<String,T> stringTMap, boolean showValue, @Nullable String showStringFieldName, String ask, BufferedReader br) {
         if(stringTMap==null || stringTMap.isEmpty())return null;
         System.out.println(ask);
         Shower.printUnderline(10);
         List<String> keyList = stringTMap.keySet().stream().toList();
-        for(int i=0;i<keyList.size();i++){
-            String key = keyList.get(i);
-            System.out.println((i+1)+" "+ key);// +" "+stringTMap.get(key).toString());
+        Field keyField = null;
+        String showing;
+        try {
+            if (showStringFieldName != null) {
+                String key = (String) stringTMap.keySet().toArray()[0];
+                keyField = stringTMap.get(key).getClass().getDeclaredField(showStringFieldName);
+                keyField.setAccessible(true);
+            }
+
+            for (int i = 0; i < keyList.size(); i++) {
+                String key = keyList.get(i);
+                if (showValue) {
+                    if (showStringFieldName == null)
+                        showing = stringTMap.get(key).toString();
+                    else
+                        showing = (String) keyField.get(stringTMap.get(key));
+                } else
+                    showing = key;
+                if(stringTMap.size()==1&&i==0){
+                    if(confirmDefault(br,showing))return keyList.get(0);
+                    else return null;
+                }
+                System.out.println((i + 1) + " " + showing);
+            }
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            System.out.println("Failed to get value from Class T when choosing one from stringMap.");
+            return null;
         }
+
         Shower.printUnderline(10);
         int choice = inputInteger(br,"Choose the number. Enter to skip:",stringTMap.size());
         if(choice==0)return null;

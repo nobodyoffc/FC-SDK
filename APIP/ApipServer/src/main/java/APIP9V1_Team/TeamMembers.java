@@ -1,6 +1,5 @@
 package APIP9V1_Team;
 
-import apip.apipData.Sort;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import constants.ApiNames;
 import constants.IndicesNames;
@@ -10,7 +9,6 @@ import initial.Initiator;
 import javaTools.http.AuthType;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import server.FcdslRequestHandler;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -47,7 +45,7 @@ public class TeamMembers extends HttpServlet {
             for(Team team:meetList){
                 dataMap.put(team.getTid(),team.getMembers());
             }
-            replier.reply0Success(dataMap, jedis);
+            replier.reply0Success(dataMap, jedis, null);
         }
     }
 }

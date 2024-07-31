@@ -16,6 +16,10 @@ public class SwapSettings extends Settings {
     private String apipAccountId;
     private String naSaNodeAccountId;
 
+    public SwapSettings(Configure configure) {
+        super(configure);
+    }
+
     @Override
     public Service initiateServer(String sid, byte[] symKey, Configure config, BufferedReader br) {
 
@@ -81,7 +85,7 @@ public class SwapSettings extends Settings {
         while (true) {
             System.out.println("Reset default API service...");
             ApiProvider apiProvider = config.chooseApiProviderOrAdd(config.getApiProviderMap(), apipClient);
-            ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, symKey,apipClient);
+            ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, mainFid, symKey,apipClient);
 
             if (apiAccount != null) {
                 Object client = apiAccount.connectApi(config.getApiProviderMap().get(apiAccount.getProviderId()), symKey, br, null);

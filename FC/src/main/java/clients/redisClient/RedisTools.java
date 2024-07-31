@@ -1,5 +1,6 @@
 package clients.redisClient;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import crypto.KeyTools;
 import redis.clients.jedis.Jedis;
 
@@ -102,6 +103,8 @@ public class RedisTools {
         }
     }
 
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     public static <T> void writeToRedis(Object obj, String key, Jedis jedis, Class<T> tClass) {
         Map<String, String> settingMap = new HashMap<>();
 
@@ -110,12 +113,24 @@ public class RedisTools {
             for (Field field : currentClass.getDeclaredFields()) {
                 field.setAccessible(true); // to access private fields
                 try {
+                    if (field.getType() == org.slf4j.Logger.class) {
+                        // Skip Logger fields
+                        continue;
+                    }
                     Object value = field.get(obj);
                     if (value != null) {
-                        settingMap.put(field.getName(), String.valueOf(value));
+                        if (value instanceof String[]) {
+                            String[] array = (String[]) value;
+                            String joinedString = String.join(",", array);
+                            settingMap.put(field.getName(), joinedString);
+                        } else if (isPrimitiveOrWrapper(value.getClass())) {
+                            settingMap.put(field.getName(), String.valueOf(value));
+                        } else {
+                            String jsonString = objectMapper.writeValueAsString(value);
+                            settingMap.put(field.getName(), jsonString);
+                        }
                     }
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException("Failed to access field: " + field.getName(), e);
+                } catch (IllegalAccessException | com.fasterxml.jackson.core.JsonProcessingException ignore) {
                 }
             }
             currentClass = currentClass.getSuperclass();
@@ -123,6 +138,45 @@ public class RedisTools {
 
         jedis.hmset(key, settingMap);
     }
+    private static boolean isPrimitiveOrWrapper(Class<?> type) {
+        return type.isPrimitive() ||
+                type == Boolean.class ||
+                type == Byte.class ||
+                type == Character.class ||
+                type == Double.class ||
+                type == Float.class ||
+                type == Integer.class ||
+                type == Long.class ||
+                type == Short.class ||
+                type == String.class;
+    }
+//    public static <T> void writeToRedis(Object obj, String key, Jedis jedis, Class<T> tClass) {
+//        Map<String, String> settingMap = new HashMap<>();
+//
+//        Class<?> currentClass = tClass;
+//        while (currentClass != null) {
+//            for (Field field : currentClass.getDeclaredFields()) {
+//                field.setAccessible(true); // to access private fields
+//                try {
+//                    Object value = field.get(obj);
+//                    if (value != null) {
+//                        if (value instanceof String[] array) {
+//                            String joinedString = String.join(",", array);
+//                            settingMap.put(field.getName(), joinedString);
+//                        } else {
+//                            settingMap.put(field.getName(), String.valueOf(value));
+//                        }
+//                    }
+//                } catch (IllegalAccessException e) {
+//                    throw new RuntimeException("Failed to access field: " + field.getName(), e);
+//                }
+//            }
+//            currentClass = currentClass.getSuperclass();
+//        }
+//
+//        jedis.hmset(key, settingMap);
+//    }
+
 
 //
 //    public static <T> T readObjectFromRedisHash(Jedis jedis, String key, Class<T> clazz) {

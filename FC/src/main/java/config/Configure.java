@@ -1,7 +1,6 @@
 package config;
 
 import appTools.Menu;
-import constants.Strings;
 import feip.feipData.serviceParams.*;
 import appTools.Inputer;
 import clients.apipClient.ApipClient;
@@ -29,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import server.FreeApi;
-import server.ServiceType;
 import server.Settings;
 import server.serviceManagers.ChatManager;
 import server.serviceManagers.DiskManager;
@@ -43,6 +41,7 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import static appTools.Inputer.askIfYes;
+import static appTools.Inputer.confirmDefault;
 import static constants.FieldNames.FORBID_FREE_API;
 import static constants.FieldNames.OWNER;
 import static constants.Strings.*;
@@ -67,23 +66,23 @@ public class Configure {
     public static String CONFIG_DOT_JSON = "config.json";
 
     private static BufferedReader br;
-    private List<FreeApi> freeApipUrlList;
+//    private List<FreeApi> freeApipUrlList;
+    private Map<ServiceType,List<FreeApi>> freeApiListMap;
 //    public static List<String> freeApipUrls;
 
     public Configure(BufferedReader br) {
         Configure.br =br;
-        initiateFreeApipServices();
+        initFreeApiListMap();
     }
 
     public Configure() {
-        initiateFreeApipServices();
     }
 
-    public static void checkWebConfig(String sid, Configure configure, Settings settings, byte[] symKey, ApiType apiType, JedisPool jedisPool, BufferedReader br) {
-        String fileName = makeConfigFileName(apiType);
+    public static void checkWebConfig(String sid, Configure configure, Settings settings, byte[] symKey, ServiceType serviceType, JedisPool jedisPool, BufferedReader br) {
+        String fileName = makeConfigFileName(serviceType);
         if (!new File(fileName).exists()) {
             if(askIfYes(br,"Creat config file for the web server?")) {
-                makeWebConfig(sid, configure, settings,symKey, apiType, jedisPool);
+                makeWebConfig(sid, configure, settings,symKey, serviceType, jedisPool);
                 Menu.anyKeyToContinue(br);
             }
         }else {
@@ -96,19 +95,21 @@ public class Configure {
             }
 
             byte[] symKeyForWebServer = getSymKeyForWebServer(webServerConfig,configure,jedisPool);
-            if(symKeyForWebServer== null||!Arrays.equals(symKeyForWebServer,symKey))
-                makeWebConfig(sid, configure, settings,symKey, apiType, jedisPool);
+            if(symKeyForWebServer== null||!Arrays.equals(symKeyForWebServer,symKey)) {
+                log.debug("Remake web config file...");
+                makeWebConfig(sid, configure, settings, symKey, serviceType, jedisPool);
+            }
             Menu.anyKeyToContinue(br);
         }
     }
 
     @NotNull
-    public static String makeConfigFileName(ApiType apiType) {
-        return apiType.name() + "_" + CONFIG + DOT_JSON;
+    public static String makeConfigFileName(ServiceType serviceType) {
+        return serviceType.name() + "_" + CONFIG + DOT_JSON;
     }
 
-    public static void makeWebConfig(String sid, Configure configure,Settings settings, byte[] symKey, ApiType apiType, JedisPool jedisPool) {
-        String fileName = makeConfigFileName(apiType);
+    public static void makeWebConfig(String sid, Configure configure, Settings settings, byte[] symKey, ServiceType serviceType, JedisPool jedisPool) {
+        String fileName = makeConfigFileName(serviceType);
 
         WebServerConfig webServerConfig = new WebServerConfig();
         webServerConfig.setSid(sid);
@@ -125,9 +126,6 @@ public class Configure {
         try(Jedis jedis = jedisPool.getResource()){
             jedis.hset(addSidBriefToName(sid,WEB_PARAMS),SYM_KEY_CIPHER,symKeyCipher);
             jedis.hset(addSidBriefToName(sid,WEB_PARAMS),FORBID_FREE_API, String.valueOf(settings.getForbidFreeApi()));
-            jedis.hset(addSidBriefToName(sid,WEB_PARAMS),Strings.AVATAR_ELEMENTS_PATH,System.getProperty("user.dir")+"/avatar/elements");
-            jedis.hset(addSidBriefToName(sid,WEB_PARAMS),Strings.AVATAR_PNG_PATH,System.getProperty("user.dir")+"/avatar/png");
-
         }
         JsonTools.writeObjectToJsonFile(webServerConfig,fileName,false);
 
@@ -142,21 +140,58 @@ public class Configure {
         }
         CryptoDataByte result = new Decryptor().decryptJsonByPassword(symKeyCipher, configure.getNonce().toCharArray());
         if(result.getCode()!=0){
-            System.out.println("Failed to decrypt symKey for web server:"+result.getMessage());
+            log.debug("Failed to decrypt symKey for web server:"+result.getMessage());
+            System.out.println("Check the config file for web server.");
             return null;
         }
         symKey = result.getData();
         return symKey;
     }
 
-    public void initiateFreeApipServices(){
-        if(freeApipUrlList==null){
-            freeApipUrlList = new ArrayList<>();
-            FreeApi freeApiHelp = new FreeApi("https://help.cash/APIP",true);
-            FreeApi freeApiApip = new FreeApi("https://apip.cash/APIP",true);
-            FreeApi freeApiLocal8080 = new FreeApi("https://127.0.0.1:8080/APIP",true);
-            freeApipUrlList.add(freeApiHelp);
-            freeApipUrlList.add(freeApiApip);
+    public void initFreeApiListMap(){
+        if (freeApiListMap == null) {
+            freeApiListMap = new HashMap<>();
+        }
+        if(freeApiListMap.get(ServiceType.APIP)==null){
+            ArrayList<FreeApi> freeApipList = new ArrayList<>();
+            FreeApi freeApiHelp = new FreeApi("https://help.cash/APIP",true, ServiceType.APIP);
+            FreeApi freeApiApip = new FreeApi("https://apip.cash/APIP",true, ServiceType.APIP);
+            FreeApi freeApiLocal8080 = new FreeApi("http://127.0.0.1:8080/APIP",true, ServiceType.APIP);
+            FreeApi freeApiLocal8081 = new FreeApi("http://127.0.0.1:8081/APIP",true, ServiceType.APIP);
+            freeApipList.add(freeApiHelp);
+            freeApipList.add(freeApiApip);
+            freeApipList.add(freeApiLocal8080);
+            freeApipList.add(freeApiLocal8081);
+            freeApiListMap.put(ServiceType.APIP,freeApipList);
+        }
+
+        if(freeApiListMap.get(ServiceType.DISK)==null){
+            ArrayList<FreeApi> freeApipList = new ArrayList<>();
+            FreeApi freeApiHelp = new FreeApi("https://help.cash/FCSK",true, ServiceType.TALK);
+            FreeApi freeApiApip = new FreeApi("https://apip.cash/FCSK",true, ServiceType.TALK);
+            FreeApi freeApiLocal8080 = new FreeApi("http://127.0.0.1:8080/FCSK",true, ServiceType.TALK);
+            FreeApi freeApiLocal8081 = new FreeApi("http://127.0.0.1:8081/FCSK",true, ServiceType.TALK);
+            freeApipList.add(freeApiHelp);
+            freeApipList.add(freeApiApip);
+            freeApipList.add(freeApiLocal8080);
+            freeApipList.add(freeApiLocal8081);
+            freeApiListMap.put(ServiceType.TALK,freeApipList);
+        }
+        if(freeApiListMap.get(ServiceType.ES)==null){
+            ArrayList<FreeApi> freeApipList = new ArrayList<>();
+            FreeApi freeApiLocal9200 = new FreeApi("http://127.0.0.1:9200",true, ServiceType.ES);
+            FreeApi freeApiLocal9201 = new FreeApi("http://127.0.0.1:9201",true, ServiceType.ES);
+            freeApipList.add(freeApiLocal9200);
+            freeApipList.add(freeApiLocal9201);
+            freeApiListMap.put(ServiceType.ES,freeApipList);
+        }
+        if(freeApiListMap.get(ServiceType.REDIS)==null){
+            ArrayList<FreeApi> freeApipList = new ArrayList<>();
+            FreeApi freeApiLocal1 = new FreeApi("http://127.0.0.1:6379",true, ServiceType.REDIS);
+            FreeApi freeApiLocal2 = new FreeApi("http://127.0.0.1:6380",true, ServiceType.REDIS);
+            freeApipList.add(freeApiLocal1);
+            freeApipList.add(freeApiLocal2);
+            freeApiListMap.put(ServiceType.REDIS,freeApipList);
         }
     }
 
@@ -172,7 +207,7 @@ public class Configure {
 
         if(fidCipherMap ==null || fidCipherMap.isEmpty())
             return null;
-        fid = (String) Inputer.chooseOne(fidCipherMap.keySet().toArray(), "Choose a user:", br);
+        fid = (String) Inputer.chooseOne(fidCipherMap.keySet().toArray(), null, "Choose a user:", br);
         if(fid==null)fid = addUser(symKey);
         saveConfig();
         return fid;
@@ -197,8 +232,14 @@ public class Configure {
             fidCipherMap.put(fid,"");
         }else {
             while(true) {
-                priKeyBytes = inputPriKey(br);
-                String newFid = KeyTools.priKeyToFid(priKeyBytes);
+                String newFid;
+                try {
+                    priKeyBytes = inputPriKey(br);
+                    newFid = KeyTools.priKeyToFid(priKeyBytes);
+                }catch (Exception e){
+                    System.out.println("Something wrong. Try again.");
+                    continue;
+                }
                 if(fid==null) {
                         fid = newFid;
                         break;
@@ -208,19 +249,20 @@ public class Configure {
             }
             String cipher = makePriKeyCipher(priKeyBytes, symKey);
             fidCipherMap.put(fid, cipher);
+            saveConfig();
         }
         return fid;
     }
 
-    private Service chooseOwnerService(String owner,byte[] symKey, ApiType apiType, ApipClient apipClient) {
-        return chooseOwnerService(owner,symKey,apiType,null, apipClient);
+    private Service chooseOwnerService(String owner, byte[] symKey, ServiceType serviceType, ApipClient apipClient) {
+        return chooseOwnerService(owner,symKey, serviceType,null, apipClient);
     }
 
-    private Service chooseOwnerService(String owner,byte[] symKey, ApiType apiType, ElasticsearchClient esClient) {
-        return chooseOwnerService(owner,symKey,apiType,esClient,null);
+    private Service chooseOwnerService(String owner, byte[] symKey, ServiceType serviceType, ElasticsearchClient esClient) {
+        return chooseOwnerService(owner,symKey, serviceType,esClient,null);
     }
 
-    public List<Service> getServiceListByOwnerAndTypeFromEs(String owner, @Nullable ApiType type, ElasticsearchClient esClient) {
+    public List<Service> getServiceListByOwnerAndTypeFromEs(String owner, @Nullable ServiceType type, ElasticsearchClient esClient) {
         List<Service> serviceList;
 
         SearchRequest.Builder sb = new SearchRequest.Builder();
@@ -228,7 +270,7 @@ public class Configure {
 
         BoolQuery.Builder bb = QueryBuilders.bool();
         bb.must(b->b.term(t->t.field(OWNER).value(owner)));
-        bb.must(m->m.term(t1->t1.field(ACTIVE).value(true)));
+        bb.must(m->m.term(t1->t1.field(CLOSED).value(false)));
         if(type!=null)bb.must(m2->m2.match(m3->m3.field(TYPES).query(type.name())));
         BoolQuery boolQuery = bb.build();
         sb.query(q->q.bool(boolQuery));
@@ -247,14 +289,14 @@ public class Configure {
         return serviceList;
     }
     @Nullable
-    public Service chooseOwnerService(String owner,byte[] symKey, ApiType type, ElasticsearchClient esClient, ApipClient apipClient) {
+    public Service chooseOwnerService(String owner, byte[] symKey, ServiceType type, ElasticsearchClient esClient, ApipClient apipClient) {
         List<Service> serviceList;
 
         if(esClient==null)
             serviceList = apipClient.getServiceListByOwnerAndType(owner,type);
         else serviceList = getServiceListByOwnerAndTypeFromEs(owner,type,esClient);
 
-        if(serviceList.isEmpty()){
+        if(serviceList==null || serviceList.isEmpty()){
             System.out.println("No any service on chain of the owner.");
             return null;
         }
@@ -269,7 +311,7 @@ public class Configure {
         return service;
     }
 
-    private static void filterServiceByType(ApiType type, List<Service> serviceList) {
+    private static void filterServiceByType(ServiceType type, List<Service> serviceList) {
         Iterator<Service> iter = serviceList.iterator();
         while (iter.hasNext()) {
             Service service = iter.next();
@@ -311,11 +353,11 @@ public class Configure {
         int choice = Shower.choose(br,0,serviceList.size());
         if(choice==0){
             if(Inputer.askIfYes(br,"Publish a new service?")){
-                ServiceType type = Inputer.chooseOne(ServiceType.values(), "Choose a type", br);
+                server.ServiceType type = Inputer.chooseOne(server.ServiceType.values(), null, "Choose a type", br);
                 switch (type){
                     case DISK -> new DiskManager(null,apipAccount,br,symKey,DiskParams.class).publishService();
                     case SWAP -> new SwapManager(null,apipAccount,br,symKey,SwapParams.class).publishService();
-                    case CHAT -> new ChatManager(null,apipAccount,br,symKey,ChatParams.class).publishService();
+                    case CHAT -> new ChatManager(null,apipAccount,br,symKey, TalkParams.class).publishService();
                 }
                 System.out.println("Wait for a few minutes and try to start again.");
                 System.exit(0);
@@ -351,23 +393,23 @@ public class Configure {
         }
         Shower.showDataTable(title,fields,widths,valueListList);
     }
-    private ApiAccount chooseApi(byte[] symKey, ApiType type,ApipClient apipClient) {
+    private ApiAccount chooseApi(byte[] symKey, ServiceType type, ApipClient apipClient) {
         System.out.println("The " + type.name() + " is not ready. Set it...");
         ApiProvider apiProvider = chooseApiProviderOrAdd(apiProviderMap,type,apipClient);
-        ApiAccount apiAccount = chooseApiProvidersAccount(apiProvider, symKey,apipClient);
+        ApiAccount apiAccount = chooseApiProvidersAccount(apiProvider, null, symKey,apipClient);
         if(apiAccount.getClient()==null) {
             System.err.println("Failed to create " + type.name() + ".");
             return null;
         }
         return apiAccount;
     }
-    public ApiAccount addApiAccount(@NotNull ApiProvider apiProvider, byte[] symKey, ApipClient initApipClient) {
+    public ApiAccount addApiAccount(@NotNull ApiProvider apiProvider, String userFid, byte[] symKey, ApipClient initApipClient) {
         System.out.println("Add API account for provider "+ apiProvider.getId()+"...");
         if(apiAccountMap==null)apiAccountMap = new HashMap<>();
         ApiAccount apiAccount;
         while(true) {
             apiAccount = new ApiAccount();
-            apiAccount.inputAll(symKey,apiProvider,br);
+            apiAccount.inputAll(symKey,apiProvider, userFid, fidCipherMap, br);
 //            if(initApipClient !=null)apiAccount.setApipClient(initApipClient);
             if (apiAccountMap.get(apiAccount.getId()) != null) {
                 ApiAccount apiAccount1 = apiAccountMap.get(apiAccount.getId());
@@ -489,37 +531,32 @@ public class Configure {
         this.apipAccountId = apipAccountId;
     }
 
-    public void addApiAccount(byte[] symKey,ApipClient initApipClient){
+    public void addApiAccount(String userFid, byte[] symKey, ApipClient initApipClient){
         System.out.println("Add API accounts...");
         ApiProvider apiProvider = chooseApiProviderOrAdd(apiProviderMap,  initApipClient);
         if(apiProvider!=null) {
-            ApiAccount apiAccount = addApiAccount(apiProvider, symKey, initApipClient);
+            ApiAccount apiAccount = addApiAccount(apiProvider, userFid, symKey, initApipClient);
             saveConfig();
             System.out.println("Add API account "+apiAccount.getId()+" is added.");
         }
     }
-    public String addApiProviderAndConnect(byte[] symKey,ApipClient initApipClient){
-        return addApiProviderAndConnect(symKey,null, initApipClient);
-    }
-    public String addApiProviderAndConnect(byte[] symKey, ApiType apiType,ApipClient initApipClient){
+    public void addApiProviderAndConnect(byte[] symKey, ServiceType serviceType, ApipClient initApipClient){
         System.out.println("Add API providers...");
-        ApiProvider apiProvider = addApiProvider(apiType,initApipClient);
-        String apiAccountId = null;
+        ApiProvider apiProvider = addApiProvider(serviceType,initApipClient);
         if(apiProvider!=null) {
-            ApiAccount apiAccount = addApiAccount(apiProvider, symKey, initApipClient);
+            ApiAccount apiAccount = addApiAccount(apiProvider, null, symKey, initApipClient);
             if(apiAccount!=null) {
                 apiAccount.connectApi(apiProvider, symKey, br, null);
-                apiAccountId = apiAccount.getId();
                 saveConfig();
-            }else return null;
+            }else return;
         }
         System.out.println("Add API provider "+apiProvider.getId()+" is added.");
-        return apiAccountId;
     }
 
-    public ApiProvider addApiProvider(ApiType apiType, ApipClient apipClient) {
+    public ApiProvider addApiProvider(ServiceType serviceType, ApipClient apipClient) {
+        System.out.println("Add new "+ serviceType +" provider...");
         ApiProvider apiProvider = new ApiProvider();
-        apiProvider.makeApiProvider(br,apiType,apipClient);
+        apiProvider.makeApiProvider(br, serviceType,apipClient);
         if(apiProviderMap==null)apiProviderMap= new HashMap<>();
         apiProviderMap.put(apiProvider.getId(),apiProvider);
         System.out.println(apiProvider.getId()+" on "+apiProvider.getApiUrl() + " added.");
@@ -532,7 +569,7 @@ public class Configure {
         System.out.println("Update API accounts...");
         ApiAccount apiAccount;
         if(apiProvider==null)apiAccount = chooseApiAccount(symKey,initApipClient);
-        else apiAccount = chooseApiProvidersAccount(apiProvider, symKey,initApipClient);
+        else apiAccount = chooseApiProvidersAccount(apiProvider, null, symKey,initApipClient);
         if(apiAccount!=null) {
             System.out.println("Update API account: "+apiAccount.getProviderId()+"...");
             apiAccount.updateAll(symKey, apiProvider,br);
@@ -591,7 +628,7 @@ public class Configure {
         if (input == 0) {
             if(Inputer.askIfYes(br,"Add a new API account?")) {
                 ApiProvider apiProvider = chooseApiProviderOrAdd(apiProviderMap, initApipClient);
-                apiAccount = addApiAccount(apiProvider, symKey, initApipClient);
+                apiAccount = addApiAccount(apiProvider, null, symKey, initApipClient);
             }
         } else {
             apiAccount = (ApiAccount) getApiAccountMap().values().toArray()[input - 1];
@@ -609,35 +646,43 @@ public class Configure {
 public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMap, ApipClient apipClient){
         return chooseApiProviderOrAdd(apiProviderMap,null,apipClient);
 }
-    public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMap, ApiType apiType, ApipClient apipClient){
-        if(apiType==null)
-            apiType = fch.Inputer.chooseOne(ApiType.values(),"Choose the API type:",br);
-        ApiProvider apiProvider = chooseApiProvider(apiProviderMap,apiType);
+    public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMap, ServiceType serviceType, ApipClient apipClient){
+        if(serviceType ==null)
+            serviceType = fch.Inputer.chooseOne(ServiceType.values(), null, "Choose the API type:",br);
+        ApiProvider apiProvider = chooseApiProvider(apiProviderMap, serviceType);
         if(apiProvider==null){
-            apiProvider = addApiProvider(apiType,apipClient);
+            apiProvider = addApiProvider(serviceType,apipClient);
         }
         return apiProvider;
     }
-
-    public ApiProvider chooseApiProvider(Map<String, ApiProvider> apiProviderMap, ApiType apiType){
+    public ApiProvider chooseApiProvider(Map<String, ApiProvider> apiProviderMap, ServiceType serviceType){
         Map<String, ApiProvider> map = new HashMap<>();
         for(String id : apiProviderMap.keySet()){
             ApiProvider apiProvider = apiProviderMap.get(id);
-            if(apiProvider.getType().equals(apiType))
+            if(apiProvider.getType().equals(serviceType))
                 map.put(id,apiProvider);
         }
         return chooseApiProvider(map);
     }
 
     public ApiProvider chooseApiProvider(Map<String, ApiProvider> apiProviderMap){
+        System.out.println("Choose API provider...");
         ApiProvider apiProvider;
         if (apiProviderMap == null) {
             setApiProviderMap(new HashMap<>());
         }
         if (apiProviderMap.size() == 0) {
-            System.out.println("No any API provider yet.");
+            System.out.println("No API provider yet.");
             return null;
         } else {
+            if(apiProviderMap.size()==1){
+                String key = (String)apiProviderMap.keySet().toArray()[0];
+                ApiProvider apiProvider1 = apiProviderMap.get(key);
+                if(confirmDefault(br,apiProvider1.getName())) {
+                    return apiProvider1;
+                } else return null;
+            }
+
             showApiProviders(apiProviderMap);
             int input = Inputer.inputInteger( br,"Input the number of the API provider you want. Enter to add new one:", apiProviderMap.size());
             if (input == 0) {
@@ -647,31 +692,42 @@ public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMa
         return apiProvider;
     }
 
-    public ApiProvider selectFcApiProvider(ApipClient initApipClient, ApiType apiType) {
-        ApiProvider apiProvider = chooseApiProvider(apiProviderMap,apiType);
-        if(apiProvider==null) apiProvider= ApiProvider.searchFcApiProvider(initApipClient,apiType);
+    public ApiProvider selectFcApiProvider(ApipClient initApipClient, ServiceType serviceType) {
+        ApiProvider apiProvider = chooseApiProvider(apiProviderMap, serviceType);
+        if(apiProvider==null) apiProvider= ApiProvider.searchFcApiProvider(initApipClient, serviceType);
         return apiProvider;
     }
 
-    public ApiAccount chooseApiProvidersAccount(ApiProvider apiProvider, byte[] symKey,ApipClient initApipClient) {
+    public ApiAccount chooseApiProvidersAccount(ApiProvider apiProvider, String userFid, byte[] symKey, ApipClient initApipClient) {
+        System.out.println("Get account for "+apiProvider.getName()+"...");
         ApiAccount apiAccount = null;
         Map<String, ApiAccount> hitApiAccountMap = new HashMap<>();
         if (getApiAccountMap() == null) setApiAccountMap(new HashMap<>());
         if (getApiAccountMap().size() == 0) {
             System.out.println("No API accounts yet. Add new one...");
-            apiAccount = addApiAccount(apiProvider, symKey, initApipClient);
+            apiAccount = addApiAccount(apiProvider, userFid, symKey, initApipClient);
         } else {
             for (ApiAccount apiAccount1 : getApiAccountMap().values()) {
                 if (apiAccount1.getProviderId().equals(apiProvider.getId()))
                     hitApiAccountMap.put(apiAccount1.getId(), apiAccount1);
             }
             if (hitApiAccountMap.size() == 0) {
-                apiAccount = addApiAccount(apiProvider, symKey, initApipClient);
+
+                apiAccount = addApiAccount(apiProvider, userFid, symKey, initApipClient);
             } else {
+
+                if(hitApiAccountMap.size()==1){
+                    String key = (String)hitApiAccountMap.keySet().toArray()[0];
+                    ApiAccount apiAccount1 = hitApiAccountMap.get(key);
+                    if(confirmDefault(br,apiAccount1.getUserName())) {
+                        return apiAccount1;
+                    } else return null;
+                }
+
                 showAccounts(hitApiAccountMap);
                 int input = Inputer.inputInteger( br,"Input the number of the account you want. Enter to add new one:", hitApiAccountMap.size());
                 if (input == 0) {
-                    apiAccount = addApiAccount(apiProvider, symKey,initApipClient );
+                    apiAccount = addApiAccount(apiProvider, userFid, symKey,initApipClient );
                 } else {
                     apiAccount = (ApiAccount) hitApiAccountMap.values().toArray()[input - 1];
                     apiAccount.setApipClient(initApipClient);
@@ -681,16 +737,18 @@ public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMa
         }
         return apiAccount;
     }
-    public ApiAccount checkAPI(@Nullable String apiAccountId, ApiType apiType, byte[] symKey) {
-        return checkAPI(apiAccountId,apiType,symKey,null);
+    public ApiAccount checkAPI(@Nullable String apiAccountId, String userFid, ServiceType serviceType, byte[] symKey) {
+        return checkAPI(apiAccountId, userFid, serviceType,symKey,null);
     }
-    public ApiAccount checkAPI(@Nullable String apiAccountId, ApiType apiType, byte[] symKey,ApipClient apipClient) {
+    public ApiAccount checkAPI(@Nullable String apiAccountId, String userFid, ServiceType serviceType, byte[] symKey, ApipClient apipClient) {
+        if(serviceType !=null) System.out.println("\nCheck "+ serviceType +" API...");
+        apiAccountMap.remove("null");
         ApiAccount apiAccount = null;
         while (true) {
             if (apiAccountId == null) {
-                System.out.println("No " + apiType + " account set yet. ");
+                System.out.println("No " + serviceType + " account set yet. ");
                 try{
-                    apiAccount = getApiAccount(symKey,apiType, apipClient);
+                    apiAccount = getApiAccount(symKey, userFid, serviceType, apipClient);
                 }catch (Exception e){
                     return null;//apiAccount = setApiService(symKey,apipClient);
                 }
@@ -698,9 +756,11 @@ public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMa
                 apiAccount = apiAccountMap.get(apiAccountId);
             }
             if (apiAccount == null) {
-                apiAccount = getApiAccount(symKey,apiType, apipClient);
-                if (apiAccount == null) System.out.println("Failed to get API account. Try again.");
-                continue;
+                apiAccount = getApiAccount(symKey, userFid, serviceType, apipClient);
+                if (apiAccount == null) {
+                    System.out.println("Failed to get API account. Try again.");
+                    continue;
+                }
             }
             if (apiAccount.getClient() == null) {
                 Object apiClient = apiAccount.connectApi(getApiProviderMap().get(apiAccount.getProviderId()), symKey, br, null);
@@ -720,16 +780,16 @@ public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMa
 //        return apiAccount;
 //    }
 
-    public ApiAccount getApiAccount(byte[] symKey, ApiType apiType, ApipClient apipClient) {
-        ApiProvider apiProvider = chooseApiProvider(apiProviderMap,apiType);
-        if(apiProvider==null) apiProvider = addApiProvider(apiType,apipClient);
+    public ApiAccount getApiAccount(byte[] symKey, String userFid, ServiceType serviceType, ApipClient apipClient) {
+        ApiProvider apiProvider = chooseApiProvider(apiProviderMap, serviceType);
+        if(apiProvider==null) apiProvider = addApiProvider(serviceType,apipClient);
         if(apiProvider.getId()==null){
             System.out.println("The ID of the API provider is null. Update it...");
             apiProvider.updateAll(br);
             saveConfig();
         }
-        ApiAccount apiAccount = chooseApiProvidersAccount(apiProvider,symKey,apipClient);
-        if(apiAccount==null) apiAccount = addApiAccount(apiProvider, symKey,apipClient );
+        ApiAccount apiAccount = chooseApiProvidersAccount(apiProvider, userFid, symKey,apipClient);
+        if(apiAccount==null) apiAccount = addApiAccount(apiProvider, userFid, symKey,apipClient );
         if(apiAccount.getClient()!=null) saveConfig();
         return apiAccount;
     }
@@ -808,6 +868,7 @@ public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMa
         if(config==null){
             log.debug("Failed to load config from "+ CONFIG_DOT_JSON+". It will be create.");
             config = new Configure();
+            config.initFreeApiListMap();
         }
         config.setBr(br);
         if(config.getApiProviderMap()==null)
@@ -820,6 +881,8 @@ public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMa
             config.setMyServiceIdMap(new HashMap<>());
         if(config.getOwnerList()==null)
             config.setOwnerList(new ArrayList<>());
+        if(config.fidCipherMap==null)
+            config.initFreeApiListMap();
         return config;
     }
 
@@ -1039,20 +1102,20 @@ public ApiProvider chooseApiProviderOrAdd(Map<String, ApiProvider> apiProviderMa
     }
 
     public String chooseMainFid(byte[] symKey) {
-        String fid = Inputer.chooseOne(fidCipherMap.keySet().toArray(new String[0]), "Choose the FID",br);
+        String fid = Inputer.chooseOne(fidCipherMap.keySet().toArray(new String[0]), null, "Choose the FID",br);
         if(fid==null)fid = addUser(symKey);
         return fid;
     }
 
     public String chooseSid(byte[] symKey) {
-        return Inputer.chooseOne(myServiceIdMap, "Choose your SID:",br);
+        return Inputer.chooseOne(myServiceIdMap, true, null, "Choose your service:",br);
     }
 
-    public List<FreeApi> getFreeApipUrlList() {
-        return freeApipUrlList;
+    public Map<ServiceType, List<FreeApi>> getFreeApiListMap() {
+        return freeApiListMap;
     }
 
-    public void setFreeApipUrlList(List<FreeApi> freeApipUrlList) {
-        this.freeApipUrlList = freeApipUrlList;
+    public void setFreeApiListMap(Map<ServiceType, List<FreeApi>> freeApiListMap) {
+        this.freeApiListMap = freeApiListMap;
     }
 }

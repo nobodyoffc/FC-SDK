@@ -55,6 +55,7 @@ public class Rewarder {
         this.sid =sid;
         this.account = account;
         this.naSaRpcClient = naSaRpcClient;
+        pendingMap = new HashMap<>();
     }
 
     public static void checkRewarderParams(String sid, Params params, JedisPool jedisPool, BufferedReader br) {
@@ -236,7 +237,8 @@ public class Rewarder {
         if(chargedAccountList==null||chargedAccountList.isEmpty())return 0;
         long sum = 0;
         for(ApiAccount apiAccount :chargedAccountList){
-            sum+=apiAccount.getMinPayment();
+            if(apiAccount.getMinPayment()!=null)
+                sum+=apiAccount.getMinPayment();
         }
         return sum;
     }
@@ -263,6 +265,7 @@ public class Rewarder {
         if(chargedAccountList==null || chargedAccountList.size()==0)return 0;
         long apiCost = 0;
         for(ApiAccount apiAccount: chargedAccountList){
+            if(apiAccount.getPayments()==null)continue;
             for(String key:apiAccount.getPayments().keySet()){
                 double paid = apiAccount.getPayments().get(key);
                 apiCost += ParseTools.coinToSatoshi(paid);

@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import javaTools.BytesTools;
 
 public class RequestBody {
+    private String sid;
 
     private String url;
     private Long time;
@@ -108,5 +109,13 @@ public class RequestBody {
 
     public void setData(Object data) {
         this.data = data;
+    }
+
+    public String getSid() {
+        return sid;
+    }
+
+    public void setSid(String sid) {
+        this.sid = sid;
     }
 }

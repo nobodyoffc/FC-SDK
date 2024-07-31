@@ -22,7 +22,7 @@ import java.io.IOException;
 
 import static constants.Strings.SERVICE;
 
-@WebServlet(name = ApiNames.GetService, value = "/"+ApiNames.SN_0+"/"+ApiNames.Version2 +"/"+ApiNames.GetService)
+@WebServlet(name = ApiNames.GetService, value = "/"+ApiNames.Version2 +"/"+ApiNames.GetService)
 public class GetService extends HttpServlet {
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -31,7 +31,7 @@ public class GetService extends HttpServlet {
         AuthType authType = AuthType.FREE;
 
         try (Jedis jedis = Initiator.jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(Initiator.sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(Initiator.sid, request, replier, authType, jedis, false);
             if (requestCheckResult==null){
                 return;
             }

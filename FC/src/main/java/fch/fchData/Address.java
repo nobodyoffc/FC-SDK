@@ -1,6 +1,18 @@
 package fch.fchData;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import constants.FieldNames;
+import constants.IndicesNames;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Address {
@@ -23,7 +35,129 @@ public class Address {
 	private String dogeAddr;	//the doge address
 	private String trxAddr;	//the doge address
 
-	public String getFid() {
+    public static void makeAddress (List<Address> addressList, ElasticsearchClient esClient) throws Exception {
+
+        List<String> fidList = addressList.stream().map(Address::getFid).toList();
+
+        List<FieldValue> fieldValueList = new ArrayList<FieldValue>();
+        for (String value : fidList) fieldValueList.add(FieldValue.of(value));
+
+        SearchResponse<Void> response = esClient.search(s->s
+                        .index(IndicesNames.CASH)
+                        .size(0)
+                        .aggregations("addrFilterAggs",a->a
+                                .filter(f->f.terms(t->t
+                                        .field(FieldNames.OWNER)
+                                        .terms(t1->t1
+                                                .value(fieldValueList))))
+                                .aggregations("utxoFilterAggs",a0->a0
+                                        .filter(f1->f1.match(m->m.field("valid").query(true)))
+                                        .aggregations("utxoAggs",a3->a3
+                                                .terms(t2->t2
+                                                        .field(FieldNames.OWNER)
+                                                        .size(200000))
+                                                .aggregations("utxoSum",t5->t5
+                                                        .sum(s1->s1
+                                                                .field("value"))))
+                                )
+                                .aggregations("stxoFilterAggs",a0->a0
+                                        .filter(f1->f1.match(m->m.field("valid").query(false)))
+                                        .aggregations("stxoAggs",a1->a1
+                                                .terms(t2->t2
+                                                        .field(FieldNames.OWNER)
+                                                        .size(200000))
+                                                .aggregations("stxoSum",t3->t3
+                                                        .sum(s1->s1
+                                                                .field("value")))
+                                                .aggregations("cddSum",t4->t4
+                                                        .sum(s1->s1
+                                                                .field("cdd")))
+                                        )
+                                )
+                                .aggregations("txoAggs",a1->a1
+                                        .terms(t2->t2
+                                                .field(FieldNames.OWNER)
+                                                .size(200000))
+                                        .aggregations("txoSum",t3->t3
+                                                .sum(s1->s1
+                                                        .field("value")))
+                                )
+
+                        )
+                , void.class);
+
+        Map<String, Long> utxoSumMap = new HashMap<String, Long>();
+        Map<String, Long> stxoSumMap = new HashMap<String, Long>();
+        Map<String, Long> txoSumMap = new HashMap<String, Long>();
+        Map<String, Long> cddMap = new HashMap<String, Long>();
+        Map<String, Long> utxoCountMap = new HashMap<String, Long>();
+
+        List<StringTermsBucket> utxoBuckets = response.aggregations()
+                .get("addrFilterAggs")
+                .filter()
+                .aggregations()
+                .get("utxoFilterAggs")
+                .filter()
+                .aggregations()
+                .get("utxoAggs")
+                .sterms()
+                .buckets().array();
+
+        for (StringTermsBucket bucket: utxoBuckets) {
+            String addr = bucket.key();
+            long value1 = (long)bucket.aggregations().get("utxoSum").sum().value();
+            utxoCountMap.put(addr, bucket.docCount());
+            utxoSumMap.put(addr, value1);
+        }
+
+        List<StringTermsBucket> stxoBuckets = response.aggregations()
+                .get("addrFilterAggs")
+                .filter()
+                .aggregations()
+                .get("stxoFilterAggs")
+                .filter()
+                .aggregations()
+                .get("stxoAggs")
+                .sterms()
+                .buckets().array();
+
+        for (StringTermsBucket bucket: stxoBuckets) {
+            String addr = bucket.key();
+            long value1 = (long)bucket.aggregations().get("stxoSum").sum().value();
+            stxoSumMap.put(addr, value1);
+            long cddSum = (long)bucket.aggregations().get("cddSum").sum().value();
+            cddMap.put(addr, cddSum);
+        }
+
+        List<StringTermsBucket> txoBuckets = response.aggregations()
+                .get("addrFilterAggs")
+                .filter()
+                .aggregations()
+                .get("txoAggs")
+                .sterms()
+                .buckets().array();
+
+        for (StringTermsBucket bucket: txoBuckets) {
+            String addr = bucket.key();
+            long value1 = (long)bucket.aggregations().get("txoSum").sum().value();
+            txoSumMap.put(addr, value1);
+        }
+        for(Address address :addressList){
+            String addr = address.getFid();
+            Long cashValue = utxoSumMap.get(addr);
+            if(cashValue!=null)address.setBalance(cashValue);
+            Long spentValue = stxoSumMap.get(addr);
+            if(spentValue!=null)address.setExpend(spentValue);
+            Long totalValue = txoSumMap.get(addr);
+            if(totalValue!=null)address.setIncome(totalValue);
+            Long cdd = cddMap.get(addr);
+            if(cdd!=null)address.setCdd(cdd);
+            Long count = utxoCountMap.get(addr);
+            if(count!=null)address.setCash(count);
+        }
+    }
+
+    public String getFid() {
 		return fid;
 	}
 

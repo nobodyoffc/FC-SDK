@@ -21,25 +21,31 @@ import java.util.*;
 public class FchChainInfo {
     public static final long MAX_REQUEST_COUNT = 1000;
     public static final long DEFAULT_COUNT = 100;
-    private long height;
+    private String height;
     private String blockId;
+    private String totalSupply;
     private String circulating;
     private String difficulty;
     private String hashRate;
     private String chainSize;
-    private String year;
     private String coinbaseMine;
     private String coinbaseFund;
-    private String daysToNextYear;
-    private String heightOfNextYear;
-    private final String daysPerYear = Constants.DAYS_PER_YEAR;
-    private final String mineMutualDays = Constants.MINE_MUTUAL_DAYS;
-    private final String fundMutualDays = Constants.FUND_MUTUAL_DAYS;
-    private final String blockTimeMinute = Constants.BLOCK_TIME_MINUTE;
     private final String initialCoinbaseMine= Constants.INITIAL_COINBASE_MINE;
     private final String initialCoinbaseFund= Constants.INITIAL_COINBASE_FUND;
-    private final long startTime = Constants.START_TIME;
+    private final String mineReductionRatio = Constants.MINE_REDUCTION_RATIO;
+    private final String fundReductionRatio = Constants.FUND_REDUCTION_RATIO;
+    private final String reducePerBlocks = Constants.REDUCE_PER_BLOCKS;
+    private final String reductionStopsAtHeight = Constants.REDUCTION_STOPS_AT_HEIGHT;
+    private final String stableAnnualIssuance = Constants.STABLE_ANNUAL_ISSUANCE;
+    private final String mineMatureDays = Constants.MINE_MATURE_DAYS;
+    private final String fundMatureDays = Constants.FUND_MATURE_DAYS;
+    private final String daysPerYear = Constants.DAYS_PER_YEAR;
+    private final String blockTimeMinute = Constants.BLOCK_TIME_MINUTE;
     private final String genesisBlockId = Constants.GENESIS_BLOCK_ID;
+    private final String startTime = String.valueOf(Constants.START_TIME);
+    private String year;
+    private String daysToNextYear;
+    private String heightOfNextYear;
 //
 //    public static void main(String[] args) throws IOException {
 //
@@ -171,7 +177,7 @@ public class FchChainInfo {
 
     public void infoBest(NaSaRpcClient naSaRpcClient){
         NaSaRpcClient.BlockchainInfo blockchainInfo = naSaRpcClient.getBlockchainInfo();
-        this.height=blockchainInfo.getBlocks();
+        this.height= String.valueOf(blockchainInfo.getBlocks());
         this.blockId=blockchainInfo.getBestblockhash();
 
         this.difficulty=NumberTools.numberToPlainString(String.valueOf(blockchainInfo.getDifficulty()),"0");
@@ -179,11 +185,11 @@ public class FchChainInfo {
         this.hashRate=NumberTools.numberToPlainString(String.valueOf(hashRate),"0");
         this.chainSize= NumberTools.numberToPlainString(String.valueOf(blockchainInfo.getSize_on_disk()),null);
 
-        infoByHeight(this.height);
+        infoByHeight(Long.parseLong(this.height));
 
     }
     public void infoByHeight(long height, ElasticsearchClient esClient){
-        this.height=height;
+        this.height= String.valueOf(height);
         Block block;
         try {
             SearchResponse<Block> result = esClient.search(s -> s.index(IndicesNames.BLOCK).query(q -> q.term(t -> t.field(Strings.HEIGHT).value(height))), Block.class);
@@ -202,6 +208,7 @@ public class FchChainInfo {
     }
     public void infoByHeight(long height){
 
+        double totalSupply = 0;
         double circulating = 0;
         double coinbaseMine = 25;
         double coinbaseFund = 25;
@@ -211,31 +218,38 @@ public class FchChainInfo {
         long years = height / blockPerYear;
 
         for(int i=0;i<years;i++){
-            circulating += blockPerYear * (coinbaseMine+coinbaseFund);
+            totalSupply += blockPerYear * (coinbaseMine+coinbaseFund);
             if(years<40) {
                 coinbaseMine *= 0.8;
                 coinbaseFund *= 0.5;
             }
         }
-        circulating += height % blockPerYear * (coinbaseMine+coinbaseFund);
-
-        this.circulating=NumberTools.numberToPlainString(String.valueOf(circulating),"0");
+        totalSupply += height % blockPerYear * (coinbaseMine+coinbaseFund);
+        this.totalSupply =NumberTools.numberToPlainString(String.valueOf(totalSupply),"0");
         this.year= String.valueOf(years+1);
-        this.coinbaseMine=String.valueOf(coinbaseMine);
-        this.coinbaseFund=String.valueOf(coinbaseFund);
+        this.coinbaseMine=NumberTools.numberToPlainString(String.valueOf(coinbaseMine),"8");//String.valueOf(NumberTools.roundDouble8(coinbaseMine));
+        this.coinbaseFund=NumberTools.numberToPlainString(String.valueOf(coinbaseFund),"8");
         long blocksRemainingThisYear = blockPerYear - height % blockPerYear;
         long daysToNextYear = blocksRemainingThisYear / (24 * 60);
         this.daysToNextYear=String.valueOf(daysToNextYear);
         heightOfNextYear=String.valueOf(blocksRemainingThisYear+height);
 
+        long daysImmatureThisYear = 400-daysToNextYear;
+        if(daysImmatureThisYear > 100)daysImmatureThisYear=100;
+        long daysImmatureLastYear = 100-daysImmatureThisYear;
+
+        circulating = totalSupply
+                -(daysImmatureThisYear*1440*(coinbaseMine+coinbaseFund))
+                -(daysImmatureLastYear*1440*(coinbaseMine/0.8+coinbaseFund/0.5));
+        this.circulating =NumberTools.numberToPlainString(String.valueOf(circulating),"0");
     }
 
-    public String getCirculating() {
-        return circulating;
+    public String getTotalSupply() {
+        return totalSupply;
     }
 
-    public void setCirculating(String circulating) {
-        this.circulating = circulating;
+    public void setTotalSupply(String totalSupply) {
+        this.totalSupply = totalSupply;
     }
 
     public String getDifficulty() {
@@ -255,11 +269,7 @@ public class FchChainInfo {
     }
 
     public long estimateHeight() {
-        return height;
-    }
-
-    public void setHeight(long height) {
-        this.height = height;
+        return Long.parseLong(height);
     }
 
     public String getBlockId() {
@@ -323,11 +333,11 @@ public class FchChainInfo {
     }
 
     public String getMineMutualDays() {
-        return Constants.MINE_MUTUAL_DAYS;
+        return Constants.MINE_MATURE_DAYS;
     }
 
     public String getFundMutualDays() {
-        return Constants.FUND_MUTUAL_DAYS;
+        return Constants.FUND_MATURE_DAYS;
     }
 
     public String getBlockTimeMinute() {
@@ -337,20 +347,59 @@ public class FchChainInfo {
     public String getInitialCoinbaseMine() {
         return Constants.INITIAL_COINBASE_MINE;
     }
-
     public String getInitialCoinbaseFund() {
         return Constants.INITIAL_COINBASE_FUND;
+    }
+
+    public String getMineReductionRatio() {
+        return Constants.MINE_REDUCTION_RATIO;
     }
 
     public long getStartTime() {
         return Constants.START_TIME;
     }
 
-    public long getHeight() {
+    public String getGenesisBlockId() {
+        return genesisBlockId;
+    }
+
+    public String getCirculating() {
+        return circulating;
+    }
+
+    public void setCirculating(String circulating) {
+        this.circulating = circulating;
+    }
+
+    public String getMineMatureDays() {
+        return Constants.MINE_MATURE_DAYS;
+    }
+
+    public String getFundMatureDays() {
+        return Constants.FUND_MATURE_DAYS;
+    }
+
+    public String getFundReductionRatio() {
+        return Constants.FUND_REDUCTION_RATIO;
+    }
+
+    public String getReducePerBlocks() {
+        return Constants.REDUCE_PER_BLOCKS;
+    }
+
+    public String getReductionStopsAtHeight() {
+        return Constants.REDUCTION_STOPS_AT_HEIGHT;
+    }
+
+    public String getStableAnnualIssuance() {
+        return Constants.STABLE_ANNUAL_ISSUANCE;
+    }
+
+    public String getHeight() {
         return height;
     }
 
-    public String getGenesisBlockId() {
-        return genesisBlockId;
+    public void setHeight(String height) {
+        this.height = height;
     }
 }

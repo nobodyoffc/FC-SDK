@@ -7,10 +7,7 @@ import feip.feipData.Cid;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ObjectTools {
 
@@ -35,6 +32,16 @@ public class ObjectTools {
         Type type = TypeToken.getParameterized(Map.class, kClass, tClass).getType();
         try{
             return new HashMap<>(gson.fromJson(gson.toJson(obj), type));
+        }catch (Exception e){
+            return null;
+        }
+    }
+
+    public static <K, T> Map<K, T> objectToLinkedHashMap(Object obj, Class<K> kClass, Class<T> tClass) {
+        Gson gson = new Gson();
+        Type type = TypeToken.getParameterized(Map.class, kClass, tClass).getType();
+        try{
+            return new LinkedHashMap<>(gson.fromJson(gson.toJson(obj), type));
         }catch (Exception e){
             return null;
         }

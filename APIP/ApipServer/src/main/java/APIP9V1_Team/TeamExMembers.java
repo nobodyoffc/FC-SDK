@@ -45,7 +45,7 @@ public class TeamExMembers extends HttpServlet {
             for(Team team:meetList){
                 dataMap.put(team.getTid(),team.getExMembers());
             }
-            replier.reply0Success(dataMap, jedis);
+            replier.reply0Success(dataMap, jedis, null);
         }
     }
 }

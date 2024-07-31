@@ -4,7 +4,9 @@ import clients.Client;
 import javaTools.JsonTools;
 import appTools.Inputer;
 import appTools.Menu;
+import javaTools.ObjectTools;
 import javaTools.StringTools;
+import javaTools.http.HttpTools;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -68,6 +70,7 @@ public class Fcdsl {
 
         urlParams = urlParams.replaceAll(" ", "");
         String[] params = urlParams.split("&");
+        Map<String,String> otherMap = new HashMap<>();
         for(String param : params){
             int splitIndex = param.indexOf("=");
             String method = param.substring(0, splitIndex);
@@ -155,9 +158,10 @@ public class Fcdsl {
                 case SIZE-> fcdsl.addSize(Integer.parseInt(valueStr));
                 case AFTER-> fcdsl.addAfter(List.of(valueStr.split(",")));
                 case OTHER-> fcdsl.addOther(valueStr);
-                default -> {}
+                default -> otherMap.put(method,valueStr);
             }
         }
+        if(fcdsl.getOther()==null && !otherMap.isEmpty())fcdsl.setOther(otherMap);
         return fcdsl;
     }
 
@@ -295,8 +299,14 @@ public class Fcdsl {
 
         if(fcdsl.getOther()!=null){
             if(started)stringBuilder.append("&");
-            String otherStr = JsonTools.toJson(fcdsl.getOther());
-            stringBuilder.append(OTHER + "=").append(otherStr);
+            String otherStr;
+            try {
+                otherStr = HttpTools.makeUrlParamsString((Map<String, String>) fcdsl.getOther());
+                stringBuilder.append(otherStr);
+            }catch (Exception e){
+                otherStr = String.valueOf(fcdsl.getOther());
+                stringBuilder.append(OTHER + "=").append(otherStr);
+            }
         }
         return stringBuilder.toString();
     }

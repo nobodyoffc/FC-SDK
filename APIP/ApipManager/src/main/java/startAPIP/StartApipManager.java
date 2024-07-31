@@ -2,13 +2,17 @@ package startAPIP;
 
 
 import apip.apipData.WebhookInfo;
+import appTools.Inputer;
 import appTools.Menu;
 import clients.esClient.EsTools;
 import clients.redisClient.RedisTools;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import config.ApiType;
+import co.elastic.clients.elasticsearch.core.BulkResponse;
+import config.ServiceType;
 import config.Configure;
+import constants.ApiNames;
 import constants.Strings;
+import fch.fchData.Address;
 import feip.feipData.Service;
 import feip.feipData.serviceParams.ApipParams;
 import feip.feipData.serviceParams.Params;
@@ -38,10 +42,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HexFormat;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static constants.IndicesNames.ORDER;
 import static constants.IndicesNames.WEBHOOK;
@@ -56,8 +58,7 @@ public class StartApipManager {
 	private static ElasticsearchClient esClient = null;
 	private static MempoolScanner mempoolScanner =null;
 	private static Counter counter  =null;
-//	private static OrderScanner orderScanner=null;
-private static Pusher pusher = null;
+	private static Pusher pusher = null;
 	private static MempoolCleaner mempoolCleaner=null;
 	private static BufferedReader br;
 	private static IndicesApip indicesAPIP;
@@ -69,7 +70,7 @@ private static Pusher pusher = null;
 
 
 	public static void main(String[] args)throws Exception{
-		ApiType apiType = ApiType.APIP;
+		ServiceType serviceType = ServiceType.APIP;
 		br = new BufferedReader(new InputStreamReader(System.in));
 
 		//Load config info from the file
@@ -80,7 +81,7 @@ private static Pusher pusher = null;
 		sid = configure.chooseSid(symKey);
 		//Load the local settings from the file of localSettings.json
 		settings = ApipManagerSettings.loadFromFile(sid,ApipManagerSettings.class);//new ApipClientSettings(configure,br);
-		if(settings==null) settings = new ApipManagerSettings();
+		if(settings==null) settings = new ApipManagerSettings(configure);
 		//Check necessary APIs and set them if anyone can't be connected.
 		service = settings.initiateServer(sid,symKey,configure,br);
 		sid = service.getSid();
@@ -91,7 +92,7 @@ private static Pusher pusher = null;
 		jedisPool = (JedisPool) settings.getRedisAccount().getClient();
 		naSaRpcClient = (NaSaRpcClient) settings.getNasaAccount().getClient();
 
-		Configure.checkWebConfig(sid,configure, settings,symKey, apiType,jedisPool,br);
+		Configure.checkWebConfig(sid,configure, settings,symKey, serviceType,jedisPool,br);
 
 		//Check indices in ES
 		checkApipIndices(esClient);
@@ -102,12 +103,12 @@ private static Pusher pusher = null;
 		//Check user balance
 		checkUserBalance(sid,jedisPool,esClient,br);
 
+		Order.setNPrices(sid, ApiNames.ApipApiList,jedisPool,br,false);
+
 		Rewarder.checkRewarderParams(sid,params,jedisPool,br);
 
-		checkPublicSessionKey();
+//		checkPublicSessionKey();
 
-//		counter  = new Counter(settings,params,symKey);
-//		counter.run();
 		startCounterThread(symKey);
 		startMempoolScan();
 		startPusher(esClient);
@@ -119,7 +120,6 @@ private static Pusher pusher = null;
 		System.out.println();
 
 		while(true) {
-
 			Menu menu = new Menu();
 
 			ArrayList<String> menuItemList = new ArrayList<>();
@@ -129,6 +129,7 @@ private static Pusher pusher = null;
 			menuItemList.add("Manage balance");
 			menuItemList.add("Manage reward");
 			menuItemList.add("Manage indices");
+			menuItemList.add("Repair address");
 			menuItemList.add("Settings");
 
 			menu.add(menuItemList);
@@ -142,7 +143,8 @@ private static Pusher pusher = null;
 				case 3 -> new BalanceManager(service, br, esClient,jedisPool).menu();
 				case 4 -> manageReward(sid, params,esClient,naSaRpcClient, jedisPool, br);
 				case 5 -> manageIndices();
-				case 6 -> settings.setting(symKey,br);
+				case 6 -> repairAddress();
+				case 7 -> settings.setting(symKey,br);
 				case 0 -> {
 					if (counter != null && counter.isRunning().get())
 						System.out.println("Order scanner is running.");
@@ -155,7 +157,7 @@ private static Pusher pusher = null;
 					String input = br.readLine();
 					if ("q".equals(input)) {
 						if (mempoolScanner != null) mempoolScanner.shutdown();
-						if (counter != null) counter.shutdown();
+						if (counter != null) counter.close();
 						if (mempoolCleaner != null) mempoolCleaner.shutdown();
 						if (pusher != null) pusher.shutdown();
 						br.close();
@@ -178,41 +180,30 @@ private static Pusher pusher = null;
 		}
 	}
 
+	private static void repairAddress() {
+		List<String> addrList = Inputer.inputStringList(br, "Input address list:", 0);
+		try {
+			EsTools.MgetResult<Address> result = EsTools.getMultiByIdList(esClient, ADDRESS, addrList, Address.class);
+			List<Address> addressList = result.getResultList();
+//			addrList = new ArrayList<>();
+//			for(Address address:addressList)addrList.add(address.getFid());
+			addrList = addressList.stream().map(Address::getFid).collect(Collectors.toList());
+			Address.makeAddress(addressList,esClient);
+			BulkResponse bulkResponse = EsTools.bulkWriteList(esClient, ADDRESS, addressList, addrList, Address.class);
+			boolean result1;
+			if(bulkResponse!= null)result1 = !bulkResponse.errors();
+			else result1 =  false;
+			System.out.println("Making address: "+result1);
+		} catch (Exception e) {
+			System.out.println("Failed to repairAddress."+e.getMessage());
+		}
+	}
+
 	private static void startCounterThread(byte[] symKey) {
 		counter  = new Counter(settings,params,symKey);
 		Thread thread = new Thread(counter);
 		thread.start();
 	}
-//
-//	private static void setParamsToRedis(Configure configure, byte[] symKey, Service myService, ApipParams myServiceParams) {
-//		try(Jedis jedis = jedisPool.getResource()) {
-//			jedis.hset(FieldNames.APIP_INFO, SID,myService.getSid());
-//			jedis.hset(FieldNames.APIP_INFO, CONFIG_FILE_PATH,Configure.getConfDir());
-//			jedis.hset(FieldNames.APIP_INFO,LOCAL_DATA_PATH, server.Settings.getLocalDataDir(myService.getSid()));
-//
-//			myServiceParams.writeParamsToRedis(server.Settings.addSidBriefToName(sid, Strings.PARAMS), jedis);
-//
-//			Map<String, String> nPrice = jedis.hgetAll(server.Settings.addSidBriefToName(sid,Strings.N_PRICE));
-//			if (nPrice == null) {
-//				String[] apiNames = ApiNames.apiList.toArray(new String[ApiNames.ListApi.length()]);
-//				setNPrices(sid, apiNames,jedis,br);
-//			}
-//
-//			jedis.hset(server.Settings.addSidBriefToName(sid, Strings.SETTINGS),ES_ACCOUNT_ID, settings.getEsAccountId());
-//			jedis.hset(server.Settings.addSidBriefToName(sid, Strings.SETTINGS),WINDOW_TIME, String.valueOf(settings.getWindowTime()));
-//
-//			CryptoDataByte eccDateBytes = EccAes256K1P7.encryptWithPassword(symKey, Hex.fromHex(configure.getNonce()));
-//			if(eccDateBytes==null)
-//				throw new RuntimeException("Failed to encrypt symKey.");
-//			String symKeyCipher = eccDateBytes.toNiceJson();
-//			jedis.hset(server.Settings.addSidBriefToName(sid, Strings.SETTINGS),INIT_SYM_KEY_CIPHER,symKeyCipher);
-//
-//			if(!jedis.exists(server.Settings.addSidBriefToName(sid, Strings.N_PRICE))) {
-//				String[] apiNames = ApiNames.apiList.toArray(new String[ApiNames.ListApi.length()]);
-//				setNPrices(sid, apiNames, jedis, br);
-//			}
-//		}
-//	}
 
 	private static void checkApipIndices(ElasticsearchClient esClient) {
 		Map<String,String> nameMappingList = new HashMap<>();
@@ -233,75 +224,6 @@ private static Pusher pusher = null;
 		EsTools.checkEsIndices(StartApipManager.esClient,nameMappingList);
 
 	}
-
-//	private static void startOrderScan(ApipManagerSettings settings, Params params) throws IOException {
-//		log.debug("Start order scanner...");
-//		counter  = new Counter(settings,params, null, counterPriKey);
-//		Thread thread2 = new Thread(counter);
-//		thread2.start();
-//		log.debug("Order scanner is running.");
-//	}
-
-
-//	private static void freshServiceFromEsToRedis(ApipService service, ElasticsearchClient esClient, Jedis jedis, ConfigAPIP configAPIP) {
-//		ApipService serviceNew = getServiceFromEsById(esClient,service.getSid());
-//		if(serviceNew==null)return;
-//
-//		if(!serviceNew.getStdName().equals(service.getStdName())) {
-//			updateAllServiceNameInRedis(jedis, service.getStdName(),serviceNew.getStdName());
-//		}
-//		serviceName= serviceNew.getStdName();
-//		StartAPIP.service = serviceNew;
-//		updateServiceParamsInRedisAndConfig(configAPIP);
-//		setServiceToRedis(serviceName);
-//	}
-
-//	private static ApipService getServiceFromEsById(ElasticsearchClient esClient, String sid) {
-//		ApipService serviceNew = null;
-//		try {
-//			serviceNew = esClient.get(g -> g.index(SERVICE).id(sid), ApipService.class).source();
-//		} catch (IOException e) {
-//			log.error("Get service from Es wrong. Check Es.");
-//		}
-//		return serviceNew;
-//	}
-
-//	private static final String[] PARAMS_NAMES_IN_REDIS = {
-//			PARAMS_ON_CHAIN,
-//			CONSUME_VIA,
-//			FID_SESSION_NAME,
-//			FID_BALANCE,
-//			N_PRICE,
-//			ORDER_LAST_HEIGHT,
-//			BUILDER_SHARE_MAP,
-//			ORDER_LAST_BLOCK_ID,
-//			SERVICE
-//	};
-
-//	private static void updateAllServiceNameInRedis(Jedis jedis, String oldName, String newName) {
-//		for(String suffix : PARAMS_NAMES_IN_REDIS) {
-//			renameKey(jedis, oldName, newName, suffix);
-//		}
-//	}
-
-//	private static void renameKey(Jedis jedis, String oldName, String newName, String suffix) {
-//		try {
-//			jedis.rename(oldName + "_" + suffix, newName + "_" + suffix);
-//		}catch (Exception ignore){
-//			System.out.println(oldName +" no found.");
-//		}
-//	}
-
-
-//	private static Rewarder checkRewardParams() {
-//		RewardParams rewardParams = Rewarder.getRewardParams(sid, jedisPool);
-//		if (rewardParams == null) {
-//			System.out.println("Reward parameters aren't set yet.");
-//			rewardParams = new Rewarder(sid,).setRewardParameters( br);
-//			Menu.anyKeyToContinue(br);
-//		}
-//		return rewardParams;
-//	}
 
 	private static void manageReward(String sid, Params params, ElasticsearchClient esClient, NaSaRpcClient naSaRpcClient,JedisPool jedisPool, BufferedReader br) {
 		RewardManager rewardManager = new RewardManager(sid, params.getAccount(),null,esClient, naSaRpcClient,jedisPool, br);
@@ -413,52 +335,10 @@ private static Pusher pusher = null;
 
 		ApipParams params = (ApipParams) service.getParams();
 		String paramsKey = Settings.addSidBriefToName(service.getSid(),PARAMS);
-//		String settingsKey = Settings.addSidBriefToName(service.getSid(),SETTINGS);
 
 		RedisTools.writeToRedis(params,paramsKey,jedis,ApipParams.class);
-//			jedis.hset(paramsKey, ACCOUNT, params.getAccount());
-//			jedis.hset(paramsKey, CURRENCY, params.getCurrency());
-//			jedis.hset(paramsKey, URL_HEAD, params.getUrlHead());
-//			if (params.getMinPayment() != null)
-//				jedis.hset(paramsKey, MIN_PAYMENT, params.getMinPayment());
-//			if (params.getPricePerKBytes() != null)
-//				jedis.hset(paramsKey, PRICE_PER_K_BYTES, params.getPricePerKBytes());
-//			if (params.getPricePerRequest() != null)
-//				jedis.hset(paramsKey, PRICE_PER_REQUEST, params.getPricePerRequest());
-//			if (params.getSessionDays() != null)
-//				jedis.hset(paramsKey, SESSION_DAYS, params.getSessionDays());
-//			if (params.getConsumeViaShare() != null)
-//				jedis.hset(paramsKey, CONSUME_VIA_SHARE, params.getConsumeViaShare());
-//			if (params.getOrderViaShare() != null)
-//				jedis.hset(paramsKey, ORDER_VIA_SHARE, params.getOrderViaShare());
-//
-//			if (params.getPricePerKBytes() == null || "0".equals(params.getPricePerKBytes())) {
-//				jedis.hset(settingsKey, PRICE, params.getPricePerRequest());
-//				jedis.hset(settingsKey, IS_PRICE_PER_REQUEST, FALSE);
-//			} else {
-//				jedis.hset(settingsKey, PRICE, params.getPricePerKBytes());
-//				jedis.hset(settingsKey, IS_PRICE_PER_REQUEST, TRUE);
-//			}
 
 		System.out.println("Service parameters has been wrote into redis.");
 	}
-
-//	public static void updateServiceParamsInRedisAndConfig( ConfigAPIP configAPIP){
-//		serviceName = service.getStdName();
-//
-//		setServiceToRedis(serviceName);
-//		writeParamsToRedis();
-//
-//		configAPIP.setServiceName(serviceName);
-//		configAPIP.writeConfigToFile();
-//	}
-
-//	public static void setServiceToRedis(String serviceName) {
-//		Gson gson = new Gson();
-//		try(Jedis jedis = StartAPIP.jedisPool.getResource()) {
-//			jedis.set(serviceName + "_" + SERVICE, gson.toJson(service));
-//			jedis.hset(CONFIG, SERVICE_NAME, serviceName);
-//		}
-//	}
 }
 

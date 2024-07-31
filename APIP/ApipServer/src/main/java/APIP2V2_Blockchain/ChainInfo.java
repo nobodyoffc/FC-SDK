@@ -33,14 +33,14 @@ public class ChainInfo extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-        AuthType authType = AuthType.FC_SIGN_URL;
+        AuthType authType = AuthType.FREE;
         doRequest(Initiator.sid,request, response, authType,Initiator.esClient, Initiator.jedisPool);
     }
     protected void doRequest(String sid, HttpServletRequest request, HttpServletResponse response, AuthType authType, ElasticsearchClient esClient, JedisPool jedisPool) throws ServletException, IOException {
         FcReplier replier = new FcReplier(sid,response);
         //Check authorization
         try (Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
             if (requestCheckResult == null) {
                 return;
             }
@@ -57,7 +57,7 @@ public class ChainInfo extends HttpServlet {
             FchChainInfo freecashInfo = new FchChainInfo();
             if (height == null) {
                 freecashInfo.infoBest(Initiator.naSaRpcClient);
-                replier.setBestHeight(freecashInfo.getHeight());
+                replier.setBestHeight(Long.valueOf(freecashInfo.getHeight()));
             } else {
                 freecashInfo.infoByHeight(Long.parseLong(height), Initiator.esClient);
                 replier.setBestHeight(Long.parseLong(jedis.get(Strings.BEST_HEIGHT)));

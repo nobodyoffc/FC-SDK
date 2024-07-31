@@ -3,7 +3,7 @@ package apipV1Client;
 import apip.apipData.*;
 import appTools.swapClass.SwapAffair;
 import appTools.swapClass.SwapPriceData;
-import clients.diskClient.DiskDataInfo;
+import clients.fcspClient.DiskDataInfo;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import fch.fchData.*;

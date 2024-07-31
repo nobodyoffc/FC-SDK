@@ -67,17 +67,9 @@ public class FcReplier {
     public void printCodeMessage(){
         System.out.println(code+":"+message);
     }
-    public static String symSign(String replyJson, String sessionKey) {
-        if(replyJson==null || sessionKey==null)return null;
-        byte[] replyJsonBytes = replyJson.getBytes();
-        byte[] keyBytes = BytesTools.hexToByteArray(sessionKey);
-        byte[] bytes = BytesTools.bytesMerger(replyJsonBytes,keyBytes);
-        byte[] signBytes = Hash.sha256x2(bytes);
-        return BytesTools.bytesToHexStringBE(signBytes);
-    }
 
     @Nullable
-    public String getStringFromHeader(HttpServletRequest request,String name,Jedis jedis) {
+    public String getStringFromUrl(HttpServletRequest request, String name, Jedis jedis) {
         String value = request.getParameter(name);
         if (value == null) {
             reply(ReplyCodeMessage.Code3009DidMissed,null,jedis);
@@ -104,12 +96,12 @@ public class FcReplier {
         return value;
     }
 
-    public Long updateBalance(String sid, String api, Jedis jedis) {
+    public Long updateBalance(String sid, String api, Jedis jedis, Double price) {
         long length = this.toJson().length();
-        return updateBalance(sid,api,length,jedis);
+        return updateBalance(sid,api,length,jedis, price);
     }
 
-    public Long updateBalance(String sid, String api, long length,Jedis jedis) {
+    public Long updateBalance(String sid, String api, long length, Jedis jedis, Double price) {
         if(requestCheckResult.getFreeRequest()!=null && requestCheckResult.getFreeRequest().equals(Boolean.TRUE))
             return null;
         String fid = requestCheckResult.getFid();
@@ -118,11 +110,13 @@ public class FcReplier {
         String via = requestCheckResult.getVia();
         long newBalance;
 
-        double price = RedisTools.readHashDouble(jedis, addSidBriefToName(sid, PARAMS), PRICE_PER_K_BYTES);
+        if(price==null)price = RedisTools.readHashDouble(jedis, addSidBriefToName(sid, PARAMS), PRICE_PER_K_BYTES);
         long priceSatoshi = ParseTools.coinToSatoshi(price);
         long amount = length / 1000;
-        long nPrice = readHashLong(jedis, addSidBriefToName(sid, N_PRICE), api);
-        if (nPrice == 0) nPrice = 1;
+        long nPrice;
+        if(api!=null)
+            nPrice = readHashLong(jedis, addSidBriefToName(sid, N_PRICE), api);
+        else nPrice=1;
         long cost = amount * priceSatoshi * nPrice;
 
         //update user balance
@@ -162,20 +156,20 @@ public class FcReplier {
         response.setHeader(ReplyCodeMessage.SignInHeader,sign);
     }
     public void reply(int code,Object data, Jedis jedis){
-        reply(code,null,data,jedis);
+        reply(code,null,data,jedis, null);
     }
-    public void reply0Success(Object data, Jedis jedis) {
-        reply(0,null,data,jedis);
+    public void reply0Success(Object data, Jedis jedis, Double price) {
+        reply(0,null,data,jedis, price);
     }
 
     public void replySingleDataSuccess(Object data, Jedis jedis) {
         this.got=1L;
         this.total=1L;
-        reply(0,null,data,jedis);
+        reply(0,null,data,jedis, null);
     }
 
     public void reply0Success(Jedis jedis) {
-        reply(0,null,data,jedis);
+        reply(0,null,data,jedis, null);
     }
     public void set0Success() {
         set0Success(null);
@@ -198,7 +192,7 @@ public class FcReplier {
     }
 
     public void replyOtherError(String otherError,Object data, Jedis jedis) {
-        reply(ReplyCodeMessage.Code1020OtherError,otherError,data,jedis);
+        reply(ReplyCodeMessage.Code1020OtherError,otherError,data,jedis, null);
     }
     public void setOtherError(String otherError) {
         code = ReplyCodeMessage.Code1020OtherError;
@@ -217,8 +211,22 @@ public class FcReplier {
             throw new RuntimeException(e);
         }
     }
+    public String replyOtherJson(String otherError,Object data,Jedis jedis){
+        return replyJson(ReplyCodeMessage.Code1020OtherError,otherError,data,jedis);
+    }
+    public String replyJson(int code,Object data,Jedis jedis){
+        return replyJson(code,null,data,jedis);
+    }
+    public String replyJson(int code,String otherError,Object data,Jedis jedis){
+        this.code = code;
+        if(code==ReplyCodeMessage.Code1020OtherError)this.message = otherError;
+        else this.message=ReplyCodeMessage.getMsg(code);
+        if(data!=null)this.data=data;
+        updateBalance(sid, null, jedis, null);
+        return this.toJson();
+    }
 
-    private void reply(int code,String otherError, Object data, Jedis jedis) {
+    private void reply(int code, String otherError, Object data, Jedis jedis, Double price) {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         response.setHeader(ReplyCodeMessage.CodeInHeader, String.valueOf(code));
@@ -230,11 +238,11 @@ public class FcReplier {
             String bestHeightStr = jedis.get(BEST_HEIGHT);
             bestHeight = Long.parseLong(bestHeightStr);
         }catch (Exception ignore){}
-        updateBalance(sid, requestCheckResult.getApiName(), jedis);
+        updateBalance(sid, requestCheckResult.getApiName(), jedis, price);
         String sessionKey = requestCheckResult.getSessionKey();
         String replyStr = this.toNiceJson();
         if(sessionKey !=null){
-            String sign = symSign(replyStr,sessionKey);
+            String sign = Signature.symSign(replyStr,sessionKey);
             if(sign!=null) response.setHeader(ReplyCodeMessage.SignInHeader,sign);
         }
         try {

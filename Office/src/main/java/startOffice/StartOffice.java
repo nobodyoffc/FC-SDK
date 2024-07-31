@@ -8,7 +8,7 @@ import appTools.Shower;
 import clients.FeipClient;
 import clients.apipClient.ApipClient;
 import clients.apipClient.DataGetter;
-import clients.diskClient.DiskClient;
+import clients.fcspClient.DiskClient;
 import clients.esClient.EsTools;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import config.Configure;
@@ -59,7 +59,7 @@ public class StartOffice {
 
         fid = configure.chooseMainFid(symKey);
         settings = OfficeSettings.loadFromFile(fid,OfficeSettings.class);//new ApipClientSettings(configure,br);
-        if(settings==null) settings = new OfficeSettings();
+        if(settings==null) settings = new OfficeSettings(configure);
         settings.initiateClient(fid, symKey, configure, br);
 
         if(settings.getApipAccount()!=null)

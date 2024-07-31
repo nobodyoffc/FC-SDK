@@ -49,8 +49,7 @@ import java.util.Map;
 
 import static apip.ApipTools.isGoodSign;
 import static clients.FcClientEvent.RequestBodyType.*;
-import static constants.UpStrings.SESSION_NAME;
-import static constants.UpStrings.SIGN;
+import static constants.UpStrings.*;
 import static javaTools.http.HttpTools.CONTENT_TYPE;
 
 public class FcClientEvent {
@@ -84,7 +83,7 @@ public class FcClientEvent {
         NONE,STRING,BYTES,FILE,FCDSL
     }
     public enum ResponseBodyType {
-        STRING,BYTES,FILE
+        FC_REPLY,BYTES,FILE,STRING
     }
 
     public FcClientEvent() {
@@ -133,7 +132,7 @@ public class FcClientEvent {
         this.responseFilePath = responseFilePath;
         this.authType = authType;
         this.via = via;
-
+        if(this.requestHeaderMap==null)requestHeaderMap = new HashMap<>();
         switch (requestBodyType){
             case FCDSL -> {
                 this.fcdsl = fcdsl;
@@ -284,7 +283,7 @@ public class FcClientEvent {
     }
 
     public boolean get(@Nullable byte[] sessionKey){
-        if(responseBodyType==null)responseBodyType=ResponseBodyType.STRING;
+        if(responseBodyType==null)responseBodyType=ResponseBodyType.FC_REPLY;
 
         if(authType == AuthType.FC_SIGN_URL || authType == AuthType.FC_SIGN_BODY ){
             if(sessionKey==null){
@@ -321,76 +320,114 @@ public class FcClientEvent {
 
             parseResponseHeader();
 
-            switch (responseBodyType){
-                case STRING ->{
-                    responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
-                    responseBodyStr = new String(responseBodyBytes);
-                    parseFcResponse(httpResponse);
-                    try {
-                        this.responseBody = new Gson().fromJson(responseBodyStr, FcReplier.class);
-                    } catch (JsonSyntaxException ignore) {
-                        log.debug("Failed to parse responseBody json.");
-                        code= ReplyCodeMessage.Code1020OtherError;
-                        message = "Failed to parse responseBody from HttpResponse.";
-                        return false;
-                    }
-                }
-                case BYTES -> {
-                    responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
-                    if(responseBodyBytes==null){
-                        code= ReplyCodeMessage.Code1020OtherError;
-                        message = "The response body is null.";
-                        return false;
-                    }
-                    code= ReplyCodeMessage.Code0Success;
-                    message=ReplyCodeMessage.Msg0Success;
-                    return true;
-                }
-                case FILE -> {
-                    String fileName;
-                    if(responseFileName==null)fileName= StringTools.getTempName();
-                    else fileName=responseFileName;
-                    String gotDid = downloadFileFromHttpResponse(fileName, responseFilePath);
-                    if(gotDid==null){
-                        code= ReplyCodeMessage.Code1020OtherError;
-                        message = "Failed to download file from HttpResponse.";
-                        return false;
-                    }
-                    if(responseFileName==null)
-                        Files.move(Paths.get(fileName),Paths.get(gotDid), StandardCopyOption.REPLACE_EXISTING);
-
-                    if(responseBody==null)responseBody=new FcReplier();
-                    responseBody.setCode(ReplyCodeMessage.Code0Success);
-                    responseBody.setMessage(ReplyCodeMessage.Msg0Success);
-                    responseBody.setData(gotDid);
-
-                }
-                default -> {
-                    code = ReplyCodeMessage.Code1020OtherError;
-                    message = "ResponseBodyType is null.";
-                    return false;
-                }
-            }
+            return makeReply(sessionKey);
         } catch (IOException e) {
             log.error("Error when requesting post.", e);
             code = ReplyCodeMessage.Code3007ErrorWhenRequestingPost;
             message = ReplyCodeMessage.Msg3007ErrorWhenRequestingPost+":"+e.getMessage();
             return false;
         }
+    }
 
+    private boolean makeReply(byte[] sessionKey) throws IOException {
+        switch (responseBodyType){
+            case STRING ->{
+                return makeStringReply(sessionKey);
+            }
+            case FC_REPLY ->{
+                return makeFcReply(sessionKey);
+            }
+            case BYTES -> {
+                return makeBytesReply(sessionKey);
+            }
+            case FILE -> {
+                return makeFileReply(sessionKey);
+            }
+            default -> {
+                return makeDefaultReply();
+            }
+        }
+    }
+
+    private boolean makeDefaultReply() {
+        code = ReplyCodeMessage.Code1020OtherError;
+        message = "ResponseBodyType is "+responseBodyType+".";
+        return false;
+    }
+
+    private boolean makeStringReply(byte[] sessionKey) throws IOException {
+        responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
+        responseBodyStr = new String(responseBodyBytes);
+        code=0;
+        return checkReplySign(sessionKey);
+    }
+
+    private boolean checkReplySign(byte[] sessionKey) {
         if (responseHeaderMap != null && responseHeaderMap.get(SIGN) != null) {
-            if (sessionKey==null || !checkResponseSign(sessionKey)) {
+            if (sessionKey ==null || !checkResponseSign(sessionKey)) {
                 code = ReplyCodeMessage.Code1008BadSign;
                 message = ReplyCodeMessage.Msg1008BadSign;
                 return false;
             }
         }
+        return true;
+    }
 
+    private boolean makeBytesReply(byte[] sessionKey) throws IOException {
+        responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
+        if(responseBodyBytes==null){
+            code= ReplyCodeMessage.Code1020OtherError;
+            message = "The response body is null.";
+            return false;
+        }
+        code= ReplyCodeMessage.Code0Success;
+        message=ReplyCodeMessage.Msg0Success;
+        return checkReplySign(sessionKey);
+    }
+
+    private boolean makeFileReply(byte[] sessionKey) throws IOException {
+        String code = responseHeaderMap.get(CODE);
+        if(!"0".equals(code)) {
+            return makeFcReply(sessionKey);
+        }
+        String fileName;
+        if(responseFileName==null)fileName= StringTools.getTempName();
+        else fileName=responseFileName;
+        String gotDid = downloadFileFromHttpResponse(fileName, responseFilePath);
+        if(gotDid==null){
+            this.code = ReplyCodeMessage.Code1020OtherError;
+            message = "Failed to download file from HttpResponse.";
+            return false;
+        }
+        if(responseFileName==null)
+            Files.move(Paths.get(fileName),Paths.get(gotDid), StandardCopyOption.REPLACE_EXISTING);
+
+        if(responseBody==null)responseBody=new FcReplier();
+        responseBody.setCode(ReplyCodeMessage.Code0Success);
+        responseBody.setMessage(ReplyCodeMessage.Msg0Success);
+        responseBody.setData(gotDid);
+
+        return checkReplySign(sessionKey);
+    }
+
+    private boolean makeFcReply(byte[] sessionKey) throws IOException {
+        responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
+        responseBodyStr = new String(responseBodyBytes);
+        parseFcResponse(httpResponse);
+        try {
+            this.responseBody = new Gson().fromJson(responseBodyStr, FcReplier.class);
+        } catch (JsonSyntaxException ignore) {
+            log.debug("Failed to parse responseBody json.");
+            code= ReplyCodeMessage.Code1020OtherError;
+            message = "Failed to parse responseBody from HttpResponse.";
+            return false;
+        }
+        if(!checkReplySign(sessionKey))return false;
         return checkResponseCode();
     }
 
     private boolean checkResponseCode() {
-        if(responseBodyType.equals(ResponseBodyType.STRING) && responseBody!=null){
+        if(responseBodyType.equals(ResponseBodyType.FC_REPLY) && responseBody!=null){
             if(responseBody.getMessage()!=null)
                 message = responseBody.getMessage();
             if(responseBody.getCode()!=null) {
@@ -507,7 +544,7 @@ public class FcClientEvent {
 
     public boolean post(@Nullable byte[] sessionKey) {
         if(this.requestBodyType==null)requestBodyType= STRING;
-        if(responseBodyType==null)responseBodyType=ResponseBodyType.STRING;
+        if(responseBodyType==null)responseBodyType=ResponseBodyType.FC_REPLY;
 
         if (apiUrl.getUrl() == null) {
             code = ReplyCodeMessage.Code3004RequestUrlIsAbsent;
@@ -537,7 +574,7 @@ public class FcClientEvent {
                 case FILE -> {
                     File file = new File(requestFileName);
                     if(!file.exists()){
-                        code = ReplyCodeMessage.Code1020OtherError;
+                        this.code = ReplyCodeMessage.Code1020OtherError;
                         message = "File "+requestFileName+" doesn't exist.";
                         return false;
                     }
@@ -587,39 +624,41 @@ public class FcClientEvent {
             }
 
             parseResponseHeader();
-
-            switch (responseBodyType){
-                case STRING ->{
-                    responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
-                    responseBodyStr = new String(responseBodyBytes);
-                    try {
-                        this.responseBody = new Gson().fromJson(responseBodyStr, FcReplier.class);
-                    } catch (JsonSyntaxException ignore) {
-                        log.debug("Failed to parse responseBody json.");
-                        return false;
-                    }
-                }
-                case BYTES -> responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
-                case FILE -> {
-                    String fileName;
-                    if(responseFileName==null)fileName= StringTools.getTempName();
-                    else fileName=responseFileName;
-                    String gotDid = downloadFileFromHttpResponse(fileName,responseFilePath);
-                    if(responseFileName==null){
-                        Files.move(Paths.get(fileName),Paths.get(gotDid), StandardCopyOption.REPLACE_EXISTING);
-                    }
-                    if(responseBody==null)responseBody=new FcReplier();
-                    responseBody.setCode(ReplyCodeMessage.Code0Success);
-                    responseBody.setMessage(ReplyCodeMessage.Msg0Success);
-                    responseBody.setData(gotDid);
-                }
-                default -> {
-                    code = ReplyCodeMessage.Code1020OtherError;
-                    message = "ResponseBodyType is null.";
-                    log.debug("Code:{}. Message:{}",code,message);
-                    return false;
-                }
-            }
+            return makeReply(sessionKey);
+//            switch (responseBodyType){
+//                case STRING ->{
+//                    responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
+//                    responseBodyStr = new String(responseBodyBytes);
+//                    code=0;
+//                }
+//                case FC_REPLY ->{
+//                    if (makeFcReply(sessionKey)) return false;
+//                }
+//                case BYTES -> responseBodyBytes = httpResponse.getEntity().getContent().readAllBytes();
+//                case FILE -> {
+//                    String codeStr = responseHeaderMap.get(CODE);
+//                    if(!"0".equals(codeStr))
+//                        if (makeFcReply(sessionKey)) return false;
+//
+//                    String fileName;
+//                    if(responseFileName==null)fileName= StringTools.getTempName();
+//                    else fileName=responseFileName;
+//                    String gotDid = downloadFileFromHttpResponse(fileName,responseFilePath);
+//                    if(responseFileName==null){
+//                        Files.move(Paths.get(fileName),Paths.get(gotDid), StandardCopyOption.REPLACE_EXISTING);
+//                    }
+//                    if(responseBody==null)responseBody=new FcReplier();
+//                    responseBody.setCode(ReplyCodeMessage.Code0Success);
+//                    responseBody.setMessage(ReplyCodeMessage.Msg0Success);
+//                    responseBody.setData(gotDid);
+//                }
+//                default -> {
+//                    code = ReplyCodeMessage.Code1020OtherError;
+//                    message = "ResponseBodyType is null.";
+//                    log.debug("Code:{}. Message:{}",code,message);
+//                    return false;
+//                }
+//            }
         } catch (Exception e) {
             log.error("Error when requesting post.", e);
             code = ReplyCodeMessage.Code3007ErrorWhenRequestingPost;
@@ -627,17 +666,17 @@ public class FcClientEvent {
             log.debug("Code:{}. Message:{}",code,message);
             return false;
         }
-
-
-        if (responseHeaderMap != null && responseHeaderMap.get(SIGN) != null) {
-            if (sessionKey==null || !checkResponseSign(sessionKey)) {
-                code = ReplyCodeMessage.Code1008BadSign;
-                message = ReplyCodeMessage.Msg1008BadSign;
-                log.debug("Code:{}. Message:{}",code,message);
-                return false;
-            }
-        }
-        return checkResponseCode();
+//
+//
+//        if (responseHeaderMap != null && responseHeaderMap.get(SIGN) != null) {
+//            if (sessionKey==null || !checkResponseSign(sessionKey)) {
+//                code = ReplyCodeMessage.Code1008BadSign;
+//                message = ReplyCodeMessage.Msg1008BadSign;
+//                log.debug("Code:{}. Message:{}",code,message);
+//                return false;
+//            }
+//        }
+//        return checkResponseCode();
     }
 
     private void parseResponseHeader() {
@@ -711,7 +750,7 @@ public class FcClientEvent {
         String sign = ecKey.signMessage(requestBodyStr);
         String fid = ecKey.toAddress(FchMainNetwork.MAINNETWORK).toBase58();
 
-        signatureOfRequest = new Signature(fid, requestBodyStr, sign, AlgorithmId.EccAes256K1P7_No1_NrC7.name());
+        signatureOfRequest = new Signature(fid, requestBodyStr, sign, AlgorithmId.BTC_EcdsaSignMsg_No1_NrC7, null);
         requestHeaderMap.put(UpStrings.FID, fid);
         requestHeaderMap.put(SIGN, signatureOfRequest.getSign());
     }

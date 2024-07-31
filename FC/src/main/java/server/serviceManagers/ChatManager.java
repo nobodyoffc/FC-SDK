@@ -17,8 +17,8 @@ public class ChatManager extends ServiceManager {
 
     @Override
     protected Params inputParams(byte[] symKey, BufferedReader br) {
-        DiskParams diskParams = new DiskParams((ApipClient) apipAccount.getClient());
-        diskParams.inputParams(br, symKey);
+        DiskParams diskParams = new DiskParams();
+        diskParams.inputParams(br, symKey,(ApipClient) apipAccount.getClient());
         return diskParams;
     }
 

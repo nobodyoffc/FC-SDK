@@ -240,14 +240,15 @@ public class ApiUrl{
         if(paramMap !=null)
             this.paramMap = paramMap;
         if(Boolean.TRUE.equals(ifSignUrl)){
-            if(paramMap ==null) paramMap = new HashMap<>();
+            if(this.paramMap ==null)
+                this.paramMap = new HashMap<>();
             long time = System.currentTimeMillis();
             long nonce = BytesTools.bytes4ToLongBE(BytesTools.getRandomBytes(4));
-            paramMap.put(TIME, String.valueOf(time));
-            paramMap.put(NONCE, String.valueOf(nonce));
-            if(via !=null) paramMap.put(VIA, via);
+            this.paramMap.put(TIME, String.valueOf(time));
+            this.paramMap.put(NONCE, String.valueOf(nonce));
+            if(via !=null) this.paramMap.put(VIA, via);
         }
-        if(paramMap !=null) this.paramStr = HttpTools.makeUrlParamsString(paramMap);
+        if(this.paramMap !=null) this.paramStr = HttpTools.makeUrlParamsString(this.paramMap);
     }
 
     public void makeUrlTail(){

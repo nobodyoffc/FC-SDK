@@ -18,7 +18,7 @@ import javax.servlet.http.HttpServletResponse;
 @WebServlet(name = ApiNames.BroadcastTx, value = "/"+ApiNames.SN_18+"/"+ApiNames.Version2 +"/"+ApiNames.BroadcastTx)
 public class BroadcastTx extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) {
-        AuthType authType = AuthType.FC_SIGN_URL;
+        AuthType authType = AuthType.FREE;
         doRequest(Initiator.sid,request, response, authType,Initiator.jedisPool);
     }
     protected void doPost(HttpServletRequest request, HttpServletResponse response) {
@@ -40,7 +40,7 @@ public class BroadcastTx extends HttpServlet {
 
             if(!Hex.isHexString(result))
                 replier.replyOtherError(result,null,jedis);
-            else replier.reply0Success(result, jedis);
+            else replier.reply0Success(result, jedis, null);
         }
     }
 }

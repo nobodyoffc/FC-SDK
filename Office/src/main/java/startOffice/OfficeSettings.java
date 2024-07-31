@@ -4,7 +4,7 @@ import appTools.Menu;
 import clients.apipClient.ApipClient;
 import config.ApiAccount;
 import config.ApiProvider;
-import config.ApiType;
+import config.ServiceType;
 import config.Configure;
 import feip.feipData.Service;
 import redis.clients.jedis.JedisPool;
@@ -16,7 +16,8 @@ import java.io.IOException;
 public class OfficeSettings extends Settings {
     private String diskAccountId;
     private transient ApiAccount diskAccount;
-    public OfficeSettings() {
+    public OfficeSettings(Configure configure) {
+        super(configure);
     }
     @Override
     public String initiateClient(String fid, byte[] symKey, Configure config, BufferedReader br) {
@@ -24,20 +25,20 @@ public class OfficeSettings extends Settings {
         System.out.println("Initiating APP settings...");
         setInitForClient(fid, config, br);
 
-        apipAccount = config.checkAPI(apipAccountId,ApiType.APIP,symKey);//checkApiAccount(apipAccountId, ApiType.APIP , config, symKey, null);
-        checkIfMainFidIsApiAccountUser(symKey,config,br,apipAccount);
+        apipAccount = config.checkAPI(apipAccountId, mainFid, ServiceType.APIP,symKey);//checkApiAccount(apipAccountId, ApiType.APIP , config, symKey, null);
+        checkIfMainFidIsApiAccountUser(symKey,config,br,apipAccount, mainFid);
         if(apipAccount.getClient()!=null)apipAccountId=apipAccount.getId();
         else System.out.println("No APIP service.");
 
-        nasaAccount =config.checkAPI(nasaAccountId,ApiType.NASA_RPC,symKey);// checkApiAccount(nasaAccountId, ApiType.NASA_RPC, config, symKey, null);
+        nasaAccount =config.checkAPI(nasaAccountId, mainFid, ServiceType.NASA_RPC,symKey);// checkApiAccount(nasaAccountId, ApiType.NASA_RPC, config, symKey, null);
         if(nasaAccount.getClient()!=null)nasaAccountId=nasaAccount.getId();
         else System.out.println("No Nasa node RPC service.");
 
-        esAccount = config.checkAPI(esAccountId,ApiType.ES,symKey);//checkApiAccount(esAccountId, ApiType.ES, config, symKey, null);
+        esAccount = config.checkAPI(esAccountId, mainFid, ServiceType.ES,symKey);//checkApiAccount(esAccountId, ApiType.ES, config, symKey, null);
         if(esAccount.getClient()!=null)esAccountId = esAccount.getId();
         else System.out.println("No ES service.");
 
-        redisAccount = config.checkAPI(redisAccountId,ApiType.REDIS,symKey);//checkApiAccount(redisAccountId,ApiType.REDIS,config,symKey,null );
+        redisAccount = config.checkAPI(redisAccountId, mainFid, ServiceType.REDIS,symKey);//checkApiAccount(redisAccountId,ApiType.REDIS,config,symKey,null );
         if(redisAccount.getClient()!=null)redisAccountId = redisAccount.getId();
         else System.out.println("No Redis service.");
 
@@ -84,7 +85,7 @@ public class OfficeSettings extends Settings {
         while (true) {
             System.out.println("Reset default API service...");
             ApiProvider apiProvider = config.chooseApiProviderOrAdd(config.getApiProviderMap(), apipClient);
-            ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, symKey,apipClient);
+            ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, mainFid, symKey,apipClient);
 
             if (apiAccount != null) {
                 Object client = apiAccount.connectApi(config.getApiProviderMap().get(apiAccount.getProviderId()), symKey, br, null);

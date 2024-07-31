@@ -46,9 +46,8 @@ public class Inputer extends appTools.Inputer {
                 ECKey ecKey = KeyTools.genNewFid(br);
                 byte[] priKey = ecKey.getPrivKeyBytes();
                 fid = ecKey.toAddress(FchMainNetwork.MAINNETWORK).toBase58();
-
+                String priKeyCipher = new Encryptor(AlgorithmId.FC_Aes256Cbc_No1_NrC7).encryptToJsonBySymKey(priKey,symKey);
                 if(apipClient!=null){
-                    String priKeyCipher = new Encryptor(AlgorithmId.FC_EccK1AesCbc256_No1_NrC7).encryptToJsonBySymKey(priKey,symKey);
                     apipClient.checkMaster(priKeyCipher,symKey,br);
                 }
                 return fid;

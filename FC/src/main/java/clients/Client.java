@@ -1,59 +1,51 @@
 package clients;
 
-import apip.apipData.BlockInfo;
 import apip.apipData.Fcdsl;
 import apip.apipData.RequestBody;
 import apip.apipData.Session;
-import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.SortOrder;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
 import constants.*;
 import fcData.FcReplier;
 import fch.ParseTools;
 import clients.apipClient.ApipClient;
-import clients.diskClient.DiskClientEvent;
 import com.google.gson.Gson;
 import config.ApiAccount;
 import config.ApiProvider;
-import config.ApiType;
+import config.ServiceType;
 import crypto.*;
-import fch.fchData.Block;
 import feip.feipData.Service;
-import feip.feipData.serviceParams.ApipParams;
 import feip.feipData.serviceParams.Params;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.JsonTools;
 import javaTools.http.AuthType;
 import javaTools.http.HttpRequestMethod;
-import nasa.NaSaRpcClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import server.FreeApi;
 import server.Settings;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static constants.ApiNames.*;
+import static constants.Strings.URL_HEAD;
 import static constants.UpStrings.BALANCE;
 import static fcData.AlgorithmId.FC_Aes256Cbc_No1_NrC7;
+import static javaTools.ObjectTools.listToMap;
+
 public class Client {
     protected static final Logger log = LoggerFactory.getLogger(Client.class);
     protected ApiProvider apiProvider;
     protected ApiAccount apiAccount;
     protected String urlHead;
     protected String via;
-    protected String signInUrlTailPath;
     protected FcClientEvent fcClientEvent;
     protected byte[] symKey;
     protected byte[] sessionKey;
     protected ApipClient apipClient;
     protected boolean isAllowFreeRequest;
-    protected ApiType apiType;
+    protected ServiceType serviceType;
     protected Gson gson = new Gson();
     protected boolean sessionFreshen=false;
     protected long bestHeight;
@@ -65,31 +57,30 @@ public class Client {
         this.symKey = symKey;
         this.urlHead = apiAccount.getApiUrl();
         this.via = apiAccount.getVia();
-        this.apiType = apiProvider.getType();
+        this.serviceType = apiProvider.getType();
     }
     public Client(ApiProvider apiProvider, ApiAccount apiAccount, byte[] symKey, ApipClient apipClient) {
         this.apiAccount = apiAccount;
         this.sessionKey = apiAccount.getSessionKey();
         this.apiProvider = apiProvider;
-        this.apiType = apiProvider.getType();
+        this.serviceType = apiProvider.getType();
         this.symKey = symKey;
         this.apipClient = apipClient;
         this.urlHead = apiAccount.getApiUrl();
         this.via = apiAccount.getVia();
-        this.apiType = apiProvider.getType();
+        this.serviceType = apiProvider.getType();
     }
 
-    public static FcReplier getService(String urlHead, Class<ApipParams> apipParamsClass, String apiVersion){
-        ApiUrl apiUrl = new ApiUrl(urlHead,ApiNames.SN_0, apiVersion,ApiNames.GetService, null,false,null);
+    public static FcReplier getService(String urlHead, String apiVersion, Class<? extends Params> paramsClass){
+        ApiUrl apiUrl = new ApiUrl(urlHead,null, apiVersion,ApiNames.GetService, null,false,null);
         FcClientEvent clientEvent = Client.get(apiUrl.getUrl());
         if(clientEvent.checkResponse()!=0){
-            System.out.println("Failed to get the APIP service from "+apiUrl.getUrl());
+            System.out.println("Failed to get the service from "+apiUrl.getUrl());
             return null;
         }
         FcReplier responseBody = clientEvent.getResponseBody();
         Service service = new Gson().fromJson((String) responseBody.getData(), Service.class);
-        Params apiParams = Params.getParamsFromService(service,apipParamsClass);
-        service.setParams(apiParams);
+        Params.getParamsFromService(service, paramsClass);
         responseBody.setData(service);
         return responseBody;
     }
@@ -111,49 +102,10 @@ public class Client {
         }
         return cryptoResult.getData();
     }
-
-    public static Double calcFeeRate(ElasticsearchClient esClient, ApipClient apipClient, NaSaRpcClient naSaRpcClient, int nBlock) throws IOException {
-        java.util.List<Block> blockList = new ArrayList<>();
-        long feeSum=0;
-        long netBlockSizeSum = 0;
-        if(esClient!=null) {
-            SearchResponse<Block> result = esClient.search(s -> s.index(IndicesNames.BLOCK).size(nBlock).sort(sort -> sort.field(f -> f.field(Strings.HEIGHT).order(SortOrder.Desc))), Block.class);
-            if (result == null || result.hits() == null) return null;
-
-            Block expensiveBlock = new Block();
-            expensiveBlock.setFee(0);
-            for (Hit<Block> hit : result.hits().hits()) {
-                Block block = hit.source();
-                if (block.getTxCount() == 0) continue;
-
-                blockList.add(block);
-                if (block.getFee() > expensiveBlock.getFee())
-                    expensiveBlock = block;
-            }
-            if (blockList.isEmpty()) return null;
-            blockList.remove(expensiveBlock);
-            if (blockList.isEmpty()) return null;
-            for(Block block :blockList){
-                feeSum += block.getFee();
-                netBlockSizeSum += block.getSize()- Constants.EMPTY_BLOCK_SIZE;
-            }
-        }else if(apipClient!=null){
-            Fcdsl fcdsl = new Fcdsl();
-            fcdsl.addSize(nBlock);
-            List<BlockInfo> blockInfoList = apipClient.blockSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
-            for(BlockInfo blockInfo :blockInfoList){
-                feeSum += blockInfo.getFee();
-                netBlockSizeSum += blockInfo.getSize()- Constants.EMPTY_BLOCK_SIZE;
-            }
-        }else if(naSaRpcClient!=null){
-            return naSaRpcClient.estimateFee(nBlock);
-        }else return null;
-
-        double feeRate = (double) (feeSum / netBlockSizeSum) / 1000;
-        if(feeRate == 0)feeRate=0.001;
-        return feeRate;
+    public Object requestJsonByUrlParams(String ver, String apiName,
+                                         @Nullable Map<String,String> paramMap, AuthType authType){
+        return requestJsonByUrlParams(null, ver,apiName, paramMap,authType);
     }
-
     public Object requestJsonByUrlParams(String sn, String ver, String apiName,
                                          @Nullable Map<String,String> paramMap, AuthType authType){
         String urlTailPath = ApiUrl.makeUrlTailPath(sn, ver);
@@ -163,14 +115,21 @@ public class Client {
             if (isAllowFreeRequest || sessionKey == null) authType = AuthType.FREE;
             else authType = AuthType.FC_SIGN_URL;
         }
-        return requestBase(urlTail, FcClientEvent.RequestBodyType.FCDSL, null, null, null, paramMap, null, FcClientEvent.ResponseBodyType.STRING, null, null, authType, null, HttpRequestMethod.GET
+        return requestBase(urlTail, FcClientEvent.RequestBodyType.FCDSL, null, null, null, paramMap, null, FcClientEvent.ResponseBodyType.FC_REPLY, null, null, authType, null, HttpRequestMethod.GET
         );
     }
-
-    public Object requestFile(String sn, String ver, String apiName, @Nullable Map<String,String> paramMap, String responseFileName, @Nullable String responseFilePath, AuthType authType, byte[] authKey, HttpRequestMethod method){
+    public Object requestFile(String ver, String apiName, Fcdsl fcdsl, String responseFileName, @Nullable String responseFilePath, AuthType authType, byte[] authKey, HttpRequestMethod method){
+        return requestFile(null,  ver, apiName,fcdsl,responseFileName, responseFilePath, authType, authKey, method);
+    }
+    public Object requestFile(String sn, String ver, String apiName, Fcdsl fcdsl, String responseFileName, @Nullable String responseFilePath, AuthType authType, byte[] authKey, HttpRequestMethod method){
         String urlTail = ApiUrl.makeUrlTailPath(sn,ver)+apiName;
-        return requestBase(urlTail, FcClientEvent.RequestBodyType.NONE, null, null, null, paramMap, null, FcClientEvent.ResponseBodyType.FILE, responseFileName, responseFilePath, authType, authKey, method
-        );
+        requestBase(urlTail, FcClientEvent.RequestBodyType.FCDSL, fcdsl, null, null, null, null, FcClientEvent.ResponseBodyType.FILE, responseFileName, responseFilePath, authType, authKey, method);
+        FcReplier responseBody = fcClientEvent.getResponseBody();
+        if(responseBody !=null)return responseBody.getData();
+        return null;
+    }
+    public Object requestJsonByFcdsl(String ver, String apiName, @Nullable Fcdsl fcdsl, AuthType authType, @Nullable byte[] authKey, HttpRequestMethod method){
+        return requestJsonByFcdsl(null, ver, apiName, fcdsl, authType, authKey, method);
     }
     public Object requestJsonByFcdsl(String sn, String ver, String apiName, @Nullable Fcdsl fcdsl, AuthType authType, @Nullable byte[] authKey, HttpRequestMethod method){
         String urlTail = ApiUrl.makeUrlTailPath(sn,ver)+apiName;
@@ -178,7 +137,7 @@ public class Client {
         if(authType==null || authKey==null)
             authType = AuthType.FREE;
 
-        return requestBase(urlTail, FcClientEvent.RequestBodyType.FCDSL, fcdsl, null, null, null, null, FcClientEvent.ResponseBodyType.STRING, null, null, authType, authKey, method
+        return requestBase(urlTail, FcClientEvent.RequestBodyType.FCDSL, fcdsl, null, null, null, null, FcClientEvent.ResponseBodyType.FC_REPLY, null, null, authType, authKey, method
         );
     }
 
@@ -191,37 +150,45 @@ public class Client {
         return requestBase(urlTail, FcClientEvent.RequestBodyType.FCDSL, fcdsl, null, null, null, null, FcClientEvent.ResponseBodyType.FILE, responseFileName, responseFilePath, authType, authKey, method
         );
     }
-
+    public Object requestJsonByFile(String ver, String apiName,
+                                    @Nullable Map<String,String>  paramMap,
+                                    @Nullable byte[] authKey,
+                                    String requestFileName){
+        return requestJsonByFile(null,ver,apiName,paramMap,authKey,requestFileName);
+    }
     public Object requestJsonByFile(String sn, String ver, String apiName,
                                     @Nullable Map<String,String>  paramMap,
                                     @Nullable byte[] authKey,
                                     String requestFileName){
         String urlTail = ApiUrl.makeUrlTailPath(sn,ver)+apiName;
         AuthType authType;
-        if(authKey!=null)authType=AuthType.FC_SIGN_BODY;
+        if(authKey!=null)authType=AuthType.FC_SIGN_URL;
         else authType = AuthType.FREE;
 
-        return requestBase(urlTail, FcClientEvent.RequestBodyType.FILE, null, null, null, paramMap, requestFileName, FcClientEvent.ResponseBodyType.STRING, null, null, authType, authKey, HttpRequestMethod.POST
+        return requestBase(urlTail, FcClientEvent.RequestBodyType.FILE, null, null, null, paramMap, requestFileName, FcClientEvent.ResponseBodyType.FC_REPLY, null, null, authType, authKey, HttpRequestMethod.POST
         );
     }
 
-    private Object requestBase(String urlTail, FcClientEvent.RequestBodyType requestBodyType, @Nullable Fcdsl fcdsl, @Nullable String requestBodyStr, @Nullable byte[] requestBodyBytes, @Nullable Map<String,String> paramMap, String requestFileName, FcClientEvent.ResponseBodyType responseBodyType, String responseFileName, String responseFilePath, AuthType authType, @Nullable byte[] authKey, HttpRequestMethod httpMethod){
+    public Object requestBase(String urlTail, FcClientEvent.RequestBodyType requestBodyType, @Nullable Fcdsl fcdsl, @Nullable String requestBodyStr, @Nullable byte[] requestBodyBytes, @Nullable Map<String,String> paramMap, String requestFileName, FcClientEvent.ResponseBodyType responseBodyType, String responseFileName, String responseFilePath, AuthType authType, @Nullable byte[] authKey, HttpRequestMethod httpMethod){
 
-        if(httpMethod.equals(HttpRequestMethod.GET) && fcdsl!=null){
-            String urlParamsStr = Fcdsl.fcdslToUrlParams(fcdsl);
-            paramMap = Fcdsl.urlParamsStrToMap(urlParamsStr);
+        if(httpMethod.equals(HttpRequestMethod.GET)){
+            requestBodyType= FcClientEvent.RequestBodyType.NONE;
+            if(fcdsl!=null) {
+                String urlParamsStr = Fcdsl.fcdslToUrlParams(fcdsl);
+                paramMap = Fcdsl.urlParamsStrToMap(urlParamsStr);
+            }
         }
-
-        FcClientEvent clientEvent = new FcClientEvent(urlHead,urlTail,requestBodyType,fcdsl,requestBodyStr,requestBodyBytes,paramMap,requestFileName, responseBodyType,responseFileName,responseFilePath,authType, authKey, via);
+        fcClientEvent = new FcClientEvent(urlHead,urlTail,requestBodyType,fcdsl,requestBodyStr,requestBodyBytes,paramMap,requestFileName, responseBodyType,responseFileName,responseFilePath,authType, authKey, via);
 
         switch (httpMethod){
-            case GET -> clientEvent.get(authKey);
-            case POST -> clientEvent.post(authKey);
-            default -> clientEvent.setCode(ReplyCodeMessage.Code1022NoSuchMethod);
+            case GET -> fcClientEvent.get(authKey);
+            case POST -> fcClientEvent.post(authKey);
+            default -> fcClientEvent.setCode(ReplyCodeMessage.Code1022NoSuchMethod);
         }
-        this.fcClientEvent = clientEvent;
         return checkResult();
     }
+
+
 
     public Object request(String sn, String ver, String apiName, FcClientEvent.RequestBodyType requestBodyType, @Nullable Fcdsl fcdsl, @Nullable String requestBodyStr, @Nullable byte[] requestBodyBytes, @Nullable Map<String,String> paramMap, String requestFileName, FcClientEvent.ResponseBodyType responseBodyType, String responseFileName, String responseFilePath, AuthType authType, @Nullable byte[] authKey, HttpRequestMethod httpMethod){
         String urlTail = ApiUrl.makeUrlTailPath(sn,ver)+apiName;
@@ -234,6 +201,10 @@ public class Client {
     }
 
     public Object checkResult(){
+
+        if(fcClientEvent.getResponseBodyType().equals(FcClientEvent.ResponseBodyType.STRING))
+            return fcClientEvent.getResponseBodyStr();
+
         if(fcClientEvent ==null || fcClientEvent.getCode()==null)return null;
         if(fcClientEvent.getCode()!= ReplyCodeMessage.Code0Success) {
             if (fcClientEvent.getResponseBody()== null) {
@@ -245,7 +216,7 @@ public class Client {
                     log.debug(JsonTools.toJson(fcClientEvent.getResponseBody().getData()));
             }
             if (fcClientEvent.getCode() == ReplyCodeMessage.Code1004InsufficientBalance) {
-                if(apipClient==null && this.apiType.equals(ApiType.APIP)){
+                if(apipClient==null && this.serviceType.equals(ServiceType.APIP)){
                     apipClient = (ApipClient) this;
                 }
                 apiAccount.buyApi(symKey,apipClient);
@@ -254,7 +225,7 @@ public class Client {
 
             if (fcClientEvent.getCode() == ReplyCodeMessage.Code1002SessionNameMissed || fcClientEvent.getCode() == ReplyCodeMessage.Code1009SessionTimeExpired) {
                 sessionFreshen=false;
-                sessionKey = apiAccount.freshSessionKey(symKey, signInUrlTailPath, this.apiType, null);
+                sessionKey = apiAccount.freshSessionKey(symKey, this.serviceType, null);
                 if (sessionKey != null) sessionFreshen=true;
             }
 
@@ -265,7 +236,7 @@ public class Client {
             case BYTES -> {
                 return fcClientEvent.getResponseBodyBytes();
             }
-            case STRING -> {
+            case FC_REPLY -> {
                 if(fcClientEvent.getResponseBody()!=null) {
                     if (fcClientEvent.getResponseBody().getData() == null && fcClientEvent.getCode() == 0)
                         return true;
@@ -337,33 +308,44 @@ public class Client {
         return HexFormat.of().formatHex(Arrays.copyOf(sessionKey, 6));
     }
 
-    public boolean pingFree() {
-        requestBase(Ping, FcClientEvent.RequestBodyType.NONE, null, null, null, null, null, FcClientEvent.ResponseBodyType.STRING, null, null, AuthType.FREE, null, HttpRequestMethod.GET);
-        Object data = checkResult();
-        Map<String, FreeApi> freeApiMap = Settings.freeApiMap;
-        if(data==null){
+//    public boolean pingFree(ApiType apiType) {
+//        Object data = ping(Version2,HttpRequestMethod.GET,AuthType.FREE, null);
+////        requestBase(Ping, FcClientEvent.RequestBodyType.NONE, null, null, null, null, null, FcClientEvent.ResponseBodyType.FC_REPLY, null, null, AuthType.FREE, null, HttpRequestMethod.GET);
+////        Object data = checkResult();
+//        setFreeApiState(data,apiType);
+//        return (boolean) data;
+//    }
+
+    private void setFreeApiState(Object data, ServiceType serviceType) {
+        Map<String, FreeApi> freeApiMap = listToMap(Settings.freeApiListMap.get(serviceType),URL_HEAD);//listToMap(config.getFreeApipUrlList(),URL_HEAD);
+
+        if(data ==null){
             if(freeApiMap !=null && freeApiMap.get(this.urlHead)!=null ){
                 freeApiMap.get(this.urlHead).setActive(false);
             }
-            return false;
+            return;
         }
         if(freeApiMap==null)freeApiMap = new HashMap<>();
         if(freeApiMap.get(this.urlHead)==null){
-            FreeApi freeApi = new FreeApi(this.urlHead,true);
+            FreeApi freeApi = new FreeApi(this.urlHead,true, this.serviceType);
             freeApiMap.put(this.urlHead,freeApi);
-        }freeApiMap.get(this.urlHead).setActive(true);
-        return (boolean) data;
+        }
+        freeApiMap.get(this.urlHead).setActive(true);
     }
 
-    public Long ping() {
-        Object data = requestBase(Ping, FcClientEvent.RequestBodyType.FCDSL, null, null, null, null, null, FcClientEvent.ResponseBodyType.STRING, null, null, AuthType.FC_SIGN_BODY, sessionKey, HttpRequestMethod.POST);
-        Long rest = checkBalance(apiAccount, fcClientEvent,symKey,apipClient);
-        if(data==null)return null;
-        return rest;
+    public Object ping(String version, HttpRequestMethod httpRequestMethod, AuthType authType, ServiceType serviceType) {
+        String urlTail = "/"+version+"/"+Ping;
+        Object data = requestBase(urlTail, FcClientEvent.RequestBodyType.FCDSL, null, null, null, null, null, FcClientEvent.ResponseBodyType.FC_REPLY, null, null, authType, sessionKey, httpRequestMethod);
+        if(httpRequestMethod.equals(HttpRequestMethod.POST)) {
+            return checkBalance(apiAccount, fcClientEvent, symKey, apipClient);
+        }else {
+            if(serviceType !=null)setFreeApiState(data, serviceType);
+            return data;
+        }
     }
 
     private void signIn(byte[] priKey, @Nullable RequestBody.SignInMode mode) {
-        fcClientEvent = new FcClientEvent(apiAccount.getApiUrl(),signInUrlTailPath,ApiNames.SignIn);
+        fcClientEvent = new FcClientEvent(apiAccount.getApiUrl(),null,Version2,ApiNames.SignIn);
         fcClientEvent.signInPost(apiAccount.getVia(), priKey, mode);
         Object data = checkResult();
         checkBalance(apiAccount, fcClientEvent,symKey,apipClient);
@@ -373,7 +355,7 @@ public class Client {
     }
 
     private void signInEcc(byte[] priKey, @Nullable RequestBody.SignInMode mode) {
-        fcClientEvent = new FcClientEvent(apiAccount.getApiUrl(),signInUrlTailPath,ApiNames.SignInEcc);
+        fcClientEvent = new FcClientEvent(apiAccount.getApiUrl(),null,Version2,ApiNames.SignInEcc);
         fcClientEvent.signInPost(apiAccount.getVia(), priKey, mode);
         Object data = checkResult();
         checkBalance(apiAccount, fcClientEvent,symKey,apipClient);
@@ -402,7 +384,7 @@ public class Client {
         return fcClientEvent;
     }
 
-    public void setFcClientEvent(DiskClientEvent clientData) {
+    public void setFcClientEvent(FcClientEvent clientData) {
         this.fcClientEvent = clientData;
     }
 
@@ -522,20 +504,20 @@ public class Client {
         this.fcClientEvent = fcClientEvent;
     }
 
-    public String getSignInUrlTailPath() {
-        return signInUrlTailPath;
+//    public String getSignInUrlTailPath() {
+//        return signInUrlTailPath;
+//    }
+
+//    public void setSignInUrlTailPath(String signInUrlTailPath) {
+//        this.signInUrlTailPath = signInUrlTailPath;
+//    }
+
+    public ServiceType getApiType() {
+        return serviceType;
     }
 
-    public void setSignInUrlTailPath(String signInUrlTailPath) {
-        this.signInUrlTailPath = signInUrlTailPath;
-    }
-
-    public ApiType getApiType() {
-        return apiType;
-    }
-
-    public void setApiType(ApiType apiType) {
-        this.apiType = apiType;
+    public void setApiType(ServiceType serviceType) {
+        this.serviceType = serviceType;
     }
 
     public long getBestHeight() {

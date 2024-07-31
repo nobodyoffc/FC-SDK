@@ -43,7 +43,7 @@ public class GetUtxo extends HttpServlet {
     protected void doRequest(String sid, HttpServletRequest request, HttpServletResponse response, AuthType authType, JedisPool jedisPool) {
         FcReplier replier = new FcReplier(sid,response);
         try(Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(Initiator.sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(Initiator.sid, request, replier, authType, jedis, false);
             if (requestCheckResult==null){
                 return;
             }
@@ -70,7 +70,7 @@ public class GetUtxo extends HttpServlet {
                 replier.setTotal(cashListReturn.getTotal());
                 replier.setGot((long) size);
                 replier.setBestHeight(Long.parseLong(jedis.get(Strings.BEST_HEIGHT)));
-                replier.reply0Success(utxoList,jedis);
+                replier.reply0Success(utxoList,jedis, null);
                 return;
             }
 
@@ -114,7 +114,7 @@ public class GetUtxo extends HttpServlet {
                 replier.setTotal(cashResult.hits().total().value());
                 replier.setGot((long) size);
                 replier.setBestHeight(Long.parseLong(jedis.get(Strings.BEST_HEIGHT)));
-                replier.reply0Success(utxoList,jedis);
+                replier.reply0Success(utxoList,jedis, null);
             }else {
                 replier.reply(ReplyCodeMessage.Code2003IllegalFid,null,jedis);
             }

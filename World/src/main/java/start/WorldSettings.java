@@ -1,23 +1,20 @@
 package start;
 
 import clients.apipClient.ApipClient;
-import fch.Inputer;
 import appTools.Menu;
 import config.Configure;
-import crypto.KeyTools;
-import crypto.old.EccAes256K1P7;
 import feip.feipData.Service;
 import redis.clients.jedis.JedisPool;
 import server.Settings;
 
 import java.io.BufferedReader;
-import java.util.HashMap;
 import java.util.Map;
 
 public class WorldSettings extends Settings {
     private Map<String,String> fidPriKeyCipherMap;
 
     public WorldSettings(Configure config, BufferedReader br) {
+        super(config);
         this.config = config;
         this.br = br;
     }

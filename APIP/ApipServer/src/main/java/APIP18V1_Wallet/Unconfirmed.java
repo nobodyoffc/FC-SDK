@@ -4,7 +4,6 @@ import apip.apipData.UnconfirmedInfo;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import constants.ApiNames;
-import constants.FieldNames;
 import constants.ReplyCodeMessage;
 import fcData.FcReplier;
 import initial.Initiator;
@@ -42,7 +41,7 @@ public class Unconfirmed extends HttpServlet {
         FcReplier replier = new FcReplier(sid,response);
         //Check authorization
         try (Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
             if (requestCheckResult == null) {
                 return;
             }

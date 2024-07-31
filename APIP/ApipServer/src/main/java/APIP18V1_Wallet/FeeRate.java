@@ -5,7 +5,9 @@ import clients.Client;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import constants.ApiNames;
 import fcData.FcReplier;
+import fch.Wallet;
 import initial.Initiator;
+import javaTools.NumberTools;
 import javaTools.http.AuthType;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -35,16 +37,16 @@ public class FeeRate extends HttpServlet {
         FcReplier replier = new FcReplier(sid,response);
         //Check authorization
         try (Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
             if (requestCheckResult == null) {
                 return;
             }
-            Double feeRate = Client.calcFeeRate(Initiator.esClient, null,null , 20);
+            Double feeRate = new Wallet(null,Initiator.esClient,Initiator.naSaRpcClient).getFeeRate();
             if(feeRate==null){
                 replier.replyOtherError("Calculating fee rate wrong.",null,jedis);
                 return;
             }
-            replier.replySingleDataSuccess(feeRate,jedis);
+            replier.replySingleDataSuccess(NumberTools.roundDouble8(feeRate),jedis);
         }
     }
 }

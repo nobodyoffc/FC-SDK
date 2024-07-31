@@ -21,15 +21,15 @@ public class Initiator extends HttpServlet {
     @Serial
     private static final long serialVersionUID = 1L;
     private static final Logger log = LoggerFactory.getLogger(Initiator.class);
-    public static final ApiType apiType = ApiType.APIP;
+    public static final ServiceType SERVICE_TYPE = ServiceType.APIP;
     public static String dataPath;
     private ApiAccount esAccount;
     public static String sid;
     public static ElasticsearchClient esClient;
     public static NaSaRpcClient naSaRpcClient;
     public static JedisPool jedisPool;
-//    public static Boolean forbidFreeApi;
-//    protected static Long windowTime;
+    public static String avatarElementsPath;
+    public static String avatarPngPath;
 
 
     @Override
@@ -41,8 +41,8 @@ public class Initiator extends HttpServlet {
     }
     @Override
     public void init(ServletConfig config) {
-        log.debug("initiate APIP web server...");
-        String configFileName = makeConfigFileName(apiType);
+        System.out.println("Initiate APIP web server...");
+        String configFileName = makeConfigFileName(SERVICE_TYPE);
 
         WebServerConfig webServerConfig;
         Configure configure;
@@ -70,17 +70,13 @@ public class Initiator extends HttpServlet {
         ApiProvider esProvider = configure.getApiProviderMap().get(esAccount.getProviderId());
         esClient = (ElasticsearchClient)esAccount.connectApi(esProvider,symKey);
 
-        log.debug("APIP server initiated successfully.");
+        avatarElementsPath = settings.getAvatarElementsPath();
+        avatarPngPath = settings.getAvatarPngPath();
+        if (!Initiator.avatarPngPath.endsWith("/")) avatarPngPath = avatarPngPath + "/";
+        if (!avatarElementsPath.endsWith("/")) avatarElementsPath = avatarElementsPath + "/";
 
-        /*
-    private long windowTime;
-    private long price;
+        System.out.println("APIP server initiated.");
 
-    private int nPrice;
-    private boolean isPricePerRequest;
-    private long balance;
-    private long bestHeight;
-         */
     }
 
     //    public static void freshWebParams(WebServerConfig webServerConfig, Jedis jedis) {

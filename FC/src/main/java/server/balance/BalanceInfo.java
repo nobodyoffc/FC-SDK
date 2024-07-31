@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import server.Settings;
-import server.order.Order;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,7 +26,7 @@ import static server.Settings.addSidBriefToName;
 
 public class BalanceInfo {
     private String userBalanceMapStr;
-    private long bestHeight;
+    private Long bestHeight;
     private String consumeViaMapStr;
     private String orderViaMapStr;
     private String rewardPendingMapStr;
@@ -223,11 +222,11 @@ public class BalanceInfo {
         log.debug("User balance is backed up to " + finalFileName);
     }
 
-    public long getBestHeight() {
+    public Long getBestHeight() {
         return bestHeight;
     }
 
-    public void setBestHeight(long bestHeight) {
+    public void setBestHeight(Long bestHeight) {
         this.bestHeight = bestHeight;
     }
 

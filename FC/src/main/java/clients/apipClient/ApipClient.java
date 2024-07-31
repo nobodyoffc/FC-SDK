@@ -1,10 +1,11 @@
 package clients.apipClient;
 
 import apip.apipData.*;
-import clients.ApiUrl;
+import appTools.Menu;
 import clients.FcClientEvent;
 import clients.FeipClient;
 import constants.*;
+import crypto.Decryptor;
 import crypto.EncryptType;
 import fcData.AlgorithmId;
 import fcData.FcReplier;
@@ -15,11 +16,9 @@ import feip.feipData.*;
 import clients.Client;
 import config.ApiAccount;
 import config.ApiProvider;
-import config.ApiType;
-import crypto.old.EccAes256K1P7;
+import config.ServiceType;
 import javaTools.JsonTools;
 import javaTools.ObjectTools;
-import javaTools.NumberTools;
 import javaTools.http.AuthType;
 import javaTools.http.HttpRequestMethod;
 import org.jetbrains.annotations.NotNull;
@@ -36,6 +35,7 @@ import static constants.FieldNames.*;
 import static constants.FieldNames.FID;
 import static constants.OpNames.RATE;
 import static constants.Strings.*;
+import static constants.Values.FALSE;
 import static constants.Values.TRUE;
 import static crypto.KeyTools.priKeyToFid;
 import static javaTools.ObjectTools.objectToList;
@@ -48,10 +48,10 @@ public class ApipClient extends Client {
     }
     public ApipClient(ApiProvider apiProvider,ApiAccount apiAccount,byte[] symKey){
         super(apiProvider,apiAccount,symKey);
-        this.signInUrlTailPath= ApiUrl.makeUrlTailPath(ApiNames.SN_0,ApiNames.Version2);
+//        this.signInUrlTailPath= ApiUrl.makeUrlTailPath(null,ApiNames.Version2);
     }
     public void checkMaster(String priKeyCipher,byte[] symKey,BufferedReader br) {
-        byte[] priKey = EccAes256K1P7.decryptJsonBytes(priKeyCipher, symKey);
+        byte[] priKey = new Decryptor().decryptJsonBySymKey(priKeyCipher,symKey).getData();
         if (priKey == null) {
             log.error("Failed to decrypt priKey.");
         }
@@ -60,25 +60,22 @@ public class ApipClient extends Client {
         CidInfo cidInfo = cidInfoById(fid);
         if (cidInfo == null) {
             System.out.println("This fid was never seen on chain. Send some fch to it.");
-            if (Inputer.askIfYes(br, "Stop to send?")) return;
+            Menu.anyKeyToContinue(br);
+            return;
         }
-        if (cidInfo != null) {
-            if (cidInfo.getMaster() != null) {
-                System.out.println("The master of "+fid+" is " + cidInfo.getMaster());
-                return;
-            }
-            if (Inputer.askIfYes(br, "Assign the master for " + fid + "?"))
-                FeipClient.setMaster(fid, priKeyCipher, bestHeight, symKey, apipClient, br);
-        } else {
-            System.out.println("Failed to get CID information of " + fid + ".");
+        if (cidInfo.getMaster() != null) {
+            System.out.println("The master of " + fid + " is " + cidInfo.getMaster());
+            return;
         }
+        if (Inputer.askIfYes(br, "Assign the master for " + fid + "?"))
+            FeipClient.setMaster(fid, priKeyCipher, bestHeight, symKey, apipClient, br);
     }
 
     //OpenAPIs: Ping(Client),GetService(Client),SignIn,SignInEccAPI,Totals
 
     public Map<String, String> totals(HttpRequestMethod httpRequestMethod, AuthType authType) {
         //Request
-        requestJsonByFcdsl(SN_0, Version2, Totals,null,authType,sessionKey,httpRequestMethod);
+        requestJsonByFcdsl(null, Version2, Totals,null,authType,sessionKey,httpRequestMethod);
         //Check result
         Object data = checkResult();
         return DataGetter.getStringMap(data);
@@ -136,16 +133,19 @@ public class ApipClient extends Client {
         return DataGetter.getCashList(data);
     }
 
-    public List<Cash> cashValidForPay(HttpRequestMethod httpRequestMethod, String fid, double amount, AuthType authType){
-        Fcdsl fcdsl = new Fcdsl();
-        fcdsl.addNewQuery().addNewTerms().addNewFields(FieldNames.OWNER).addNewValues(fid);
-        amount = NumberTools.roundDouble8(amount);
-        fcdsl.setOther(amount);
-
-        Object data = requestJsonByFcdsl(SN_18, Version2, CashValid, fcdsl, authType, sessionKey, httpRequestMethod);
-        if(data==null)return null;
-        return objectToList(data,Cash.class);
-    }
+//    public List<Cash> cashValidForPay(HttpRequestMethod httpRequestMethod, String fid, double amount, AuthType authType){
+//        Fcdsl fcdsl = new Fcdsl();
+//        Map<String,String> paramMap = new HashMap<>();
+//
+//
+//        fcdsl.addNewQuery().addNewTerms().addNewFields(FieldNames.OWNER).addNewValues(fid);
+//        amount = NumberTools.roundDouble8(amount);
+//        fcdsl.setOther(amount);
+//
+//        Object data = requestJsonByFcdsl(SN_18, Version2, CashValid, fcdsl, authType, sessionKey, httpRequestMethod);
+//        if(data==null)return null;
+//        return objectToList(data,Cash.class);
+//    }
 
     public Map<String, BlockInfo>blockByHeights(HttpRequestMethod httpRequestMethod, AuthType authType, String... heights){
         Fcdsl fcdsl = new Fcdsl();
@@ -175,20 +175,12 @@ public class ApipClient extends Client {
         return objectToList(data,BlockInfo.class);
     }
 
-    public List<Cash> cashValidForPay(String fid, Double amount, HttpRequestMethod httpRequestMethod, AuthType authType){
+    public List<Cash> cashValid(String fid, Double amount, Long cd, HttpRequestMethod httpRequestMethod, AuthType authType){
         Fcdsl fcdsl = new Fcdsl();
         Map<String,String> paramMap = new HashMap<>();
-        paramMap.put(AMOUNT, String.valueOf(amount));
-        paramMap.put(FID,fid);
-        fcdsl.addOther(paramMap);
-        return cashValid(fcdsl,httpRequestMethod,authType);
-    }
-
-    public List<Cash> cashValidForCd(String fid, Long cd, HttpRequestMethod httpRequestMethod, AuthType authType){
-        Fcdsl fcdsl = new Fcdsl();
-        Map<String,String> paramMap = new HashMap<>();
-        paramMap.put(CD, String.valueOf(cd));
-        paramMap.put(FID,fid);
+        if(amount!=null)paramMap.put(AMOUNT, String.valueOf(amount));
+        if(fid!=null)paramMap.put(FID,fid);
+        if(cd!=null)paramMap.put(CD, String.valueOf(cd));
         fcdsl.addOther(paramMap);
         return cashValid(fcdsl,httpRequestMethod,authType);
     }
@@ -534,15 +526,17 @@ public class ApipClient extends Client {
     public List<Service> getServiceListByType(String type) {
         List<Service> serviceList;
         Fcdsl fcdsl = new Fcdsl();
-        fcdsl.addNewQuery().addNewTerms().addNewFields(FieldNames.TYPES).addNewValues(type);
+        fcdsl.addNewQuery().addNewMatch().addNewFields(FieldNames.TYPES).addNewValue(type);
+        fcdsl.addNewExcept().addNewTerms().addNewFields(ACTIVE).addNewValues(FALSE);
         serviceList = serviceSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
         return serviceList;
     }
 
-    public List<Service> getServiceListByOwnerAndType(String owner, @Nullable ApiType type) {
+    public List<Service> getServiceListByOwnerAndType(String owner, @Nullable ServiceType type) {
         List<Service> serviceList;
         Fcdsl fcdsl = new Fcdsl();
         fcdsl.addNewQuery().addNewTerms().addNewFields(OWNER).addNewValues(owner);
+        fcdsl.addNewExcept().addNewTerms().addNewFields(CLOSED).addNewValues(TRUE);
         if(type!=null)fcdsl.addNewFilter().addNewMatch().addNewFields(FieldNames.TYPES).setValue(type.name());
         serviceList = serviceSearch(fcdsl, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
         return serviceList;
@@ -933,6 +927,25 @@ public class ApipClient extends Client {
         return (String) data;
     }
 
+    public String circulating(){
+        Object data = requestBase(Circulating, FcClientEvent.RequestBodyType.NONE, null, null, null, null, null, FcClientEvent.ResponseBodyType.STRING, null, null, AuthType.FREE, null, HttpRequestMethod.GET);
+        return (String) data;
+    }
+
+    public String totalSupply(){
+        Object data = requestBase(TotalSupply, FcClientEvent.RequestBodyType.NONE, null, null, null, null, null, FcClientEvent.ResponseBodyType.STRING, null, null, AuthType.FREE, null, HttpRequestMethod.GET);
+        return (String) data;
+    }
+
+    public String richlist(){
+        Object data = requestBase(Richlist, FcClientEvent.RequestBodyType.NONE, null, null, null, null, null, FcClientEvent.ResponseBodyType.STRING, null, null, AuthType.FREE, null, HttpRequestMethod.GET);
+        return (String) data;
+    }
+
+    public String freecashInfo(){
+        Object data = requestBase(FreecashInfo, FcClientEvent.RequestBodyType.NONE, null, null, null, null, null, FcClientEvent.ResponseBodyType.STRING, null, null, AuthType.FREE, null, HttpRequestMethod.GET);
+        return (String) data;
+    }
 //
 //    public String swapRegister(String sid){
 //        fcClientEvent = SwapHallAPIs.swapRegisterPost(apiAccount.getApiUrl(), sid,apiAccount.getVia(),sessionKey);
@@ -1013,7 +1026,7 @@ public class ApipClient extends Client {
     webhookRequestBody.setHookUserId(hookUserId);
 
     newCashListByIds(webhookRequestBody);
-    Object data = apipClient.checkResult();
+    Object data = this.checkResult();
     return DataGetter.getStringMap(data);
 }
     //

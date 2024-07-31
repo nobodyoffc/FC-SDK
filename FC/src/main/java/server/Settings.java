@@ -7,8 +7,8 @@ import clients.esClient.EsTools;
 import clients.redisClient.RedisTools;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import config.ApiProvider;
-import config.ApiType;
-import constants.IndicesNames;
+import config.ServiceType;
+import constants.*;
 import crypto.KeyTools;
 import fch.FchMainNetwork;
 import feip.feipData.Service;
@@ -17,20 +17,18 @@ import appTools.Menu;
 import appTools.Shower;
 import config.ApiAccount;
 import config.Configure;
-import constants.FieldNames;
-import constants.Strings;
-import constants.Values;
 import crypto.CryptoDataByte;
 import crypto.Decryptor;
 import crypto.Encryptor;
 import fcData.AlgorithmId;
-import feip.feipData.serviceParams.Params;
+import feip.feipData.serviceParams.*;
 import javaTools.BytesTools;
 import javaTools.Hex;
 import javaTools.JsonTools;
 import javaTools.http.AuthType;
 import javaTools.http.HttpRequestMethod;
 import org.bitcoinj.core.ECKey;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +36,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,8 +45,9 @@ import java.util.Map;
 
 import static appTools.Inputer.*;
 import static config.Configure.getSymKeyFromPasswordAndNonce;
+import static constants.ApiNames.Version2;
+import static constants.Constants.UserDir;
 import static constants.Strings.*;
-import static javaTools.ObjectTools.listToMap;
 
 public abstract class Settings {
     public static final long DEFAULT_WINDOW_TIME = 1000 * 60 * 5;
@@ -75,22 +75,14 @@ public abstract class Settings {
     private transient JedisPool jedisPool;
     private static String fileName;
     public static String SETTINGS_DOT_JSON = "settings.json";
-    public static Map<String ,FreeApi> freeApiMap;
+    public static Map<ServiceType,List<FreeApi>> freeApiListMap;
 
-    public Settings(Configure config, BufferedReader br, JedisPool jedisPool) {
-        this.config = config;
-        this.br = br;
-        this.jedisPool = jedisPool;
-        freeApiMap = listToMap(config.getFreeApipUrlList(),URL_HEAD);
-
+    public Settings(Configure configure) {
+        if(configure!=null) {
+            this.config = configure;
+            freeApiListMap = configure.getFreeApiListMap();
+        }
     }
-
-    public Settings(Configure config, BufferedReader br) {
-        this.config = config;
-        this.br = br;
-    }
-
-    public Settings() {}
 
     public static ApipClient getFreeApipClient(){
         return getFreeApipClient(null);
@@ -98,12 +90,14 @@ public abstract class Settings {
     public static ApipClient getFreeApipClient(BufferedReader br){
         ApipClient apipClient = new ApipClient();
         ApiAccount apipAccount = new ApiAccount();
-        if(freeApiMap ==null) freeApiMap = new HashMap<>();
-        for(String url : freeApiMap.keySet()){
-            apipAccount.setApiUrl(url);
+
+        List<FreeApi> freeApiList = freeApiListMap.get(ServiceType.APIP);
+
+        for(FreeApi freeApi : freeApiList){
+            apipAccount.setApiUrl(freeApi.getUrlHead());
             apipClient.setApiAccount(apipAccount);
-            apipClient.setUrlHead(url);
-            if(apipClient.pingFree())
+            apipClient.setUrlHead(freeApi.getUrlHead());
+            if((boolean) apipClient.ping(Version2,HttpRequestMethod.GET,AuthType.FREE, ServiceType.APIP))
                 return apipClient;
         }
         if(br !=null) {
@@ -112,9 +106,9 @@ public abstract class Settings {
                     String url = fch.Inputer.inputString(br, "Input the urlHead of the APIP service:");
                     apipAccount.setApiUrl(url);
                     apipClient.setApiAccount(apipAccount);
-                    if (apipClient.pingFree()) {
-                        FreeApi freeApi = new FreeApi(url,true);
-                        freeApiMap.put(url,freeApi);
+                    if ((boolean) apipClient.ping(Version2,HttpRequestMethod.GET,AuthType.FREE, ServiceType.APIP)) {
+                        FreeApi freeApi = new FreeApi(url,true, ServiceType.APIP);
+                        freeApiList.add(freeApi);
                         return apipClient;
                     }
                 } while (askIfYes(br, "Failed to ping this APIP Service. Try more?"));
@@ -231,25 +225,26 @@ public abstract class Settings {
     protected void setInitForClient(String fid, Configure config, BufferedReader br) {
         this.config= config;
         this.br= br;
-        freeApiMap = listToMap(config.getFreeApipUrlList(),URL_HEAD);
+        freeApiListMap = config.getFreeApiListMap();
         this.mainFid = fid;
         if(bestHeightMap==null)bestHeightMap=new HashMap<>();
     }
 
     public abstract Service initiateServer(String sid, byte[] symKey, Configure config, BufferedReader br);
-    public Service getMyService(String sid, byte[] symKey, Configure config, BufferedReader br, ApipClient apipClient, Class<?> paramsClass, ApiType apiType) {
-        return getMyService(sid, symKey, config, br, apipClient,null,paramsClass, apiType);
+    public Service getMyService(String sid, byte[] symKey, Configure config, BufferedReader br, ApipClient apipClient, Class<?> paramsClass, ServiceType serviceType) {
+        return getMyService(sid, symKey, config, br, apipClient,null,paramsClass, serviceType);
     }
-    public Service getMyService(String sid, byte[] symKey, Configure config, BufferedReader br, ElasticsearchClient esClient,  Class<?> paramsClass, ApiType apiType) {
-        return getMyService(sid, symKey, config, br, null,esClient,paramsClass, apiType);
+    public Service getMyService(String sid, byte[] symKey, Configure config, BufferedReader br, ElasticsearchClient esClient,  Class<?> paramsClass, ServiceType serviceType) {
+        return getMyService(sid, symKey, config, br, null,esClient,paramsClass, serviceType);
     }
-    public Service getMyService(String sid, byte[] symKey, Configure config, BufferedReader br, ApipClient apipClient, ElasticsearchClient esClient, Class<?> paramsClass, ApiType apiType) {
+    public Service getMyService(String sid, byte[] symKey, Configure config, BufferedReader br, ApipClient apipClient, ElasticsearchClient esClient, Class<?> paramsClass, ServiceType serviceType) {
+        System.out.println("Get my service...");
         Service service = null;
         if(sid ==null) {
-            String owner = chooseOne(config.getOwnerList(), "Choose the owner:", br);
+            String owner = chooseOne(config.getOwnerList(), null, "Choose the owner:", br);
             if (owner == null)
                 owner = config.addOwner(br);
-            service = config.chooseOwnerService(owner, symKey, apiType, esClient, apipClient);
+            service = config.chooseOwnerService(owner, symKey, serviceType, esClient, apipClient);
         }else {
             try {
                 if(esClient !=null)
@@ -264,14 +259,20 @@ public abstract class Settings {
         }
 
         if(service==null)return null;
-        Params params = (Params) Params.getParamsFromService(service, paramsClass);
-        if(params==null)return service;
+        Params params;
+        switch (serviceType) {
+            case APIP -> params = (ApipParams) Params.getParamsFromService(service, paramsClass);
+            case DISK -> params = (DiskParams) Params.getParamsFromService(service, paramsClass);
+            case SWAP_HALL -> params = (SwapHallParams) Params.getParamsFromService(service, paramsClass);
+            default -> params = (Params) Params.getParamsFromService(service, paramsClass);
+        }
+        if (params == null) return service;
         service.setParams(params);
         this.sid = service.getSid();
-        mainFid = params.getAccount();
+        this.mainFid = params.getAccount();
         if(config.getFidCipherMap().get(mainFid)==null)
             config.addUser(mainFid, symKey);
-        mainFidPriKeyCipher = config.getFidCipherMap().get(mainFid);
+        this.mainFidPriKeyCipher = config.getFidCipherMap().get(mainFid);
         return service;
     }
 
@@ -283,13 +284,15 @@ public abstract class Settings {
             Menu.anyKeyToContinue(br);
         }
         else this.sid = sid;
-        freeApiMap = listToMap(config.getFreeApipUrlList(),URL_HEAD);
+        freeApiListMap = config.getFreeApiListMap();
     }
 
-    protected void writeParamsToRedis(String sid, Params params, JedisPool jedisPool, Class<? extends Params> tClass) {
+    protected void writeServiceToRedis(Service service, JedisPool jedisPool, Class<? extends Params> paramsClass) {
         try(Jedis jedis = jedisPool.getResource()) {
-            String key = Settings.addSidBriefToName(sid,PARAMS);
-            RedisTools.writeToRedis(params, key,jedis,tClass);
+            String key = Settings.addSidBriefToName(service.getSid(),SERVICE);
+            RedisTools.writeToRedis(service, key,jedis,service.getClass());
+            String paramsKey = Settings.addSidBriefToName(sid,PARAMS);
+            RedisTools.writeToRedis(service.getParams(), paramsKey,jedis,paramsClass);
         }
     }
 
@@ -377,20 +380,20 @@ public abstract class Settings {
     }
 
     @Nullable
-    public ApiAccount checkFcAccount(String accountId, ApiType apiType, Configure config, byte[] symKey,ApipClient apipClient) {
+    public ApiAccount checkFcAccount(String accountId, ServiceType serviceType, Configure config, byte[] symKey, ApipClient apipClient) {
         ApiAccount fcApiAccount;
         if(accountId ==null) {
-            ApiProvider apiProvider = config.selectFcApiProvider((ApipClient)apipAccount.getClient(),apiType);
+            ApiProvider apiProvider = config.selectFcApiProvider((ApipClient)apipAccount.getClient(), serviceType);
             if(apiProvider==null)return null;
             config.getApiProviderMap().put(apiProvider.getId(),apiProvider);
-            apiProvider.setType(apiType);
-            fcApiAccount = config.chooseApiProvidersAccount(apiProvider,symKey,apipClient);
+            apiProvider.setType(serviceType);
+            fcApiAccount = config.chooseApiProvidersAccount(apiProvider, mainFid, symKey,apipClient);
         }else {
             fcApiAccount = config.getApiAccountMap().get(accountId);
             fcApiAccount.setApipClient((ApipClient) apipAccount.getClient());
             Object result = fcApiAccount.connectApi(config.getApiProviderMap().get(fcApiAccount.getProviderId()), symKey);
             if(result==null) {
-                if( Inputer.askIfYes(this.br,"Failed to connected the "+apiType+" server. Continue?")){
+                if( Inputer.askIfYes(this.br,"Failed to connected the "+ serviceType +" server. Continue?")){
                     return null;
                 }else {
                     System.exit(0);
@@ -398,7 +401,7 @@ public abstract class Settings {
             }
             fcApiAccount.setClient(result);
         }
-        return checkIfMainFidIsApiAccountUser(symKey,config,br,fcApiAccount);
+        return checkIfMainFidIsApiAccountUser(symKey,config,br,fcApiAccount, mainFid);
     }
 
 //
@@ -501,9 +504,23 @@ public abstract class Settings {
 //    }
 
     public String chooseFid(Configure config, BufferedReader br, byte[] symKey) {
-        String fid = fch.Inputer.chooseOne(config.getFidCipherMap().keySet().toArray(new String[0]), "Choose fid:",br);
+        String fid = fch.Inputer.chooseOne(config.getFidCipherMap().keySet().toArray(new String[0]), null, "Choose fid:",br);
         if(fid==null)fid =config.addUser(symKey);
         return fid;
+    }
+
+    public void inputListenPath(BufferedReader br){
+        while(true) {
+            try {
+                listenPath = promptAndSet(br, FieldNames.LISTEN_PATH, this.listenPath);
+                if(listenPath!=null){
+                    if(new File(listenPath).exists())return;
+                }
+                System.out.println("A listenPath is necessary to wake up the order scanning. \nGenerally it can be set to the blocks path.");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public abstract void inputAll(BufferedReader br);
@@ -542,8 +559,8 @@ public abstract class Settings {
                     if(newSymKey==null)break;
                     symKey = newSymKey;
                 }
-                case 2 -> config.addApiProviderAndConnect(symKey,apipClient);
-                case 3 -> config.addApiAccount(symKey, apipClient);
+                case 2 -> config.addApiProviderAndConnect(symKey,null,apipClient);
+                case 3 -> config.addApiAccount(null, symKey, apipClient);
                 case 4 -> config.updateApiProvider(symKey,apipClient);
                 case 5 -> config.updateApiAccount(config.chooseApiProviderOrAdd(config.getApiProviderMap(), apipClient),symKey,apipClient);
                 case 6 -> config.deleteApiProvider(symKey,apipClient);
@@ -649,7 +666,7 @@ public abstract class Settings {
 //        }
 //    }
 
-    public ApiAccount checkIfMainFidIsApiAccountUser(byte[] symKey, Configure config, BufferedReader br, ApiAccount apiAccount) {
+    public ApiAccount checkIfMainFidIsApiAccountUser(byte[] symKey, Configure config, BufferedReader br, ApiAccount apiAccount, String userFid) {
         String apiAccountId = apiAccount.getId();
         if(mainFid==null)return apiAccount;
 
@@ -661,10 +678,11 @@ public abstract class Settings {
         }else{
             if(askIfYes(br,"Your service account "+mainFid+" is not the user of the API account "+apiAccount.getUserId()+". \nReset API account?")){
                 while(true) {
-                    apiAccount = config.getApiAccount(symKey, ApiType.APIP,null);
+                    apiAccount = config.getApiAccount(symKey, userFid, ServiceType.APIP,null);
                     if(mainFid.equals(apiAccount.getUserId())){
                         mainFidPriKeyCipher = config.getApiAccountMap().get(apiAccountId).getUserPriKeyCipher();
                         if(paidAccountList ==null) paidAccountList = new ArrayList<>();
+                        this.apipAccount = apiAccount;
                         paidAccountList.add(apipAccount);
                         break;
                     }
@@ -684,10 +702,10 @@ public abstract class Settings {
 //    public abstract Object resetDefaultApi(byte[] symKey, ApiType apiType);
     public abstract void resetApis(byte[] symKey,JedisPool jedisPool,ApipClient apipClient);
 
-    public void resetApi(byte[] symKey, ApipClient apipClient, ApiType type) {
+    public void resetApi(byte[] symKey, ApipClient apipClient, ServiceType type) {
         System.out.println("Reset default API service...");
         ApiProvider apiProvider = config.chooseApiProviderOrAdd(config.getApiProviderMap(), type, apipClient);
-        ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, symKey, apipClient);
+        ApiAccount apiAccount = config.chooseApiProvidersAccount(apiProvider, mainFid, symKey, apipClient);
         if (apiAccount != null) {
             Object client = apiAccount.connectApi(config.getApiProviderMap().get(apiAccount.getProviderId()), symKey, br, null);
             if (client != null) {
@@ -822,6 +840,97 @@ public abstract class Settings {
 
     public void setEsAccountId(String esAccountId) {
         this.esAccountId = esAccountId;
+    }
+
+    @NotNull
+    public String makeWebhookNewCashListListenPath() {
+        return System.getProperty(UserDir) + "/" + Settings.addSidBriefToName(sid, ApiNames.NewCashByFids);
+    }
+
+    protected void inputFromWebhook(BufferedReader br) {
+        try {
+            fromWebhook = promptAndSet(br, FieldNames.FROM_WEBHOOK,this.fromWebhook);
+            if(fromWebhook==null)fromWebhook=true;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected void inputForbidFreeApi(BufferedReader br) {
+        try {
+            setForbidFreeApi(promptAndSet(br, FieldNames.FORBID_FREE_API, this.isForbidFreeApi()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected void updateForbidFreeApi(BufferedReader br) {
+        try {
+            setForbidFreeApi(promptAndSet(br, FieldNames.FORBID_FREE_API, this.isForbidFreeApi()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        saveSettings(mainFid);
+        System.out.println("It's '"+ isForbidFreeApi() +"' now.");
+        Menu.anyKeyToContinue(br);
+    }
+
+
+    protected void checkListenPath(BufferedReader br)  {
+        if(fromWebhook)listenPath = makeWebhookNewCashListListenPath();
+        else inputListenPath(br);
+    }
+
+    protected void inputWindowTime(BufferedReader br) {
+        try {
+            if(windowTime==null || windowTime==0)windowTime = 3000L;
+            windowTime = promptAndUpdate(br, WINDOW_TIME,this.windowTime);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected void updateWindowTime(BufferedReader br) {
+        try {
+            if(windowTime==0)windowTime = 3000L;
+            windowTime = promptAndUpdate(br, WINDOW_TIME,this.windowTime);
+            saveSettings(mainFid);
+            System.out.println("It's '"+windowTime+"' now.");
+            Menu.anyKeyToContinue(br);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected void updateListenPath(BufferedReader br) {
+        try {
+            listenPath = promptAndUpdate(br, FieldNames.LISTEN_PATH,this.listenPath);
+            saveSettings(mainFid);
+            System.out.println("It's '"+listenPath+"' now.");
+            Menu.anyKeyToContinue(br);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean isForbidFreeApi() {
+        return forbidFreeApi;
+    }
+
+    public void setForbidFreeApi(boolean forbidFreeApi) {
+        this.forbidFreeApi = forbidFreeApi;
+    }
+
+    protected void updateFromWebhook(BufferedReader br)  {
+        try {
+            fromWebhook = promptAndSet(br, FieldNames.FROM_WEBHOOK,this.fromWebhook);
+            if(Boolean.TRUE.equals(fromWebhook))listenPath = makeWebhookNewCashListListenPath();
+            saveSettings(mainFid);
+            System.out.println("It's '"+fromWebhook +"' now.");
+            Menu.anyKeyToContinue(br);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public String getRedisAccountId() {

@@ -1,19 +1,20 @@
 package server;
 
-import config.ApiType;
+import config.ServiceType;
 
 public class FreeApi {
     private String urlHead;
     private Boolean active;
     private String sid;
-    private ApiType apiType;
+    private ServiceType serviceType;
 
     public FreeApi() {
     }
 
-    public FreeApi(String urlHead,Boolean active) {
+    public FreeApi(String urlHead, Boolean active, ServiceType serviceType) {
         this.active = active;
         this.urlHead = urlHead;
+        this.serviceType = serviceType;
     }
 
     public String getUrlHead() {
@@ -40,11 +41,11 @@ public class FreeApi {
         this.sid = sid;
     }
 
-    public ApiType getApiType() {
-        return apiType;
+    public ServiceType getApiType() {
+        return serviceType;
     }
 
-    public void setApiType(ApiType apiType) {
-        this.apiType = apiType;
+    public void setApiType(ServiceType serviceType) {
+        this.serviceType = serviceType;
     }
 }

@@ -106,7 +106,7 @@ public class Counter implements Runnable {
                 if(!file.exists()||file.length()==0){
                     while(true) {
                         if (Inputer.askIfYes(br, "No balance in redis and files. Import from file?")) {
-                            String importFileName = Inputer.inputString(br, "Input the path and file name");
+                            String importFileName = Inputer.inputString(br, "Input the path and file name:");
                             File file1 = new File(importFileName);
                             if(!file1.exists()){
                                 System.out.println("File does not exist. Try again.");
@@ -137,16 +137,6 @@ public class Counter implements Runnable {
         }
         return true;
     }
-
-//    public static void updateBalance(String sid, String apiName, long bytesLength, FcReplier replier, RequestCheckResult result, JedisPool jedisPool) {
-//        try(Jedis jedis = jedisPool.getResource()) {
-//            if (Boolean.TRUE.equals(result.getFreeRequest())) return;
-//            long balance = updateBalance(sid, apiName, result.getFid(), bytesLength, result.getSessionName(), result.getVia(), jedis);
-//            replier.setBalance(String.valueOf(balance));
-//        }
-//    }
-
-//    public static long updateBalance(String sid, String api, String fid, FcReplier replier, String sessionName, String via, JedisPool jedisPool) {
 
     public AtomicBoolean isRunning(){
         return running;
@@ -254,7 +244,7 @@ protected void waitNewOrder() {
         List<Cash> cashList;
         if(fromWebhook){
             if(!isDirectoryEmpty(new File(this.listenPath)))
-                cashList=getNewCashListFromFile(lastHeight);
+                cashList=getNewCashListFromFile(lastHeight,this.listenPath);
             else return;
         } else{
             if(apipClient!=null)
@@ -267,16 +257,15 @@ protected void waitNewOrder() {
         }
     }
 
-    protected List<Cash> getNewCashListFromFile(long lastHeight) {
+    protected List<Cash> getNewCashListFromFile(long lastHeight,String listenPath) {
         String method = ApiNames.NewCashByFids;
         long bestHeight=lastHeight;
         List<Cash> allCashList = new ArrayList<>();
 
         int i=0;
         File file;
-        String newOrderDir = System.getProperty(UserDir) + Settings.addSidBriefToName(sid,method);
         while (true) {
-            file = new File(newOrderDir, method+i+DOT_JSON);
+            file = new File(listenPath, method+i+DOT_JSON);
             if(!file.exists())break;
             if(file.length()==0)return null;
             try(FileInputStream fis = new FileInputStream(file)){
@@ -549,7 +538,7 @@ protected void waitNewOrder() {
         }
     }
 
-    public void shutdown() {
+    public void close() {
         running.set(false);
     }
     public void restart(){

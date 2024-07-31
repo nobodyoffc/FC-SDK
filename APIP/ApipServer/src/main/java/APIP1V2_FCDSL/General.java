@@ -40,7 +40,7 @@ public class General extends HttpServlet {
         FcReplier replier = new FcReplier(sid,response);
 
         try (Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
             if (requestCheckResult == null) {
                 return;
             }
@@ -52,7 +52,7 @@ public class General extends HttpServlet {
 
             if ( meetList== null) return;
             replier.setGot((long) meetList.size());
-            replier.reply0Success(meetList, jedis);
+            replier.reply0Success(meetList, jedis, null);
         }
 
     }

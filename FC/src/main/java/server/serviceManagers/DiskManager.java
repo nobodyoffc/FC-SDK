@@ -7,6 +7,7 @@ import feip.feipData.serviceParams.Params;
 import config.ApiAccount;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 
 public class DiskManager extends ServiceManager {
 
@@ -17,12 +18,14 @@ public class DiskManager extends ServiceManager {
 
     @Override
     protected Params inputParams(byte[] symKey, BufferedReader br) {
-        DiskParams diskParams = new DiskParams((ApipClient) apipAccount.getClient());
-        diskParams.inputParams(br, symKey);
+        DiskParams diskParams = new DiskParams();
+        diskParams.inputParams(br, symKey,(ApipClient) apipAccount.getClient());
         return diskParams;
     }
 
     @Override
-    protected void updateParams(Params serviceParams, BufferedReader br, byte[] symKey) {
+    protected void updateParams(Params params, BufferedReader br, byte[] symKey) {
+        DiskParams diskParams = (DiskParams) params;
+        diskParams.updateParams(br,symKey);
     }
 }

@@ -835,7 +835,7 @@ public class TxCreator {
         String urlHead = apiAccount.getApiUrl();
         System.out.println("Getting cashes from " + urlHead + " ...");
         ApipClient apipClient = (ApipClient) apiAccount.getClient();
-        List<Cash> cashList =apipClient.cashValidForPay(HttpRequestMethod.POST, sender, sum + ((double) fee / COIN_TO_SATOSHI), AuthType.FC_SIGN_BODY);
+        List<Cash> cashList =apipClient.cashValid(sender, sum + ((double) fee / COIN_TO_SATOSHI),null,HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
 
 //        if (apipClientData.checkResponse() != 0) {
 //            System.out.println("Failed to get cashes." + apipClientData.getMessage() + apipClientData.getResponseBody().getData());

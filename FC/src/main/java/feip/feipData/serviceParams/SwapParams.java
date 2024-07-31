@@ -48,7 +48,6 @@ public class SwapParams extends Params {
     public SwapParams() {
     }
 
-    @Override
     public void inputParams(BufferedReader br, byte[] symKey) {
         this.goods = Inputer.inputString(br,"Input the name of the goods:");
         this.money = Inputer.inputString(br,"Input the name of the money:");
@@ -64,7 +63,6 @@ public class SwapParams extends Params {
         this.serviceFee = Inputer.inputDoubleAsString(br,"Input the fee for the owner:");
     }
 
-    @Override
     public void updateParams(BufferedReader br, byte[] symKey) {
         priKeyCipher = null;
         System.out.println("The goods address is " + gAddr);
@@ -96,21 +94,6 @@ public class SwapParams extends Params {
         }
         return params;
     }
-//    public String inputParams(BufferedReader br, byte[] initSymKey){
-//        this.goods = Inputer.inputString(br,"Input the name of the goods:");
-//        this.money = Inputer.inputString(br,"Input the name of the money:");
-//        this.gTick = Inputer.inputString(br,"Input the tick of the goods:");
-//        this.mTick = Inputer.inputString(br,"Input the tick of the money:");
-//        String priKeyCipher = setAddrs(br, initSymKey);
-//        this.curve = Inputer.inputString(br,"Input the curve formula of the AMM:");
-//        this.gConfirm = Inputer.inputIntegerStr(br,"Input the required confirmation for goods payment:");
-//        this.mConfirm = Inputer.inputIntegerStr(br,"Input the required confirmation for money payment:");
-//        this.gWithdrawFee = Inputer.inputDoubleAsString(br,"Input the fee charged when withdrawing goods from LP:");
-//        this.mWithdrawFee = Inputer.inputDoubleAsString(br,"Input the fee charged when withdrawing money from LP:");
-//        this.swapFee = Inputer.inputDoubleAsString(br,"Input the fee charged for LPs:");
-//        this.serviceFee = Inputer.inputDoubleAsString(br,"Input the fee for the owner:");
-//        return priKeyCipher;
-//    }
 
     @Nullable
     private String setAddrs(BufferedReader br, byte[] initSymKey) {
@@ -123,7 +106,8 @@ public class SwapParams extends Params {
                 Menu.anyKeyToContinue(br);
                 return null;
             }
-            priKeyCipher = EccAes256K1P7.encryptWithSymKey(ecKey.getPrivKeyBytes(), initSymKey.clone());
+            byte[] priKey = ecKey.getPrivKeyBytes();
+            priKeyCipher = EccAes256K1P7.encryptWithSymKey(priKey, initSymKey.clone());
             setAddr(ecKey, true,gTick);
             setAddr(ecKey,false, mTick);
             Shower.printUnderline(10);

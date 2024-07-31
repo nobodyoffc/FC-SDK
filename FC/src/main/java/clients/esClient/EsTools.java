@@ -424,8 +424,8 @@ public class EsTools {
     }
 
     public static <T> BulkResponse bulkWriteList(ElasticsearchClient esClient
-            , String indexT, ArrayList<T> tList
-            , ArrayList<String> idList
+            , String indexT, List<T> tList
+            , List<String> idList
             , Class<T> classT) throws Exception {
         if (tList.isEmpty()) return null;
         BulkResponse response = null;

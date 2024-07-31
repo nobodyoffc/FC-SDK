@@ -6,6 +6,7 @@ import appTools.Inputer;
 import appTools.Menu;
 import appTools.Shower;
 import clients.apipClient.*;
+import config.ServiceType;
 import config.Configure;
 import constants.ApiNames;
 import crypto.EncryptType;
@@ -38,13 +39,8 @@ import static fch.Inputer.inputGoodFid;
 
 public class StartApipClient {
     public static final int DEFAULT_SIZE = 20;
-    private static String fid;
-    private static CidInfo fidInfo;
     private static BufferedReader br;
     private static ApipClient apipClient;
-    private static String userPriKeyCipher;
-    private static long bestHeight;
-    private static ApipClientSettings settings;
 
     public static void main(String[] args) {
         br = new BufferedReader(new InputStreamReader(System.in));
@@ -55,29 +51,29 @@ public class StartApipClient {
 
         byte[] symKey = configure.checkPassword(configure);
 
-        fid = configure.chooseMainFid(symKey);
+        String fid = configure.chooseMainFid(symKey);
 
-        settings = ApipClientSettings.loadFromFile(fid,ApipClientSettings.class);//new ApipClientSettings(configure,br);
-        if(settings==null) settings = new ApipClientSettings();
+        ApipClientSettings settings = ApipClientSettings.loadFromFile(fid, ApipClientSettings.class);//new ApipClientSettings(configure,br);
+        if(settings ==null) settings = new ApipClientSettings(configure);
         settings.initiateClient(fid, symKey,configure,br);
 
         if(settings.getApipAccount()!=null)
             apipClient = (ApipClient) settings.getApipAccount().getClient();
 
-        bestHeight = new Wallet(apipClient).getBestHeight();
-        fidInfo = settings.checkFidInfo(apipClient,br);
-        userPriKeyCipher = configure.getFidCipherMap().get(fid);
+        Long bestHeight = new Wallet(apipClient).getBestHeight();
+        CidInfo fidInfo = settings.checkFidInfo(apipClient, br);
+        String userPriKeyCipher = configure.getFidCipherMap().get(fid);
 
-        if(fidInfo!=null && fidInfo.getCid()==null){
+        if(fidInfo !=null && fidInfo.getCid()==null){
             if(fch.Inputer.askIfYes(br,"No CID yet. Set CID?")){
-                setCid(fid,userPriKeyCipher,bestHeight, symKey,apipClient,br);
+                setCid(fid, userPriKeyCipher, bestHeight, symKey,apipClient,br);
                 return;
             }
         }
 
-        if(fidInfo!=null &&fidInfo.getMaster()==null){
+        if(fidInfo !=null && fidInfo.getMaster()==null){
             if(fch.Inputer.askIfYes(br,"No master yet. Set master for this FID?")){
-                setMaster(fid,userPriKeyCipher,bestHeight, symKey,apipClient,br);
+                setMaster(fid, userPriKeyCipher, bestHeight, symKey,apipClient,br);
                 return;
             }
         }
@@ -96,7 +92,7 @@ public class StartApipClient {
         menuItemList.add("Publish");
         menuItemList.add("Wallet");
         menuItemList.add("Crypto");
-        menuItemList.add("SwapTools");
+        menuItemList.add("Endpoint");
         menuItemList.add("Settings");
 
         menu.add(menuItemList);
@@ -117,8 +113,8 @@ public class StartApipClient {
                 case 9 -> publish();
                 case 10 -> wallet();
                 case 11 -> crypto();
-//                case 12 -> swapTools();
-//                case 13 -> setting(symKey);
+                case 12 -> endpoint();
+                case 13 -> settings.setting(symKey, br);
                 case 0 -> {
                     BytesTools.clearByteArray(symKey);
                     BytesTools.clearByteArray(apipClient.getSessionKey());
@@ -179,20 +175,19 @@ public class StartApipClient {
         while (true) {
             Menu menu = new Menu();
             menu.setName("Free GET methods");
-            menu.add(ApiNames.FreeGetAPIs);
+            menu.add(ApiNames.FreeAPIs);
             menu.show();
             int choice = menu.choose(br);
 
             switch (choice) {
-                case 1 -> apipClient.pingFree();
+                case 1 -> ping();
                 case 2 -> chainInfo();
                 case 3 -> getService();
                 case 4 -> fidCidSeek();
                 case 5 -> getFidCid();
                 case 6 -> getAvatar();
                 case 7 -> cashValid(DEFAULT_SIZE, "valid:desc->birthHeight:desc->cashId:asc");
-//                case 8 -> broadcast();
-
+                case 8 -> broadcastTx(HttpRequestMethod.GET,AuthType.FREE);
                 case 0 -> {
                     return;
                 }
@@ -200,65 +195,14 @@ public class StartApipClient {
         }
     }
 
-//    public static void broadcast() {
-//        System.out.println("Input the rawTx:");
-//        String rawTx = Inputer.inputString(br);
-//        System.out.println("Broadcasting...");
-//        ApipClientEvent diskClientData = apipClient.broadcast(rawTx);
-//        System.out.println(diskClientData.getResponseBodyStr());
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void cashListGet() {
-//        String id = inputGoodFid(br, "Input the FID:");
-//        System.out.println("Getting cashes...");
-//        ApipClientEvent diskClientData = FreeGetAPIs.getCashes( id, 0);
-//        System.out.println(diskClientData.getResponseBodyStr());
-//        JsonTools.gsonPrint(DataGetter.getCashList(diskClientData.getResponseBody().getData()));
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void getApps() {
-//        System.out.println("Input the aid or enter to ignore:");
-//        String id = Inputer.inputString(br);
-//        if ("".equals(id)) id = null;
-//        System.out.println("Getting APPs...");
-//        ApipClientEvent diskClientData = FreeGetAPIs.getApps( id);
-//        System.out.println(diskClientData.getResponseBodyStr());
-//        ;
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void getServices() {
-//        System.out.println("Input the sid or enter to ignore:");
-//        String id = Inputer.inputString(br);
-//        if ("".equals(id)) id = null;
-//        System.out.println("Getting services...");
-//        ApipClientEvent diskClientData = FreeGetAPIs.getServices( id);
-//        System.out.println(diskClientData.getResponseBodyStr());
-//        ;
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void getTotals() {
-//        System.out.println("Getting totals...");
-//        ApipClientEvent diskClientData = FreeGetAPIs.getTotals(apipAccount.getApiUrl());
-//        System.out.println(diskClientData.getResponseBodyStr());
-//        ;
-//        Menu.anyKeyToContinue(br);
-//    }
-//
-//    public static void getFreeService() {
-//        System.out.println("Getting the free service and the sessionKey...");
-//        ApipClientEvent diskClientData = FreeGetAPIs.getFreeService(apipAccount.getApiUrl());
-//        System.out.println(diskClientData.getResponseBodyStr());
-//        ;
-//        Menu.anyKeyToContinue(br);
-//    }
-//
+    private static void ping() {
+        boolean data = (boolean) apipClient.ping(Version2,HttpRequestMethod.GET,AuthType.FREE, ServiceType.APIP);
+        System.out.println(data);
+    }
+
     public static void getService() {
         System.out.println("Getting the default service information...");
-        FcReplier replier = ApipClient.getService(apipClient.getUrlHead(), ApipParams.class, ApiNames.Version2);
+        FcReplier replier = ApipClient.getService(apipClient.getUrlHead(), ApiNames.Version2, ApipParams.class);
         if(replier!=null)JsonTools.printJson(replier);
         else System.out.println("Failed to get service.");
         Menu.anyKeyToContinue(br);
@@ -1320,7 +1264,7 @@ public class StartApipClient {
             int choice = menu.choose(br);
 
             switch (choice) {
-                case 1 -> broadcastTx();
+                case 1 -> broadcastTx(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
                 case 2 -> decodeTx();
                 case 3 -> cashValidForPay();
                 case 4 -> cashValidForCd();
@@ -1335,7 +1279,7 @@ public class StartApipClient {
         }
     }
 
-    public static void broadcastTx() {
+    public static void broadcastTx(HttpRequestMethod httpRequestMethod, AuthType authType) {
         String txHex;
         while (true) {
             System.out.println("Input the hex of the TX:");
@@ -1344,7 +1288,7 @@ public class StartApipClient {
             System.out.println("It's not a hex. Try again.");
         }
         System.out.println("Requesting ...");
-        apipClient.broadcastTx(txHex,HttpRequestMethod.POST,  AuthType.FC_SIGN_BODY);
+        apipClient.broadcastTx(txHex, httpRequestMethod, authType);
         JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
         Menu.anyKeyToContinue(br);
     }
@@ -1375,7 +1319,7 @@ public class StartApipClient {
         Double amount = Inputer.inputDouble(br, "Input the amount:");
         if (amount == null) return;
         System.out.println("Requesting ...");
-        apipClient.cashValidForPay(fid, amount, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        apipClient.cashValid(fid, amount, null, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
         JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
         Menu.anyKeyToContinue(br);
     }
@@ -1391,7 +1335,7 @@ public class StartApipClient {
         }
         long cd = Inputer.inputLong(br, "Input the required CD:");
         System.out.println("Requesting ...");
-        apipClient.cashValidForCd(fid, cd, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
+        apipClient.cashValid(fid, null,cd, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
         JsonTools.printJson(apipClient.getFcClientEvent().getResponseBody());
         Menu.anyKeyToContinue(br);
     }
@@ -1416,7 +1360,7 @@ public class StartApipClient {
         while (true) {
             Menu menu = new Menu();
             menu.setName("CryptoTools");
-            menu.add(ApiNames.CryptoToolsAPIs);
+            menu.add(ApiNames.CryptoAPIs);
             menu.show();
             int choice = menu.choose(br);
 
@@ -1455,7 +1399,7 @@ public class StartApipClient {
         if ("".equals(msg)) return;
         String key=null;
         String fid=null;
-        EncryptType type = Inputer.chooseOne(EncryptType.values(),"Choose the type of encrypting:",br);
+        EncryptType type = Inputer.chooseOne(EncryptType.values(), null, "Choose the type of encrypting:",br);
         switch (type){
             case Password -> {
                 System.out.println("Input the password no more than 64 chars. Enter to exit:");
@@ -1606,6 +1550,25 @@ public class StartApipClient {
         Menu.anyKeyToContinue(br);
     }
 
+    public static void endpoint( ) {
+        while (true) {
+            Menu menu = new Menu();
+            menu.setName("Endpoint");
+            menu.add(EndpointAPIs);
+            menu.show();
+            int choice = menu.choose(br);
+
+            switch (choice) {
+                case 1 -> System.out.println(apipClient.totalSupply());
+                case 2 -> System.out.println(apipClient.circulating());
+                case 3 -> System.out.println(apipClient.richlist());
+                case 4 -> System.out.println(apipClient.freecashInfo());
+                case 0 -> {
+                    return;
+                }
+            }
+        }
+    }
 //
 //    public static void swapTools( ) {
 //        System.out.println("SwapTools...");
@@ -1730,7 +1693,7 @@ public class StartApipClient {
 //        Menu.anyKeyToContinue(br);
 //    }
 //
-//    public static void setting( byte[] symKey)) {
+//    public static void setting( byte[] symKey) {
 //        System.out.println("Setting...");
 //        while (true) {
 //            Menu menu = new Menu();
@@ -1740,7 +1703,7 @@ public class StartApipClient {
 //            int choice = menu.choose(br);
 //
 //            switch (choice) {
-//                case 1 -> checkApip(apipAccount);
+//                case 1 -> checkApip();
 //                case 2 -> resetApip(apipAccount, br);
 //                case 3 -> sessionKey = refreshSessionKey(symKey);
 //                case 4 -> {
@@ -1795,7 +1758,7 @@ public class StartApipClient {
 //        return signInEccPost(symKey, RequestBody.SignInMode.REFRESH);
 //    }
 //
-//    public static void checkApip(ApiAccount initApiAccount)) {
+//    public static void checkApip(ApiAccount initApiAccount) {
 //        Shower.printUnderline(20);
 //        System.out.println("Apip Service:");
 //        String urlHead = initApiAccount.getApiUrl();
@@ -1803,8 +1766,8 @@ public class StartApipClient {
 //        String via = initApiAccount.getVia();
 //
 //        System.out.println("Requesting ...");
-//        ApipClientEvent diskClientData = ConstructAPIs.serviceByIdsPost(urlHead, ids, via, sessionKey);
-//        System.out.println(diskClientData.getResponseBodyStr());
+//        ApipClientEvent apipClientEvent = apipClient.serviceByIds(HttpRequestMethod.POST,AuthType.FC_SIGN_BODY,ids);//ConstructAPIs.serviceByIdsPost(urlHead, ids, via, sessionKey);
+//        System.out.println(apipClientEvent.getResponseBodyStr());
 //
 //        Shower.printUnderline(20);
 //        System.out.println("User Params:");

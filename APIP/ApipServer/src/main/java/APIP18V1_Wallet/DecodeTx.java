@@ -3,7 +3,6 @@ package APIP18V1_Wallet;
 import constants.ApiNames;
 import fcData.FcReplier;
 import initial.Initiator;
-import javaTools.Hex;
 import javaTools.http.AuthType;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -37,7 +36,7 @@ public class DecodeTx extends HttpServlet {
             Object result = Initiator.naSaRpcClient.decodeRawTransaction(rawTx);
 
             if(result==null)return;
-            replier.reply0Success(result, jedis);
+            replier.reply0Success(result, jedis, null);
         }
     }
 }

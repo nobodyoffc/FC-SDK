@@ -11,15 +11,13 @@
     <modules>
         <module>FC</module>
         <module>Freeverse</module>
-        <module>ChatServer</module>
-        <module>Post</module>
-        <module>Team</module>
-        <module>Disk</module>
+        <module>ImServer</module>
+        <module>FCSP</module>
         <module>World</module>
         <module>APIP</module>
-        <module>Swap</module>
         <module>Home</module>
         <module>Office</module>
+        <module>FCSP/TalkServer</module>
 
     </modules>
 

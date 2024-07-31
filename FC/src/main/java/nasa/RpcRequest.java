@@ -56,7 +56,10 @@ public class RpcRequest {
             if (rpcResponse.isBadResult(method)) badResponse = true;
         }
 
-        return badResponse ? null : rpcResponse.getResult();
+        String error ;
+        if(rpcResponse.getError()!=null)error= rpcResponse.getError().getCode() + ":" + rpcResponse.getError().getMessage();
+        else error = "Unknown error from NasaRPC.";
+        return badResponse ? error : rpcResponse.getResult();
     }
 
     public String toJson() {

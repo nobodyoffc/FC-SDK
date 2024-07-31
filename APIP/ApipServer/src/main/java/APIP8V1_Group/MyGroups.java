@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static constants.FieldNames.*;
-import static constants.Strings.HEIGHT;
 import static server.FcdslRequestHandler.doRequestForList;
 
 @WebServlet(name = ApiNames.MyGroups, value = "/"+ApiNames.SN_8+"/"+ApiNames.Version2 +"/"+ApiNames.MyGroups)
@@ -52,7 +51,7 @@ public class MyGroups extends HttpServlet {
                 data.setMemberNum(group.getMemberNum());
                 dataList.add(data);
             }
-            replier.reply0Success(dataList, jedis);
+            replier.reply0Success(dataList, jedis, null);
         }
     }
 }

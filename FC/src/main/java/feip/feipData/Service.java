@@ -1,5 +1,14 @@
 package feip.feipData;
 
+import com.google.gson.Gson;
+import feip.feipData.serviceParams.DiskParams;
+import jakarta.json.Json;
+import javaTools.JsonTools;
+import javaTools.ObjectTools;
+import javaTools.StringTools;
+
+import java.util.Map;
+
 public class Service {
 
 	protected String sid;
@@ -25,7 +34,39 @@ public class Service {
 	protected boolean active;
 	protected boolean closed;
 	protected String closeStatement;
-	
+
+	public static <T> Service fromMap(Map<String, String> map, Class<T> paramsClass) {
+		Service service = new Service();
+
+		service.sid = map.get("sid");
+		service.stdName = map.get("stdName");
+		service.localNames = StringTools.splitString(map.get("localNames"));
+		service.desc = map.get("desc");
+		service.types = StringTools.splitString(map.get("types"));
+		service.urls = StringTools.splitString(map.get("urls"));
+		service.waiters = StringTools.splitString(map.get("waiters"));
+		service.protocols = StringTools.splitString(map.get("protocols"));
+		service.services = StringTools.splitString(map.get("services"));
+		service.codes = StringTools.splitString(map.get("codes"));
+		String paramsStr = map.get("params");
+		service.params = new Gson().fromJson(paramsStr,paramsClass);
+
+		service.owner = map.get("owner");
+
+		service.birthTime = StringTools.parseLong(map.get("birthTime"));
+		service.birthHeight = StringTools.parseLong(map.get("birthHeight"));
+		service.lastTxId = map.get("lastTxId");
+		service.lastTime = StringTools.parseLong(map.get("lastTime"));
+		service.lastHeight = StringTools.parseLong(map.get("lastHeight"));
+		service.tCdd = StringTools.parseLong(map.get("tCdd"));
+		service.tRate = StringTools.parseFloat(map.get("tRate"));
+		service.active = StringTools.parseBoolean(map.get("active"));
+		service.closed = StringTools.parseBoolean(map.get("closed"));
+		service.closeStatement = map.get("closeStatement");
+
+		return service;
+	}
+
 	public String getSid() {
 		return sid;
 	}

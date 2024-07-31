@@ -8,11 +8,13 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLDecoder;
@@ -28,10 +30,10 @@ public class HttpTools {
 
     public static String getApiNameFromUrl(String url) {
         int lastSlashIndex = url.lastIndexOf('/');
-        int firstQuestionIndex = url.indexOf('?');
         if (lastSlashIndex == -1 || lastSlashIndex == url.length() - 1)return null;
-
         String name = url.substring(lastSlashIndex + 1);
+
+        int firstQuestionIndex = name.indexOf('?');
         if(firstQuestionIndex!=-1){
             name = name.substring(0,firstQuestionIndex);
         }
@@ -108,6 +110,16 @@ public class HttpTools {
             throw new RuntimeException(e);
         }
         return httpResponse;
+    }
+
+    @NotNull
+    public static String getEntireUrl(HttpServletRequest request) {
+        String url = request.getRequestURL().toString();
+        String queryString = request.getQueryString();
+        if (queryString != null) {
+            url += "?" + queryString;
+        }
+        return url;
     }
 
 //    public static String parseApiName(String url) {

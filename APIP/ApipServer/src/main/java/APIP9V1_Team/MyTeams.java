@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static constants.FieldNames.*;
-import static constants.Strings.HEIGHT;
 import static server.FcdslRequestHandler.doRequestForList;
 
 @WebServlet(name = ApiNames.MyTeams, value = "/"+ApiNames.SN_9+"/"+ApiNames.Version2 +"/"+ApiNames.MyTeams)
@@ -53,7 +52,7 @@ public class MyTeams extends HttpServlet {
                 data.setTid(team.getTid());
                 dataList.add(data);
             }
-            replier.reply0Success(dataList, jedis);
+            replier.reply0Success(dataList, jedis, null);
         }
     }
 }

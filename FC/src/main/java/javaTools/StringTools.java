@@ -42,4 +42,28 @@ public class StringTools {
     public static String getTempName() {
         return Strings.TEMP + Hex.toHex(BytesTools.getRandomBytes(3));
     }
+
+    public static String[] splitString(String str) {
+        return (str != null) ? str.split(",") : new String[0];
+    }
+
+    public static long parseLong(String str) {
+        try {
+            return Long.parseLong(str);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    public static float parseFloat(String str) {
+        try {
+            return Float.parseFloat(str);
+        } catch (NumberFormatException e) {
+            return 0.0f;
+        }
+    }
+
+    public static boolean parseBoolean(String str) {
+        return Boolean.parseBoolean(str);
+    }
 }

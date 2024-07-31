@@ -5,7 +5,6 @@ import feip.feipData.DataOnChain;
 import feip.feipData.Service;
 import feip.feipData.ServiceData;
 import feip.feipData.serviceParams.Params;
-import feip.feipData.serviceParams.SwapParams;
 import appTools.Menu;
 import appTools.Shower;
 import com.google.gson.Gson;
@@ -20,7 +19,6 @@ import java.util.ArrayList;
 
 import static clients.apipClient.ApipClient.checkBalance;
 
-//TODO The methods of inputParams and updateParams have to be override.
 public abstract class ServiceManager {
     protected Service service;
     protected ApiAccount apipAccount;
@@ -35,14 +33,6 @@ public abstract class ServiceManager {
         this.paramsClass = paramsClass;
         this.apipAccount =apipAccount;
     }
-//    public ServiceManager(ApiAccount apipAccount,Class<?> paramsClass) {
-//        this.apipAccount = apipAccount;
-//        this.paramsClass = paramsClass;
-//    }
-//
-//    public ServiceManager(Class<?> paramsClass) {
-//        this.paramsClass = paramsClass;
-//    }
 
     protected abstract Params inputParams(byte[] symKey, BufferedReader br);
 
@@ -134,7 +124,7 @@ public abstract class ServiceManager {
 
     private static DataOnChain setFcInfoForService() {
         DataOnChain dataOnChain = new DataOnChain();
-        dataOnChain.setType("feip");
+        dataOnChain.setType("FEIP");
         dataOnChain.setSn("5");
         dataOnChain.setVer("2");
         dataOnChain.setName("Service");
@@ -163,10 +153,9 @@ public abstract class ServiceManager {
             data.updateServiceHead(br,symKey, (ApipClient) apipAccount.getClient());
         else data.updateServiceHead(br);
 
-        SwapParams serviceParams = (SwapParams) data.getParams();
+        Params serviceParams = (Params) data.getParams();
 
         updateParams(serviceParams,br,symKey);
-
 
         dataOnChain.setData(data);
 
@@ -177,7 +166,6 @@ public abstract class ServiceManager {
 
         Menu.anyKeyToContinue(br);
     }
-
 
 
     private void serviceToServiceData(Service service, ServiceData data) {
@@ -252,4 +240,5 @@ public abstract class ServiceManager {
     public void setParamsClass(Class<?> paramsClass) {
         this.paramsClass = paramsClass;
     }
+
 }

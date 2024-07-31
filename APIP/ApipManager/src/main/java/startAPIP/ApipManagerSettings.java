@@ -5,26 +5,21 @@ import clients.apipClient.ApipClient;
 import clients.redisClient.RedisTools;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import config.ApiAccount;
-import config.ApiType;
+import config.ServiceType;
 import config.Configure;
 import constants.ApiNames;
 import constants.FieldNames;
-import constants.Strings;
 import feip.feipData.Service;
 import feip.feipData.serviceParams.ApipParams;
-import feip.feipData.serviceParams.Params;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import server.Settings;
 import server.order.Order;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 
-import static appTools.Inputer.chooseOne;
 import static constants.Constants.UserDir;
-import static constants.Constants.UserHome;
 import static constants.FieldNames.SETTINGS;
 
 public class ApipManagerSettings extends Settings {
@@ -33,10 +28,8 @@ public class ApipManagerSettings extends Settings {
     private String avatarPngPath = System.getProperty(UserDir)+"/avatar/png";
     private Boolean ignoreOpReturn;
 
-    public ApipManagerSettings(Configure config, BufferedReader br, JedisPool jedisPool) {
-        super(config, br, jedisPool);
-    }
-    public ApipManagerSettings() {
+    public ApipManagerSettings(Configure configure) {
+        super(configure);
     }
 
     public Service initiateServer(String sid, byte[] symKey, Configure config, BufferedReader br) {
@@ -44,22 +37,22 @@ public class ApipManagerSettings extends Settings {
 
         setInitForServer(sid, config, br);
 
-        esAccount = config.checkAPI(esAccountId,ApiType.ES,symKey);//checkApiAccount(esAccountId, ApiType.ES, config, symKey, null);
+        esAccount = config.checkAPI(esAccountId, mainFid, ServiceType.ES,symKey);//checkApiAccount(esAccountId, ApiType.ES, config, symKey, null);
         if(esAccount.getClient()!=null)esAccountId = esAccount.getId();
         else System.out.println("No ES service.");
 
-        nasaAccount = config.checkAPI(nasaAccountId,ApiType.NASA_RPC,symKey);//checkApiAccount(nasaAccountId, ApiType.REDIS, config, symKey, null);
+        nasaAccount = config.checkAPI(nasaAccountId, mainFid, ServiceType.NASA_RPC,symKey);//checkApiAccount(nasaAccountId, ApiType.REDIS, config, symKey, null);
         if(nasaAccount.getClient()!=null)nasaAccountId=nasaAccount.getId();
         else System.out.println("No Nasa node RPC service.");
 
-        redisAccount = config.checkAPI(redisAccountId,ApiType.REDIS,symKey);//checkApiAccount(redisAccountId,ApiType.REDIS,config,symKey,null);
+        redisAccount = config.checkAPI(redisAccountId, mainFid, ServiceType.REDIS,symKey);//checkApiAccount(redisAccountId,ApiType.REDIS,config,symKey,null);
         if(redisAccount.getClient()!=null)redisAccountId = redisAccount.getId();
         else System.out.println("No Redis service.");
 
         ElasticsearchClient esClient = (ElasticsearchClient) esAccount.getClient();
-        Service service = getMyService(sid, symKey, config, br, esClient, ApipParams.class, ApiType.APIP);
-
-        writeParamsToRedis(service.getSid(), (Params) service.getParams(),(JedisPool)redisAccount.getClient(), ApipParams.class);
+        Service service = getMyService(sid, symKey, config, br, esClient, ApipParams.class, ServiceType.APIP);
+//        writeParamsToRedis(service.getSid(), (ApipParams) service.getParams(),(JedisPool)redisAccount.getClient(), ApipParams.class);
+        writeServiceToRedis(service,(JedisPool)redisAccount.getClient(), ApipParams.class);
 
         if(listenPath==null)inputListenPath(br);
         if(forbidFreeApi==null)inputForbidFreeApi(br);
@@ -94,7 +87,7 @@ public class ApipManagerSettings extends Settings {
                 case 2 -> updateFromWebhook(br);
                 case 3 -> updateForbidFreeApi(br);
                 case 4 -> updateWindowTime(br);
-                case 5 -> Order.setNPrices(br, ApiNames.diskApiList, sid, (JedisPool) redisAccount.getClient());
+                case 5 -> Order.setNPrices(sid, ApiNames.DiskApiList, (JedisPool) redisAccount.getClient(), br, false);
                 case 0 -> {
                     System.out.println("Restart is necessary to active new settings.");
                     return;
@@ -114,9 +107,9 @@ public class ApipManagerSettings extends Settings {
             menu.show();
             int choice = menu.choose(br);
             switch (choice) {
-                case 1 -> resetApi(symKey, apipClient, ApiType.APIP);
-                case 2 -> resetApi(symKey, apipClient, ApiType.ES);
-                case 3 -> resetApi(symKey, apipClient, ApiType.REDIS);
+                case 1 -> resetApi(symKey, apipClient, ServiceType.APIP);
+                case 2 -> resetApi(symKey, apipClient, ServiceType.ES);
+                case 3 -> resetApi(symKey, apipClient, ServiceType.REDIS);
                 default -> {
                     return;
                 }
@@ -151,43 +144,29 @@ public class ApipManagerSettings extends Settings {
 //        } else System.out.println("Failed to get the apiAccount.");
 //        return client;
 //    }
-
-    public static ApipManagerSettings loadMySettings(String sid, BufferedReader br, JedisPool jedisPool){
-        ApipManagerSettings apipManagerSettings = ApipManagerSettings.loadFromFile(sid,ApipManagerSettings.class);
-        if(apipManagerSettings ==null){
-            apipManagerSettings = new ApipManagerSettings();
-            apipManagerSettings.setSid(sid);
-            apipManagerSettings.br = br;
-            apipManagerSettings.inputAll(br);
-            if(jedisPool!=null)apipManagerSettings.saveSettings(sid);
-            return apipManagerSettings;
-        }else {
-            apipManagerSettings.br = br;
-            if (apipManagerSettings.getWindowTime() == 0)
-                apipManagerSettings.setWindowTime(DEFAULT_WINDOW_TIME);
-        }
-        if(jedisPool!=null)apipManagerSettings.saveSettings(jedisPool);
-        apipManagerSettings.setSid(sid);
-        return apipManagerSettings;
-    }
-    public static ApipManagerSettings loadMySettings(String sid,BufferedReader br){
-        System.out.println("Load local settings...");
-        return loadMySettings(sid,br,null);
-    }
-
-    public void inputListenPath(BufferedReader br){
-        while(true) {
-            try {
-                listenPath = appTools.Inputer.promptAndSet(br, FieldNames.LISTEN_PATH, this.listenPath);
-                if(listenPath!=null){
-                    if(new File(listenPath).exists())return;
-                }
-                System.out.println("A listenPath is necessary to wake up the order scanning. \nGenerally it can be set to the blocks path.");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
+//
+//    public static ApipManagerSettings loadMySettings(String sid, BufferedReader br, JedisPool jedisPool){
+//        ApipManagerSettings apipManagerSettings = ApipManagerSettings.loadFromFile(sid,ApipManagerSettings.class);
+//        if(apipManagerSettings ==null){
+//            apipManagerSettings = new ApipManagerSettings();
+//            apipManagerSettings.setSid(sid);
+//            apipManagerSettings.br = br;
+//            apipManagerSettings.inputAll(br);
+//            if(jedisPool!=null)apipManagerSettings.saveSettings(sid);
+//            return apipManagerSettings;
+//        }else {
+//            apipManagerSettings.br = br;
+//            if (apipManagerSettings.getWindowTime() == 0)
+//                apipManagerSettings.setWindowTime(DEFAULT_WINDOW_TIME);
+//        }
+//        if(jedisPool!=null)apipManagerSettings.saveSettings(jedisPool);
+//        apipManagerSettings.setSid(sid);
+//        return apipManagerSettings;
+//    }
+//    public static ApipManagerSettings loadMySettings(String sid,BufferedReader br){
+//        System.out.println("Load local settings...");
+//        return loadMySettings(sid,br,null);
+//    }
 
     @Override
     public void inputAll(BufferedReader br){
@@ -224,66 +203,6 @@ public class ApipManagerSettings extends Settings {
         writeToFile(mainFid);
         try (Jedis jedis = jedisPool.getResource()) {
             RedisTools.writeToRedis(this, Settings.addSidBriefToName(sid,SETTINGS), jedis, ApipManagerSettings.class);
-        }
-    }
-    private void inputForbidFreeApi(BufferedReader br) {
-        try {
-            forbidFreeApi = appTools.Inputer.promptAndSet(br, FieldNames.FORBID_FREE_API,this.forbidFreeApi);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    private void updateForbidFreeApi(BufferedReader br) {
-        try {
-            forbidFreeApi = appTools.Inputer.promptAndSet(br, FieldNames.FORBID_FREE_API,this.forbidFreeApi);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        saveSettings(mainFid);
-        System.out.println("It's '"+forbidFreeApi+"' now.");
-        Menu.anyKeyToContinue(br);
-    }
-
-    private void inputWindowTime(BufferedReader br) {
-        try {
-            if(windowTime==null || windowTime==0)windowTime = 3000L;
-            windowTime = appTools.Inputer.promptAndUpdate(br, Strings.WINDOW_TIME,this.windowTime);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    private void updateWindowTime(BufferedReader br) {
-        try {
-            if(windowTime==0)windowTime = 3000L;
-            windowTime = appTools.Inputer.promptAndUpdate(br, Strings.WINDOW_TIME,this.windowTime);
-            saveSettings(mainFid);
-            System.out.println("It's '"+windowTime+"' now.");
-            Menu.anyKeyToContinue(br);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void updateListenPath(BufferedReader br) {
-        try {
-            listenPath = appTools.Inputer.promptAndUpdate(br, FieldNames.LISTEN_PATH,this.listenPath);
-            saveSettings(mainFid);
-            System.out.println("It's '"+listenPath+"' now.");
-            Menu.anyKeyToContinue(br);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void updateFromWebhook(BufferedReader br)  {
-        try {
-            fromWebhook = appTools.Inputer.promptAndSet(br, FieldNames.FROM_WEBHOOK,this.fromWebhook);
-            if(fromWebhook)listenPath = System.getProperty(UserHome) + "/" + ApiNames.NewCashByFids;
-            saveSettings(mainFid);
-            System.out.println("It's '"+fromWebhook +"' now.");
-            Menu.anyKeyToContinue(br);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -354,7 +273,7 @@ public class ApipManagerSettings extends Settings {
     }
 
     public Boolean getForbidFreeApi() {
-        return forbidFreeApi;
+        return isForbidFreeApi();
     }
 
     public void setForbidFreeApi(Boolean forbidFreeApi) {
@@ -376,4 +295,5 @@ public class ApipManagerSettings extends Settings {
     public void setIgnoreOpReturn(Boolean ignoreOpReturn) {
         this.ignoreOpReturn = ignoreOpReturn;
     }
+
 }

@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@WebServlet(name = ApiNames.Totals, value = "/"+ApiNames.SN_0+"/"+ApiNames.Version2 +"/"+ApiNames.Totals)
+@WebServlet(name = ApiNames.Totals, value = "/"+ApiNames.Version2 +"/"+ApiNames.Totals)
 public class Totals extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -38,7 +38,7 @@ public class Totals extends HttpServlet {
         FcReplier replier = new FcReplier(sid,response);
         //Check authorization
         try (Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
             if (requestCheckResult == null) {
                 return;
             }
@@ -52,7 +52,7 @@ public class Totals extends HttpServlet {
             }
             replier.setGot((long) allSumMap.size());
             replier.setTotal((long) allSumMap.size());
-            replier.reply0Success(allSumMap, jedis);
+            replier.reply0Success(allSumMap, jedis, null);
         }
     }
 }

@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 
+import static constants.ApiNames.Version1;
 import static constants.Constants.COINBASE;
 import static constants.Constants.COIN_TO_SATOSHI;
 import static constants.FieldNames.*;
@@ -209,7 +210,6 @@ public class Wallet {
             }
         }else if(apipClient!=null){
             apipClient.broadcastTx(txSigned, HttpRequestMethod.POST, AuthType.FC_SIGN_BODY);
-            apipClient.checkResult();
             return apipClient.getFcClientEvent().getResponseBody();
         }else fcReplier.setOtherError("No client to send tx.");
         return fcReplier;
@@ -217,9 +217,9 @@ public class Wallet {
 
     public Double getFeeRate()  {
         if(apipClient!=null)return apipClient.feeRate(HttpRequestMethod.GET, AuthType.FREE);
-        else if(esClient!=null)return calcFeeRate(esClient);
-        else if(nasaClient!=null)return nasaClient.estimateFee(3);
-        else return 0D;
+        if(esClient!=null)return calcFeeRate(esClient);
+        if(nasaClient!=null)return nasaClient.estimateFee(3);
+        return 0.001D;
     }
 
     public static Double calcFeeRate(ElasticsearchClient esClient) {
@@ -236,8 +236,7 @@ public class Wallet {
         expensiveBlock.setFee(0);
         for(Hit<Block> hit :result.hits().hits()){
             Block block = hit.source();
-            if(block.getTxCount()==0) continue;
-
+            if(block==null || block.getTxCount()==0) continue;
             blockList.add(block);
             if (block.getFee()>expensiveBlock.getFee())
                 expensiveBlock = block;
@@ -245,13 +244,14 @@ public class Wallet {
         if(blockList.isEmpty())return 0D;
         blockList.remove(expensiveBlock);
         if(blockList.isEmpty())return 0d;
-        long feeSum=0;
-        long netBlockSizeSum = 0;
+        double feeSum=0;
+        double netBlockSizeSum = 0;
         for(Block block :blockList){
             feeSum += block.getFee();
-            netBlockSizeSum += block.getSize()-Constants.EMPTY_BLOCK_SIZE;
+            netBlockSizeSum += (block.getSize()-Constants.EMPTY_BLOCK_SIZE);
         }
-        return  (double) (feeSum / netBlockSizeSum) /1000;
+        if(feeSum==0 || (double) (netBlockSizeSum /20) < 0.7*Constants.M_BYTES)return Constants.MIN_FEE_RATE;
+        return  Math.max((double) (feeSum / netBlockSizeSum) /1000,Constants.MIN_FEE_RATE);
     }
 
     public void mergeCashList(List<Cash> cashList, byte[] priKey) {
@@ -502,7 +502,7 @@ public class Wallet {
             if(nasaClient!=null)return nasaClient.getBestHeight();
             if(esClient!=null)return getBestHeight(esClient);
             if (apipClient != null) {
-                apipClient.ping();
+                apipClient.ping(Version1,HttpRequestMethod.POST,AuthType.FC_SIGN_BODY, null);
                 return apipClient.getFcClientEvent().getResponseBody().getBestHeight();
             }
         }catch (Exception ignore){}

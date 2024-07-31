@@ -43,7 +43,7 @@ public class FidCidSeek extends HttpServlet {
         FcReplier replier = new FcReplier(sid,response);
         //Check authorization
         try (Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
             if (requestCheckResult == null) {
                 return;
             }
@@ -80,7 +80,7 @@ public class FidCidSeek extends HttpServlet {
             }
             replier.setGot((long) addrCidsMap.size());
             replier.setTotal((long) addrCidsMap.size());
-            replier.reply0Success(addrCidsMap, jedis);
+            replier.reply0Success(addrCidsMap, jedis, null);
         }
     }
 }

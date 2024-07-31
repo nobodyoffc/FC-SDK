@@ -3,7 +3,6 @@ package APIP3V1_CidInfo;
 import avatar.AvatarMaker;
 import constants.ApiNames;
 import constants.ReplyCodeMessage;
-import constants.Strings;
 import fcData.FcReplier;
 import initial.Initiator;
 import javaTools.http.AuthType;
@@ -24,8 +23,8 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-import static constants.Strings.WEB_PARAMS;
-import static server.Settings.addSidBriefToName;
+import static initial.Initiator.avatarElementsPath;
+import static initial.Initiator.avatarPngPath;
 
 @WebServlet(name = ApiNames.Avatars, value = "/"+ApiNames.SN_3+"/"+ApiNames.Version2 +"/"+ApiNames.Avatars)
 public class Avatars extends HttpServlet {
@@ -44,7 +43,7 @@ public class Avatars extends HttpServlet {
         FcReplier replier = new FcReplier(sid,response);
         //Check authorization
         try (Jedis jedis = jedisPool.getResource()) {
-            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis);
+            RequestCheckResult requestCheckResult = RequestChecker.checkRequest(sid, request, replier, authType, jedis, false);
             if (requestCheckResult == null) {
                 return;
             }
@@ -58,13 +57,6 @@ public class Avatars extends HttpServlet {
                 replier.replyOtherError("No qualified FID.",null,jedis);
                 return;
             }
-
-            String avatarElementsPath;
-            String avatarPngPath;
-            avatarElementsPath = jedis.hget(addSidBriefToName(sid,WEB_PARAMS),Strings.AVATAR_ELEMENTS_PATH);
-            avatarPngPath = jedis.hget(addSidBriefToName(sid,WEB_PARAMS),Strings.AVATAR_PNG_PATH);
-            if (!avatarPngPath.endsWith("/")) avatarPngPath = avatarPngPath + "/";
-            if (!avatarElementsPath.endsWith("/")) avatarElementsPath = avatarElementsPath + "/";
 
             AvatarMaker.getAvatars(addrs, avatarElementsPath, avatarPngPath);
 
@@ -83,7 +75,7 @@ public class Avatars extends HttpServlet {
             replier.setGot((long) addrPngBase64Map.size());
             replier.setTotal((long) addrPngBase64Map.size());
 
-            replier.reply0Success(addrPngBase64Map,jedis);
+            replier.reply0Success(addrPngBase64Map,jedis, null);
         }
     }
 }

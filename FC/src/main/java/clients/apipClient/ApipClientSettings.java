@@ -1,7 +1,7 @@
 package clients.apipClient;
 
 import appTools.Menu;
-import config.ApiType;
+import config.ServiceType;
 import config.Configure;
 import feip.feipData.Service;
 import redis.clients.jedis.JedisPool;
@@ -10,6 +10,9 @@ import server.Settings;
 import java.io.BufferedReader;
 
 public class ApipClientSettings extends Settings {
+    public ApipClientSettings(Configure configure) {
+        super(configure);
+    }
 
 
 //    public ApipClientSettings(String fid, byte[] symKey) {
@@ -28,15 +31,15 @@ public class ApipClientSettings extends Settings {
 
         mainFidPriKeyCipher = config.getFidCipherMap().get(mainFid);
 
-        apipAccount = config.checkAPI(apipAccountId,ApiType.APIP,symKey);//checkApiAccount(apipAccountId,ApiType.APIP , config, symKey, null);
-        checkIfMainFidIsApiAccountUser(symKey,config,br,apipAccount);
+        apipAccount = config.checkAPI(apipAccountId, mainFid, ServiceType.APIP,symKey);//checkApiAccount(apipAccountId,ApiType.APIP , config, symKey, null);
+        checkIfMainFidIsApiAccountUser(symKey,config,br,apipAccount, mainFid);
         if(apipAccount.getClient()!=null)apipAccountId=apipAccount.getId();
         else System.out.println("No APIP service or failed to get APIP client.");
 
         saveSettings(mainFid);
         config.saveConfig();
         System.out.println("APIP client settings initiated.");
-        return null;
+        return mainFid;
     }
 
     @Override
@@ -68,7 +71,7 @@ public class ApipClientSettings extends Settings {
             menu.show();
             int choice = menu.choose(br);
             switch (choice) {
-                case 1 -> resetApi(symKey, apipClient, ApiType.APIP);
+                case 1 -> resetApi(symKey, apipClient, ServiceType.APIP);
                 default -> {
                     return;
                 }

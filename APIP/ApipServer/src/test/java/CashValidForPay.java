@@ -81,6 +81,6 @@ public class CashValidForPay extends HttpServlet {
         replier.setData(meetList);
         replier.setGot((long) meetList.size());
         replier.setTotal(cashListReturn.getTotal());
-        replier.reply0Success(meetList,jedis);
+        replier.reply0Success(meetList,jedis, null);
     }
 }

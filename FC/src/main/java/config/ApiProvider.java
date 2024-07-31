@@ -8,7 +8,6 @@ import fcData.FcReplier;
 import feip.feipData.serviceParams.ApipParams;
 import feip.feipData.serviceParams.DiskParams;
 import feip.feipData.serviceParams.Params;
-import feip.feipData.serviceParams.SwapParams;
 import clients.apipClient.ApipClient;
 import feip.feipData.Service;
 import appTools.Inputer;
@@ -18,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import server.FreeApi;
 import server.Settings;
 
 import java.io.BufferedReader;
@@ -26,15 +26,17 @@ import java.util.List;
 
 import static appTools.Inputer.askIfYes;
 import static appTools.Inputer.promptAndUpdate;
-import static config.ApiType.ES;
-import static config.ApiType.REDIS;
+import static config.ServiceType.ES;
+import static config.ServiceType.REDIS;
+import static constants.Strings.URL_HEAD;
 import static constants.Ticks.FCH;
 
 
 public class ApiProvider {
     private static final Logger log = LoggerFactory.getLogger(ApiProvider.class);
     private String id;
-    private ApiType type;
+    private String name;
+    private ServiceType type;
     private String orgUrl;
     private String docUrl;
     private String apiUrl;
@@ -43,30 +45,32 @@ public class ApiProvider {
     private String[] ticks;
     private transient Service service;
     private transient Params apiParams;
+//    private transient List<FreeApi> freeApiList;
 
     public ApiProvider() {}
-    public boolean fromFcService(Service service) {
+    public boolean fromFcService(Service service, Class<?extends Params> tClass) {
         if(service==null)return false;
         this.id =service.getSid();
-        Params params = Params.getParamsFromService(service, Params.class);
+        this.name = service.getStdName();
+        Params params = Params.getParamsFromService(service, tClass);
         if(params==null) return false;
         this.apiUrl=params.getUrlHead();
         this.owner=service.getOwner();
         for(String type : service.getTypes()){
             try{
-                this.type=ApiType.valueOf(type);
+                this.type= ServiceType.valueOf(type);
                 break;
             }catch (Exception ignore){};
         }
         if(service.getUrls().length>0)this.orgUrl=service.getUrls()[0];
-        if(service.getProtocols().length>0)this.protocols=service.getProtocols();
+        if(service.getProtocols()!=null && service.getProtocols().length>0)this.protocols=service.getProtocols();
         this.apiParams=Params.getParamsFromService(service,Params.class);
         this.service=service;
         return true;
     }
 
     @Nullable
-    public static ApiProvider apiProviderFromFcService(Service service,ApiType type) {
+    public static ApiProvider apiProviderFromFcService(Service service, ServiceType type) {
         if(service==null)return null;
         ApiProvider apiProvider = new ApiProvider();
         apiProvider.setId(service.getSid());
@@ -74,7 +78,6 @@ public class ApiProvider {
         switch (type){
             case APIP -> params = Params.getParamsFromService(service, ApipParams.class);
             case DISK -> params = Params.getParamsFromService(service, DiskParams.class);
-            case SWAP -> params = Params.getParamsFromService(service, SwapParams.class);
         }
 
         if(params==null) return null;
@@ -82,7 +85,7 @@ public class ApiProvider {
         apiProvider.setOwner(service.getOwner());
         for(String typeStr : service.getTypes()){
             try{
-                apiProvider.setType(ApiType.valueOf(typeStr));
+                apiProvider.setType(ServiceType.valueOf(typeStr));
                 break;
             }catch (Exception ignore){};
         }
@@ -95,30 +98,18 @@ public class ApiProvider {
         return apiProvider;
     }
 
-    public static ApiProvider searchFcApiProvider(ApipClient initApipClient, ApiType apiType) {
-        List<Service> serviceList = initApipClient.getServiceListByType(apiType.toString().toLowerCase());
+    public static ApiProvider searchFcApiProvider(ApipClient initApipClient, ServiceType serviceType) {
+        List<Service> serviceList = initApipClient.getServiceListByType(serviceType.toString().toLowerCase());
         Service service = Configure.selectService(serviceList);
         if(service==null)return null;
-        return apiProviderFromFcService(service,apiType);
+        return apiProviderFromFcService(service, serviceType);
     }
-
-//
-//    public void initiate(){
-//        sid = "";
-//        type = ApiType.APIP;
-//        orgUrl = "";
-//        docUrl = "";
-//        apiUrl = "";
-//        owner = "";
-//        protocol = "";
-//        ticks = new String[]{""};
-//    }
 
     private void inputOwner(BufferedReader br) throws IOException {
         this.owner = Inputer.promptAndSet(br, "API owner", this.owner);
     }
-    public ApiProvider makeFcProvider(ApiType apiType,ApipClient apipClient){
-        List<Service> serviceList = apipClient.getServiceListByType(apiType.toString());
+    public ApiProvider makeFcProvider(ServiceType serviceType, ApipClient apipClient){
+        List<Service> serviceList = apipClient.getServiceListByType(serviceType.toString());
         Service service = Configure.selectService(serviceList);
         if(service==null)return null;
         return apiProviderFromFcService(service,type);
@@ -127,17 +118,20 @@ public class ApiProvider {
     public void makeApipProvider(BufferedReader br) {
         apiUrl = Inputer.inputString(br,"Input the urlHead of the APIP service. Enter to choose a default one");
         if("".equals(apiUrl)) {
-            apiUrl = Inputer.chooseOne(Settings.freeApiMap,"Choose an default APIP service:",br);
+            List<FreeApi> freeApiList = Settings.freeApiListMap.get(ServiceType.APIP);
+            FreeApi freeApi = Inputer.chooseOne(freeApiList, URL_HEAD, "Choose an default APIP service:", br);
+            apiUrl = freeApi.getUrlHead();
             if(apiUrl==null)return;
         }
 
-        FcReplier replier = Client.getService(apiUrl, ApipParams.class, ApiNames.Version2);//OpenAPIs.getService(apiUrl);
+        FcReplier replier = Client.getService(apiUrl, ApiNames.Version2, ApipParams.class);//OpenAPIs.getService(apiUrl);
         if(replier==null||replier.getData()==null)return;
         service = (Service) replier.getData();
         apiParams = (Params) service.getParams();
         System.out.println("Got the service:");
         JsonTools.printJson(service);
         id = service.getSid();
+        name = service.getStdName();
         owner = service.getOwner();
         protocols = service.getProtocols();
         ticks = new String[]{"fch"};
@@ -150,10 +144,10 @@ public class ApiProvider {
     }
 
 
-    public void makeApiProvider(BufferedReader br, ApiType apiType,@Nullable ApipClient apipClient) {
+    public void makeApiProvider(BufferedReader br, ServiceType serviceType, @Nullable ApipClient apipClient) {
         try  {
-            if(apiType==null)inputType(br);
-            else type =apiType;
+            if(serviceType ==null)inputType(br);
+            else type = serviceType;
 
             switch (type){
                 case APIP -> makeApipProvider(br);
@@ -163,20 +157,23 @@ public class ApiProvider {
                         inputTicks(br);
                     }while(this.ticks==null|| ticks.length==0);
                     id = makeNasaId();
+                    name=id;
                 }
                 case ES -> {
                     inputApiURL(br,"http://127.0.0.1:9200");
                     id = makeSimpleId(ES);
+                    name=id;
                 }
                 case REDIS -> {
                     inputApiURL(br, "http://127.0.0.1:6379");
                     id = makeSimpleId(REDIS);
+                    name=id;
                 }
                 case DISK -> {
                     if(apipClient==null)throw new RuntimeException("The initial APIP client is null.");
-                    List<Service> serviceList = apipClient.getServiceListByType(apiType.toString());
+                    List<Service> serviceList = apipClient.getServiceListByType(serviceType.toString());
                     Service service = Configure.selectService(serviceList);
-                    boolean done = fromFcService(service);
+                    boolean done = fromFcService(service, DiskParams.class);
                     if(!done) System.out.println("Failed to make provider from on-chain service information.");
                 }
                 default -> {
@@ -186,6 +183,8 @@ public class ApiProvider {
                     inputDocUrl(br);
                     inputOwner(br);
                     inputProtocol(br);
+                    id = makeSimpleId(serviceType);
+                    name=id;
                 }
             }
         } catch (IOException e) {
@@ -198,7 +197,7 @@ public class ApiProvider {
     }
 
     @NotNull
-    private String makeSimpleId(ApiType type) {
+    private String makeSimpleId(ServiceType type) {
         return type.name() + "@" + apiUrl;
     }
 
@@ -218,9 +217,9 @@ public class ApiProvider {
         }
     }
 
-    private ApiType inputType(BufferedReader br) throws IOException {
-        ApiType[] choices = ApiType.values();
-        type = Inputer.chooseOne(choices,"Choose the type of API provider:",br);
+    private ServiceType inputType(BufferedReader br) throws IOException {
+        ServiceType[] choices = ServiceType.values();
+        type = Inputer.chooseOne(choices, null, "Choose the type of API provider:",br);
 //
 //        for(int i=0;i<choices.length;i++){
 //            System.out.println((i+1)+" "+choices[i].name());
@@ -260,17 +259,17 @@ public class ApiProvider {
     public void updateAll(BufferedReader br) {
         try {
             if(this.type==null)
-                    this.type = Inputer.chooseOne(ApiType.values(),"Choose the type:",br);//ApiType.valueOf(promptAndUpdate(br, "type ("+ Arrays.toString(ApiType.values())+")", String.valueOf(this.type)));
+                    this.type = Inputer.chooseOne(ServiceType.values(), null, "Choose the type:",br);//ApiType.valueOf(promptAndUpdate(br, "type ("+ Arrays.toString(ApiType.values())+")", String.valueOf(this.type)));
             else if(askIfYes(br,"The type is "+this.type+". Update it? "))
-                this.type = Inputer.chooseOne(ApiType.values(),"Choose the type:",br);
+                this.type = Inputer.chooseOne(ServiceType.values(), null, "Choose the type:",br);
 
             switch (this.type){
-                case APIP,DISK->{
+                case APIP, DISK ->{
                     if(Inputer.askIfYes(br,"The apiUrl is "+apiUrl+". Update it?")) {
                         apiUrl = Inputer.inputString(br, "Input the urlHead of the APIP service:");
                     }
                     if(apiUrl==null)return;
-                    FcReplier replier = ApipClient.getService(apiUrl, ApipParams.class, ApiNames.Version2);//OpenAPIs.getService(apiUrl);
+                    FcReplier replier = ApipClient.getService(apiUrl, ApiNames.Version2, ApipParams.class);//OpenAPIs.getService(apiUrl);
 
                     if(replier==null||replier.getData()==null)return;
                     service = (Service) replier.getData();
@@ -317,11 +316,11 @@ public class ApiProvider {
         this.id = id;
     }
 
-    public ApiType getType() {
+    public ServiceType getType() {
         return type;
     }
 
-    public void setType(ApiType type) {
+    public void setType(ServiceType type) {
         this.type = type;
     }
 
@@ -388,4 +387,20 @@ public class ApiProvider {
     public String[] getProtocols() {
         return protocols;
     }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+//    public List<FreeApi> getFreeApiList() {
+//        return freeApiList;
+//    }
+//
+//    public void setFreeApiList(List<FreeApi> freeApiList) {
+//        this.freeApiList = freeApiList;
+//    }
 }

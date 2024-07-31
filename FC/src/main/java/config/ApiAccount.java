@@ -8,7 +8,7 @@ import appTools.Menu;
 import clients.ApiUrl;
 import clients.Client;
 import clients.apipClient.ApipClient;
-import clients.diskClient.DiskClient;
+import clients.fcspClient.DiskClient;
 import clients.esClient.EsClientMaker;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.cat.IndicesResponse;
@@ -43,9 +43,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
-import static appTools.Inputer.chooseOne;
-import static appTools.Inputer.promptAndUpdate;
+import static appTools.Inputer.*;
+import static constants.ApiNames.*;
 import static constants.Constants.APIP_Account_JSON;
 import static constants.Constants.COIN_TO_SATOSHI;
 import static crypto.KeyTools.priKeyToFid;
@@ -138,8 +139,8 @@ public class ApiAccount {
             case ES -> connectEs(symKey);
             case REDIS -> connectRedis();
             case DISK -> connectDisk(apiProvider,symKey);
-            case SWAP -> null;
             case OTHER -> connectOtherApi(apiProvider, symKey);
+            default -> connectOtherApi(apiProvider, symKey);
         };
     }
 
@@ -252,7 +253,7 @@ public class ApiAccount {
         return esClientMaker.esClient;
     }
 
-    private DiskClient connectDisk(ApiProvider apiProvider, byte[] symKey, BufferedReader br,ApipClient apipClient) {
+    private DiskClient connectDisk(ApiProvider apiProvider, byte[] symKey, BufferedReader br, ApipClient apipClient) {
 
         DiskClient diskClient;
         if(client==null){
@@ -262,17 +263,23 @@ public class ApiAccount {
         }
         else diskClient = (DiskClient) client;
 
-        if(!apiProvider.getType().equals(ApiType.DISK)){
+        if(!apiProvider.getType().equals(ServiceType.DISK)){
             System.out.println("It's not Disk provider.");
-            if(Inputer.askIfYes(br,"Reset the type of apiProvider to "+ ApiType.DISK +"?")){
-                apiProvider.setType(ApiType.DISK);
+            if(Inputer.askIfYes(br,"Reset the type of apiProvider to "+ ServiceType.DISK +"?")){
+                apiProvider.setType(ServiceType.DISK);
             }else return null;
             return null;
         }
 
-        if(!checkDiskProvider(apiProvider,apiUrl,apipClient)){
+//        if(!checkDiskProvider(apiProvider)){
+//            log.debug("Failed to get service from {}", apiProvider.getApiUrl());
+//            System.out.println("Failed to get Disk service.");
+//            Menu.anyKeyToContinue(br);
+//            return null;
+//        }
+
+        if(checkFcApiProvider(apiProvider, ServiceType.DISK,DiskParams.class, apipClient)==null){
             log.debug("Failed to get service from {}", apiProvider.getApiUrl());
-            System.out.println("Failed to get Disk service.");
             Menu.anyKeyToContinue(br);
             return null;
         }
@@ -281,9 +288,9 @@ public class ApiAccount {
             System.out.println("Set requester priKey...");
             inputPriKeyCipher(symKey,br);
         }
-        String signInPath = ApiUrl.makeUrlTailPath(ApiNames.SN_0,ApiNames.Version1);
+
         byte[] sessionKey1 =
-                checkSessionKey(symKey,signInPath,apiProvider.getType());
+                checkSessionKey(symKey, apiProvider.getType());
 
         if(sessionKey1==null) return null;
 
@@ -293,7 +300,7 @@ public class ApiAccount {
 
         log.debug("Connected to the Disk service: " + providerId + " on " + apiUrl);
 //        DiskClient diskClient = new DiskClient(apiProvider,this,symKey,apipClient);
-        return  diskClient;
+        return diskClient;
     }
 
 
@@ -301,15 +308,15 @@ public class ApiAccount {
         DiskClient diskClient;
         if(client==null) {
             diskClient = new DiskClient(apiProvider, this, symKey, apipClient);
-            client=diskClient;
+            client= diskClient;
         } else diskClient = (DiskClient) client;
 
-        if(!apiProvider.getType().equals(ApiType.DISK)){
+        if(!apiProvider.getType().equals(ServiceType.DISK)){
             log.error("It's not DISK provider.");
             return null;
         }
 
-        if(checkFcApiProvider(apiProvider,apipClient,ApiType.DISK,DiskParams.class)==null){
+        if(checkFcApiProvider(apiProvider, ServiceType.DISK,DiskParams.class, apipClient)==null){
             log.debug("Failed to get service from {}", apiProvider.getApiUrl());
             return null;
         }
@@ -318,8 +325,8 @@ public class ApiAccount {
             log.error("Set DISK requester priKey...");
             return null;
         }
-        String signInPath = ApiUrl.makeUrlTailPath(ApiNames.SN_0, ApiNames.Version1);
-        byte[] sessionKey1 = checkSessionKey(symKey,signInPath, apiProvider.getType());
+        String signInPath = ApiUrl.makeUrlTailPath(ApiNames.SN_0, Version1);
+        byte[] sessionKey1 = checkSessionKey(symKey, apiProvider.getType());
 
         if(sessionKey1==null) return null;
 
@@ -414,7 +421,7 @@ public class ApiAccount {
         }
 
         if (apiAccount.session.getSessionKeyCipher() == null) {
-            sessionKey = apiAccount.freshSessionKey(symKey,ApiNames.APIP0V1Path, ApiType.APIP, null);
+            sessionKey = apiAccount.freshSessionKey(symKey, ServiceType.APIP, null);
             if (sessionKey == null) return null;
             revised = true;
         }
@@ -456,7 +463,7 @@ public class ApiAccount {
         System.out.println();
         System.out.println("Set the APIP service buyer(requester)...");
         apiAccount.inputPriKeyCipher(br, symKey);
-        sessionKey = apiAccount.freshSessionKey(symKey, ApiNames.APIP0V1Path,ApiType.APIP, null);
+        sessionKey = apiAccount.freshSessionKey(symKey, ServiceType.APIP, null);
         if (sessionKey == null) return null;
 
         writeApipParamsToFile(apiAccount, APIP_Account_JSON);
@@ -464,7 +471,7 @@ public class ApiAccount {
     }
 
     static Service getService(String urlHead) {
-        FcReplier replier = ApipClient.getService(urlHead, ApipParams.class, ApiNames.Version2);
+        FcReplier replier = ApipClient.getService(urlHead, Version2, ApipParams.class);
         if(replier==null)return null;
         Service service = (Service) replier.getData();
         if(service!=null) {
@@ -547,22 +554,34 @@ public class ApiAccount {
         return HexFormat.of().formatHex(Hash.sha256x2(bundleBytes));
     }
 
-    public void inputAll(byte[] symKey, ApiProvider apiProvider,BufferedReader br) {
+    public void inputAll(byte[] symKey, ApiProvider apiProvider, String userFid, Map<String, String> fidPriKeyCipher, BufferedReader br) {
         try  {
             this.providerId =apiProvider.getId();
             this.apiUrl = apiProvider.getApiUrl();
-            ApiType type = apiProvider.getType();
-            if(type==null)type = chooseOne(ApiType.values(),"Choose the type:",br);
+            ServiceType type = apiProvider.getType();
+            if(type==null)type = chooseOne(ServiceType.values(), null, "Choose the type:",br);
 
             switch (type) {
-                case NASA_RPC,ES -> {
+                case ES -> {
+                    if(askIfYes(br,"Set username and password for ES?")) {
+                        inputUsername(br);
+                        inputPasswordCipher(symKey, br);
+                    }
+                }
+                case NASA_RPC -> {
                     inputUsername(br);
                     inputPasswordCipher(symKey, br);
                 }
-                case REDIS -> {}
+                case REDIS -> {
+                    if(askIfYes(br,"Set password for REDIS?")) {
+                        inputPasswordCipher(symKey, br);
+                    }
+                }
                 case APIP, DISK -> {
                     if(providerId ==null)inputSid(br);
-                    inputPriKeyCipher(symKey, br);
+
+                    checkUserCipher(symKey, userFid, fidPriKeyCipher, br);
+
                     while(userName==null) {
                         if(userPriKeyCipher==null)return;
                         byte[] userPriKey = new Decryptor().decryptJsonBySymKey(userPriKeyCipher, symKey).getData();
@@ -590,6 +609,30 @@ public class ApiAccount {
             System.out.println("Invalid number format");
             e.printStackTrace();
         }
+    }
+
+    private void checkUserCipher(byte[] symKey, String userFid, Map<String, String> fidPriKeyCipher, BufferedReader br) {
+        String cipher = null;
+        if(fidPriKeyCipher !=null) {
+            if (userFid != null) cipher = fidPriKeyCipher.get(userFid);
+            if(cipher==null)
+                cipher = chooseUserCipher(symKey, fidPriKeyCipher, br, cipher);
+            if(cipher!=null){
+                this.userPriKeyCipher = cipher;
+                this.userPubKey=makePubKey(this.userPriKeyCipher, symKey);
+            }
+        }
+        if(cipher==null) inputPriKeyCipher(symKey, br);
+    }
+
+    public String chooseUserCipher(byte[] symKey, Map<String, String> fidPriKeyCipher, BufferedReader br, String cipher) {
+        String choice = chooseOne(fidPriKeyCipher, false, null, "Choose the account FID for this service:", br);
+        if(choice!=null) {
+            cipher = fidPriKeyCipher.get(choice);
+            this.userPriKeyCipher = cipher;
+            this.userPubKey = makePubKey(this.userPriKeyCipher, symKey);
+        }
+        return cipher;
     }
 
     private void inputSid(BufferedReader br) throws IOException {
@@ -745,7 +788,7 @@ public class ApiAccount {
 
         payValue = (double) Math.max(price * ApiAccount.orderRequestTimes, minPay) / COIN_TO_SATOSHI;
 
-        List<Cash> cashList  = apipClient.cashValidForPay(HttpRequestMethod.GET,this.userId,payValue,AuthType.FREE);//apipClient.getCashes(apiUrl,this.userId,payValue);
+        List<Cash> cashList  = apipClient.cashValid(this.userId,  payValue,null,HttpRequestMethod.GET,AuthType.FREE);//apipClient.getCashes(apiUrl,this.userId,payValue);
         if(cashList==null)return 0;
         List<SendTo> sendToList = new ArrayList<>();
         SendTo sendTo = new SendTo();
@@ -803,7 +846,7 @@ public class ApiAccount {
 
         payValue = (double) Math.max(price * orderRequestTimes, minPay) / COIN_TO_SATOSHI;
 
-        List<Cash> cashList = apipClient.cashValidForPay(HttpRequestMethod.GET,this.userId,payValue,AuthType.FREE);//apipClient.getCashes(apiUrl,this.userId,payValue);
+        List<Cash> cashList = apipClient.cashValid(this.userId,payValue,null,HttpRequestMethod.GET,AuthType.FREE);//apipClient.getCashes(apiUrl,this.userId,payValue);
         if(cashList==null|| cashList.isEmpty())return 0;
 
         List<SendTo> sendToList = new ArrayList<>();
@@ -822,8 +865,13 @@ public class ApiAccount {
         }
 
         log.debug("Paid for APIP service: " + payValue + " f to " + serviceParams.getAccount() + ". \nWait for confirmation for a few minutes.");
-//        log.debug("RawTx: " + txHex);
         log.debug("TxId: " + result);
+        while (apipClient.ping(Version2, HttpRequestMethod.POST,AuthType.FC_SIGN_BODY, null) == null) {
+            try {
+                TimeUnit.SECONDS.sleep(60);
+            } catch (InterruptedException ignore) {
+            }
+        }
         BytesTools.clearByteArray(priKey);
         if(payments==null)payments=new HashMap<>();
         payments.put(result,payValue);
@@ -834,10 +882,11 @@ public class ApiAccount {
     public ApipClient connectApip(ApiProvider apiProvider, byte[] symKey, BufferedReader br){
 
         if(client==null)client = new ApipClient(apiProvider,this,symKey);
-        if(!apiProvider.getType().equals(ApiType.APIP)){
+
+        if(!apiProvider.getType().equals(ServiceType.APIP)){
             System.out.println("It's not APIP provider.");
-            if(Inputer.askIfYes(br,"Reset the type of apiProvider to "+ ApiType.APIP+"?")){
-                apiProvider.setType(ApiType.APIP);
+            if(Inputer.askIfYes(br,"Reset the type of apiProvider to "+ ServiceType.APIP+"?")){
+                apiProvider.setType(ServiceType.APIP);
             }else return null;
             return null;
         }
@@ -859,19 +908,38 @@ public class ApiAccount {
         apipClient.setVia(via);
 
         byte[] sessionKey1 =
-                checkSessionKey(symKey, ApiNames.APIP0V1Path,apiProvider.getType());
+                checkSessionKey(symKey, apiProvider.getType());
 
         if(sessionKey1==null) {
             System.out.println("Failed to get the sessionKey of APIP service from "+apiUrl+". Only free APIs are available.");
         }else sessionKey = sessionKey1;
-        log.debug("Connected to the APIP service: " + providerId + " on " + apiUrl);
+        System.out.println("Connected to the APIP service: " + providerId + " on " + apiUrl);
 
         return apipClient;
     }
 
+    public static Double freshServiceMinPayment(ServiceType type, String apiUrl) {
+        FcReplier replier = null;
+        if(apiUrl==null)return null;
+        switch (type){
+            case APIP -> replier = Client.getService(apiUrl, Version2, ApipParams.class);
+            case DISK -> replier = Client.getService(apiUrl, Version1, DiskParams.class);
+        }
+        if(replier!=null && replier.getData()!=null){
+            Service service1 = (Service) replier.getData();
+            Params params = (Params) service1.getParams();
+            try {
+                if (params != null) {
+                    return Double.valueOf(params.getMinPayment());
+                }
+            }catch (Exception ignore){}
+        }
+        return null;
+    }
+
     public ApipClient connectApip(ApiProvider apiProvider, byte[] symKey){
 
-        if(!apiProvider.getType().equals(ApiType.APIP)){
+        if(!apiProvider.getType().equals(ServiceType.APIP)){
             log.error("It's not APIP provider.");
             return null;
         }
@@ -890,7 +958,7 @@ public class ApiAccount {
             apipClient = new ApipClient(apiProvider,this,symKey);
             client = apipClient;
         }
-        byte[] sessionKey1 = checkSessionKey(symKey, ApiNames.APIP0V1Path, apiProvider.getType());
+        byte[] sessionKey1 = checkSessionKey(symKey, apiProvider.getType());
 
         if(sessionKey1==null) return null;
         if(apipClient==null)return null;
@@ -906,13 +974,18 @@ public class ApiAccount {
 
 
     public boolean checkApipProvider(ApiProvider apiProvider,String apiUrl) {
-        FcReplier replier = ApipClient.getService(apiUrl,ApipParams.class, ApiNames.Version2);
+        FcReplier replier = ApipClient.getService(apiUrl, Version2, ApipParams.class);
         if(replier==null || replier.getData()==null) {
-            System.out.println("Failed to get APIP service from "+apiUrl);
             return false;
         }
         service = (Service) replier.getData();
         serviceParams = (ApipParams) service.getParams();
+
+        try {
+            if (serviceParams != null) {
+                this.minPayment = Double.valueOf(serviceParams.getMinPayment());
+            }
+        }catch (Exception ignore){}
 
         providerId = service.getSid();
         if(service.getUrls()!=null && service.getUrls().length>0)
@@ -927,67 +1000,65 @@ public class ApiAccount {
         return true;
     }
 
-    public <T> ApiProvider checkFcApiProvider(ApiProvider apiProvider,ApipClient apipClient,ApiType type,Class<T> paramsClass) {
-//        String apiUrl =apiProvider.getApiUrl();
-        Service service = apipClient.serviceById(apiProvider.getId());
+    public ApiProvider checkFcApiProvider(ApiProvider apiProvider, ServiceType type, Class<? extends Params> paramsClass, ApipClient apipClient) {
+        FcReplier result;
+        while(true) {
+            result = Client.getService(apiProvider.getApiUrl(), Version2, paramsClass);
+            if(result!=null && result.getData()!=null)break;
+            System.out.println("Update API provider from APIP service...");
+            Map<String, Service> serviceMap = apipClient.serviceByIds(HttpRequestMethod.POST, AuthType.FC_SIGN_BODY, apiProvider.getId());
+            if(serviceMap!=null){
+                service = serviceMap.get(apiProvider.getId());
+                apiProvider.fromFcService(service, Params.getParamsClassByApiType(type) );
+                result = Client.getService(apiProvider.getApiUrl(), Version2, paramsClass);
+                break;
+            }
+            return null;
+        }
+        Service service = (Service) result.getData();
         if(service==null)return null;
         this.service = service;
-        this.serviceParams = (Params) Params.getParamsFromService(service,paramsClass);
+        this.serviceParams = (Params) service.getParams();
+        try{
+            this.minPayment = Double.valueOf(this.serviceParams.getMinPayment());
+        }catch (Exception ignore){}
         this.providerId = service.getSid();
-        return ApiProvider.apiProviderFromFcService(service,type);
-    }
-
-    public boolean checkDiskProvider(ApiProvider apiProvider,String apiUrl,ApipClient apipClient) {
-        String sid = apiProvider.getId();
-        Service diskService = apipClient.serviceById(sid);//serviceMapByIds(new String[]{sid}).get(sid);
-        if(diskService==null) {
-            System.out.println("Failed to get disk service "+sid);
-            return false;
+        this.apiUrl = apiProvider.getApiUrl();
+        if(client!=null){
+            Client client1 = (Client) client;
+            client1.setUrlHead(this.apiUrl);
         }
-        service = diskService;
-        serviceParams = DiskParams.getParamsFromService(diskService);
-        sid = diskService.getSid();
-        if(diskService.getUrls()!=null && diskService.getUrls().length>0)
-            apiProvider.setOrgUrl(diskService.getUrls()[0]);
-        DiskParams diskParams = (DiskParams) serviceParams;
-        if(diskParams!=null && diskParams.getUrlHead()!=null)
-            apiUrl = diskParams.getUrlHead();
-        apiProvider.setOwner(diskService.getOwner());
-        apiProvider.setProtocols(diskService.getProtocols());
-        apiProvider.setTicks(new String[]{"fch"});
-
-        return true;
+        return apiProvider;
     }
 
-
-    private byte[] checkSessionKey(byte[] symKey, String signInPath,ApiType type) {
+    private byte[] checkSessionKey(byte[] symKey, ServiceType type) {
         if(this.session==null)this.session = new Session();
         if (this.session.getSessionKeyCipher()== null) {
-            this.sessionKey=freshSessionKey(symKey,signInPath,type, null);
+            this.sessionKey=freshSessionKey(symKey, type, null);
         } else {
             this.sessionKey =decryptSessionKey(session.getSessionKeyCipher(),symKey);
         }
         if (this.sessionKey==null) {
             return null;
         }
-//test the client
+        //test the client
         Client client1 = (Client) client;
 
         client1.setSessionKey(sessionKey);
-        boolean allowFreeRequest = client1.pingFree();
+        boolean allowFreeRequest = (boolean) client1.ping(Version2,HttpRequestMethod.GET,AuthType.FREE, type);
         ((Client) client).setAllowFreeRequest(allowFreeRequest);
-        Long rest = client1.ping();
+        Object rest = client1.ping(Version2,HttpRequestMethod.POST,AuthType.FC_SIGN_BODY, null);
         if(rest!=null){
-            log.info(rest+" KB/requests are available on "+ apiUrl);
+            System.out.println((Long)rest+" KB/requests are available on "+ apiUrl);
             return sessionKey;
         }
         else return null;
     }
 
-    private byte[] checkApipSessionKey(byte[] symKey, ApiType type) {
+    private byte[] checkApipSessionKey(byte[] symKey, ServiceType type) {
         if(this.session==null)this.session = new Session();
         if (this.session.getSessionKeyCipher()== null) {
-            this.sessionKey=freshSessionKey(symKey,ApiNames.APIP0V1Path,type, null);
+            this.sessionKey=freshSessionKey(symKey, type, null);
         } else {
             this.sessionKey =decryptSessionKey(session.getSessionKeyCipher(),symKey);
         }
@@ -1059,7 +1130,7 @@ public class ApiAccount {
 //        BytesTools.clearByteArray(priKey);
 //        return sessionKey;
 //    }
-    public byte[] freshSessionKey(byte[] symKey, String signInPath,ApiType type, RequestBody.SignInMode mode) {
+    public byte[] freshSessionKey(byte[] symKey, ServiceType type, RequestBody.SignInMode mode) {
         System.out.println("Fresh the sessionKey of the "+type+" service...");
 
         Session session;
@@ -1090,6 +1161,7 @@ public class ApiAccount {
 //        sessionKey = EccAes256K1P7.decryptJsonBytes(sessionKeyCipher,symKey);
 //        if(sessionKey==null) throw new RuntimeException("Decrypting sessionKey wrong.");
         this.sessionKey = Hex.fromHex(session.getSessionKey());
+
         session.setSessionKey(null);
 
 //
@@ -1143,7 +1215,7 @@ public class ApiAccount {
             if ("n".equals(input)) break;
             if ("y".equals(input)) {
                 inputPriKeyCipher(br, symKey);
-                sessionKey = freshSessionKey(symKey,ApiNames.APIP0V1Path, ApiType.APIP, null);
+                sessionKey = freshSessionKey(symKey, ServiceType.APIP, null);
                 if (sessionKey == null) return;
                 break;
             }
@@ -1195,7 +1267,7 @@ public class ApiAccount {
 
 
     public byte[] decryptUserPriKey(String cipher, byte[] symKey) {
-        System.out.println("Decrypt APIP buyer private key...");
+        log.debug("Decrypt APIP buyer private key...");
         CryptoDataByte cryptoDataByte = new Decryptor().decryptJsonBySymKey(cipher, symKey);
 
         if (cryptoDataByte.getCode() != 0) {

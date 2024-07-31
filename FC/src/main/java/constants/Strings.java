@@ -54,6 +54,7 @@ public class Strings {
     public static final String SESSION_DAYS = "sessionDays";
     public static final String SESSION_KEY = "sessionKey";
     public static final String PRICE_PER_K_BYTES = "pricePerKBytes";
+    public static final String PRICE_PER_K_BYTES_CARVE = "pricePerKBytesCarve";
     public static final String PRICE_PER_REQUEST = "pricePerRequest";
     public static final String BALANCE = "balance";
     public static final String REWARD = "reward";
